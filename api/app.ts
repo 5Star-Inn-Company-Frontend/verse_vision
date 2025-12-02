@@ -21,6 +21,7 @@ import lyricsRoutes from './routes/lyrics.js'
 import playlistsRoutes from './routes/playlists.js'
 import mediaRoutes from './routes/media.js'
 import aiRoutes from './routes/ai.js'
+import webrtcRoutes from './routes/webrtc.js'
 import { startVideoProcessor } from './services/videoProcessor.js'
 
 // for esm mode
@@ -49,6 +50,7 @@ app.use('/api/lyrics', lyricsRoutes)
 app.use('/api/playlists', playlistsRoutes)
 app.use('/api/media', mediaRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/webrtc', webrtcRoutes)
 app.use(express.static(path.resolve(__dirname, '../../dist')))
 app.get('*', (req: Request, res: Response) => {
   const p = path.resolve(__dirname, '../../dist/index.html')

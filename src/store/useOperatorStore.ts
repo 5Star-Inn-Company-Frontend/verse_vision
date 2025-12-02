@@ -69,6 +69,15 @@ type OperatorState = {
   activePlaylistItemPage: number
   nextActivePlaylistItemPage: () => void
   prevActivePlaylistItemPage: () => void
+  upsertCamera: (rec: { id: string; name?: string | null; previewPath?: string | null }) => void
+  updateCameraPreview: (id: string, previewPath: string) => void
+  updateCameraHeartbeat: (id: string) => void
+  liveStreams: Record<string, MediaStream | null>
+  setLiveStream: (id: string, stream: MediaStream | null) => void
+  iceServers: RTCIceServer[]
+  loadIceServers: () => Promise<void>
+  updateIceServers: (iceServers: RTCIceServer[]) => Promise<void>
+  loadCameras: () => Promise<void>
 }
 
 export const useOperatorStore = create<OperatorState>((set, get) => ({
@@ -235,4 +244,58 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   activePlaylistItemPage: 1,
   nextActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: s.activePlaylistItemPage + 1 })),
   prevActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: Math.max(1, s.activePlaylistItemPage - 1) })),
+  upsertCamera: (rec) => {
+    const url = rec.previewPath ? `/uploads/${rec.previewPath}` : ''
+    const cams = get().cameras
+    const idx = cams.findIndex((c) => c.id === rec.id)
+    if (idx >= 0) {
+      const prev = cams[idx]
+      const next = { ...prev, name: rec.name ?? prev.name, previewUrl: url || prev.previewUrl, connected: true }
+      set({ cameras: [...cams.slice(0, idx), next, ...cams.slice(idx + 1)] })
+    } else {
+      const added: Camera = { id: rec.id, name: rec.name || rec.id, battery: 100, signal: 4, connected: true, previewUrl: url || '', audioLevel: 0 }
+      set({ cameras: [added, ...cams] })
+    }
+  },
+  updateCameraPreview: (id, previewPath) => {
+    const url = `/uploads/${previewPath}`
+    set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, previewUrl: url, connected: true } : c)) })
+  },
+  updateCameraHeartbeat: (id) => {
+    set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, connected: true } : c)) })
+  },
+  liveStreams: {},
+  setLiveStream: (id, stream) => {
+    const next = { ...get().liveStreams }
+    next[id] = stream
+    set({ liveStreams: next })
+  },
+  iceServers: [],
+  loadIceServers: async () => {
+    const cfg = await api.getWebrtcConfig()
+    set({ iceServers: cfg.iceServers })
+  },
+  updateIceServers: async (iceServers) => {
+    const cfg = await api.setWebrtcConfig(iceServers)
+    set({ iceServers: cfg.iceServers })
+  },
+  loadCameras: async () => {
+    const list = await api.listCameras()
+    const cams = get().cameras
+    const map = new Map(cams.map((c) => [c.id, c]))
+    for (const rec of list) {
+      const prev = map.get(rec.id)
+      const nextUrl = rec.previewPath ? rec.previewPath : prev?.previewUrl || ''
+      map.set(rec.id, {
+        id: rec.id,
+        name: rec.name || prev?.name || rec.id,
+        battery: prev?.battery ?? 100,
+        signal: prev?.signal ?? 4,
+        connected: true,
+        previewUrl: nextUrl,
+        audioLevel: prev?.audioLevel ?? 0,
+      })
+    }
+    set({ cameras: Array.from(map.values()) })
+  },
 }))

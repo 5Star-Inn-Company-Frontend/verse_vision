@@ -15,6 +15,7 @@ export type AppSettings = {
   showScriptureOverlay?: boolean
   recordingEnabled?: boolean
   countdownEndAt?: number | null
+  iceServersJson?: string | null
 }
 
 const defaults: AppSettings = {
@@ -32,6 +33,7 @@ const defaults: AppSettings = {
   showScriptureOverlay: true,
   recordingEnabled: false,
   countdownEndAt: null,
+  iceServersJson: null,
 }
 
 export const settingsStore = {
@@ -57,6 +59,7 @@ export const settingsStore = {
       showScriptureOverlay: map.get('showScriptureOverlay') === 'true' ? true : defaults.showScriptureOverlay,
       recordingEnabled: map.get('recordingEnabled') === 'true' ? true : defaults.recordingEnabled,
       countdownEndAt: map.get('countdownEndAt') ? Number(map.get('countdownEndAt')) : null,
+      iceServersJson: (map.get('iceServersJson') as string) ?? defaults.iceServersJson ?? null,
     }
   },
   set: async (partial: Partial<AppSettings>): Promise<AppSettings> => {
@@ -78,6 +81,7 @@ export const settingsStore = {
       ['showScriptureOverlay', String(next.showScriptureOverlay ?? defaults.showScriptureOverlay)],
       ['recordingEnabled', String(next.recordingEnabled ?? false)],
       ['countdownEndAt', String(next.countdownEndAt ?? '')],
+      ['iceServersJson', String(next.iceServersJson ?? '')],
     ]
     for (const [k, v] of entries) {
       if (partial[k as keyof AppSettings] !== undefined) {

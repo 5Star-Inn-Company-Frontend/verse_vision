@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { subscribe } from '@/lib/bus'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import { connectToCamera } from '@/lib/webrtc'
 
 export default function SyncBridge() {
   useEffect(() => {
@@ -34,6 +35,17 @@ export default function SyncBridge() {
           translationEnabledIgbo?: boolean
           translationEnabledFrench?: boolean
         })
+      } else if (msg.name === 'cameraRegistered') {
+        const d = msg.data as { camera?: { id: string; name?: string; previewPath?: string | null } }
+        const cam = d.camera
+        if (cam?.id) {
+          s.upsertCamera({ id: cam.id, name: cam.name, previewPath: cam.previewPath })
+          void connectToCamera(cam.id)
+        }
+      } else if (msg.name === 'cameraHeartbeat') {
+        const d = msg.data as { camera?: { id: string } }
+        const cam = d.camera
+        if (cam?.id) { s.updateCameraHeartbeat(cam.id); void connectToCamera(cam.id) }
       }
     })
     return () => off()

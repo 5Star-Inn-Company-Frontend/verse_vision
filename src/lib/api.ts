@@ -70,6 +70,16 @@ export const api = {
     const json = await res.json()
     return json.data
   },
+  listCameras: async () => {
+    try {
+      const res = await fetch(`${BASE}/camera/list`)
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data as Array<{ id: string; name?: string | null; previewPath?: string | null }>
+    } catch {
+      return []
+    }
+  },
   listScenes: async () => {
     try {
       const res = await fetch(`${BASE}/scenes`)
@@ -156,6 +166,25 @@ export const api = {
     })
     const json = await res.json()
     return json.data
+  },
+  getWebrtcConfig: async () => {
+    try {
+      const res = await fetch(`${BASE.replace('/api','')}/api/webrtc/config`)
+      if (!res.ok) return { iceServers: [] as RTCIceServer[] }
+      const json = await res.json()
+      return json.data as { iceServers: RTCIceServer[] }
+    } catch {
+      return { iceServers: [] as RTCIceServer[] }
+    }
+  },
+  setWebrtcConfig: async (iceServers: RTCIceServer[]) => {
+    const res = await fetch(`${BASE.replace('/api','')}/api/webrtc/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ iceServers }),
+    })
+    const json = await res.json()
+    return json.data as { iceServers: RTCIceServer[] }
   },
   listPlaylists: async () => {
     try {

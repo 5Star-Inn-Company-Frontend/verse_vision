@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function ProgramPreview() {
-  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage } = useOperatorStore()
+  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams } = useOperatorStore()
   const cam = cameras.find((c) => c.id === primaryCameraId) || cameras[0]
   const prevCamId = useRef<string | null>(primaryCameraId)
   const [crossfade, setCrossfade] = useState(false)
@@ -49,7 +49,11 @@ export default function ProgramPreview() {
         <span className="opacity-75">{cam?.name}</span>
       </div>
       <div className="relative">
-        <img src={cam.previewUrl} alt={cam.name} className={`w-full aspect-video object-cover ${crossfade ? 'opacity-0 transition-opacity duration-300' : 'opacity-100 transition-opacity duration-300'}`} />
+        {liveStreams[cam.id] ? (
+          <VideoLive stream={liveStreams[cam.id]!} />
+        ) : (
+          <img src={cam.previewUrl} alt={cam.name} className={`w-full aspect-video object-cover ${crossfade ? 'opacity-0 transition-opacity duration-300' : 'opacity-100 transition-opacity duration-300'}`} />
+        )}
         {prevCamId.current && prevCamId.current !== primaryCameraId && (
           <img src={(cameras.find((c) => c.id === prevCamId.current) || cameras[0]).previewUrl} alt="prev" className={`w-full aspect-video object-cover absolute inset-0 ${crossfade ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
         )}
@@ -271,4 +275,14 @@ function LyricsText({ currentSongId, currentLineIndex }: { currentSongId: string
     return () => { mounted = false }
   }, [currentSongId, currentLineIndex])
   return <span className="text-sm">{text}</span>
+}
+function VideoLive({ stream }: { stream: MediaStream }) {
+  const ref = useRef<HTMLVideoElement | null>(null)
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    v.srcObject = stream
+    v.play().catch(() => {})
+  }, [stream])
+  return <video ref={ref} className="w-full aspect-video object-cover" muted />
 }
