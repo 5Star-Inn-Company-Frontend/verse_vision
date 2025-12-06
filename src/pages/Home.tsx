@@ -10,12 +10,14 @@ import PlaylistPanel from '@/components/PlaylistPanel'
 import UtilityPanel from '@/components/UtilityPanel'
 import KeyboardShortcuts from '@/components/KeyboardShortcuts'
 import SyncBridge from '@/components/SyncBridge'
+import AudioService from '@/components/AudioService'
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-neutral-900 text-gray-100">
       <KeyboardShortcuts />
       <SyncBridge />
+      <AudioService />
       <header className="px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
         <h1 className="text-lg font-semibold">VerseVision</h1>
         <div className="text-xs text-gray-400">Preview • Program • Status OK</div>

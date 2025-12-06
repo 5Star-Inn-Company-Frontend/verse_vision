@@ -78,6 +78,7 @@ type OperatorState = {
   loadIceServers: () => Promise<void>
   updateIceServers: (iceServers: RTCIceServer[]) => Promise<void>
   loadCameras: () => Promise<void>
+  setScriptureQueue: (queue: ScriptureItem[]) => void
 }
 
 export const useOperatorStore = create<OperatorState>((set, get) => ({
@@ -298,4 +299,5 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     }
     set({ cameras: Array.from(map.values()) })
   },
+  setScriptureQueue: (queue) => set({ scriptureQueue: queue }),
 }))

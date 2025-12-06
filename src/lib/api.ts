@@ -1,6 +1,25 @@
 const BASE = '/api'
 
 export const api = {
+  transcribe: async (audioBlob: Blob): Promise<{ text: string }> => {
+    const fd = new FormData()
+    fd.append('audio', audioBlob, 'audio.webm')
+    const res = await fetch(`${BASE}/ai/transcribe`, {
+      method: 'POST',
+      body: fd,
+    })
+    const json = await res.json()
+    return json.data
+  },
+  detectScripture: async (text: string) => {
+    const res = await fetch(`${BASE}/ai/scripture/detect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    const json = await res.json()
+    return json.data // returns { references, queue }
+  },
   getQueue: async () => {
     try {
       const res = await fetch(`${BASE}/scripture/queue`)
@@ -101,22 +120,6 @@ export const api = {
   },
   translate: async (text: string) => {
     const res = await fetch(`${BASE}/ai/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    })
-    const json = await res.json()
-    return json.data
-  },
-  transcribe: async (file: File) => {
-    const fd = new FormData()
-    fd.append('audio', file)
-    const res = await fetch(`${BASE}/ai/transcribe`, { method: 'POST', body: fd })
-    const json = await res.json()
-    return json.data
-  },
-  detectScriptureFromText: async (text: string) => {
-    const res = await fetch(`${BASE}/ai/scripture/detect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
