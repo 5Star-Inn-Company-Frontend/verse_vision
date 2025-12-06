@@ -8,8 +8,10 @@ export default function TranslationPanel() {
     translationEnabledHausa,
     translationEnabledIgbo,
     translationEnabledFrench,
+    translationEngine,
     loadSettings,
     updateTranslationSettings,
+    setTranslationEngine,
   } = useOperatorStore()
 
   useEffect(() => {
@@ -19,6 +21,20 @@ export default function TranslationPanel() {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <h3 className="text-sm font-semibold text-gray-100 mb-2">Translation</h3>
+      <div className="mb-2">
+        <label className="text-xs text-gray-300">Engine</label>
+        <div className="mt-1 flex gap-2">
+          {(['openai', 'marian'] as const).map((engine) => (
+            <button
+              key={engine}
+              className={`px-2 py-1 text-xs rounded ${translationEngine === engine ? 'bg-blue-600' : 'bg-gray-700'} text-white`}
+              onClick={() => setTranslationEngine(engine)}
+            >
+              {engine === 'openai' ? 'OpenAI' : 'Offline (MarianMT)'}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="mb-2">
         <label className="text-xs text-gray-300">Layout</label>
         <div className="mt-1 flex gap-2">

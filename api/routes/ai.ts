@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText } from '../services/ai/openai.js'
+import { translateTextMarian } from '../services/ai/marian.js'
 import { findReferencesRule } from '../services/ai/scriptureDetection.js'
 import { scriptureStore } from '../services/scriptureStore.js'
 
@@ -51,6 +52,9 @@ router.post('/scripture/detect', async (req: Request, res: Response) => {
   }
   const ruleRefs = findReferencesRule(text)
   const llmResult = await extractScriptureReferences(text)
+
+  console.log("ruleRefs",ruleRefs);
+  console.log("llmResult",llmResult);
   
   if (llmResult.defaultVersionChange) {
     globalDefaultVersion = llmResult.defaultVersionChange
@@ -89,13 +93,30 @@ router.post('/scripture/detect', async (req: Request, res: Response) => {
 })
 
 router.post('/translate', async (req: Request, res: Response) => {
-  const { text } = req.body || {}
+  const { text, engine } = req.body || {}
   if (!text) {
     res.status(400).json({ success: false, error: 'text required' })
     return
   }
-  const data = await translateTextParallel(text)
-  res.json({ success: true, data })
+  
+  try {
+    let data;
+    if (engine === 'marian') {
+      data = await translateTextMarian(text)
+    } else {
+      data = await translateTextParallel(text)
+    }
+    console.log(`translate source`,text);
+    console.log(`translate ${engine}`,data);
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('Translation error:', err)
+    // Fallback to OpenAI or return error?
+    // If user explicitly asked for marian and it failed, we should probably report it.
+    // But for robustness, maybe fallback?
+    // Let's just report error for now as fallback might cost money.
+    res.status(500).json({ success: false, error: 'Translation failed' })
+  }
 })
 
 export default router

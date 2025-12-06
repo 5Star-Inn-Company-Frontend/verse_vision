@@ -118,11 +118,11 @@ export const api = {
     const json = await res.json()
     return json.data
   },
-  translate: async (text: string) => {
+  translate: async (text: string, engine?: 'openai' | 'marian') => {
     const res = await fetch(`${BASE}/ai/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, engine }),
     })
     const json = await res.json()
     return json.data

@@ -70,9 +70,13 @@
       "dist/**",
       "api/dist/**",
       "electron/**",
+      "python/**",
       "package.json"
     ],
     "asar": true,
+    "asarUnpack": [
+      "python/**"
+    ],
     "win": {
       "target": [
         "nsis"
