@@ -5,6 +5,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText } from '../services/ai/openai.js'
 import { translateTextMarian } from '../services/ai/marian.js'
+import { offlineService } from '../services/ai/offline.js'
 import { findReferencesRule } from '../services/ai/scriptureDetection.js'
 import { scriptureStore } from '../services/scriptureStore.js'
 
@@ -28,10 +29,19 @@ router.post('/transcribe', upload.single('audio'), async (req: Request & { file?
   // Multer saves with no extension by default.
   const originalPath = req.file.path
   const targetPath = originalPath + '.webm'
+  const engine = req.body.engine || 'openai' // 'openai' | 'offline'
   
   try {
     fs.renameSync(originalPath, targetPath)
-    const text = await transcribeAudio(targetPath)
+    let text = ''
+    
+    if (engine === 'offline') {
+      console.log('Using offline transcription')
+      text = await offlineService.transcribe(targetPath)
+    } else {
+      text = await transcribeAudio(targetPath)
+    }
+    console.log('Transcription:', text);
     res.json({ success: true, data: { text } })
   } catch (err) {
     console.error('Transcription error:', err)
@@ -45,11 +55,33 @@ router.post('/transcribe', upload.single('audio'), async (req: Request & { file?
 })
 
 router.post('/scripture/detect', async (req: Request, res: Response) => {
-  const { text } = req.body || {}
+  const { text, engine } = req.body || {}
   if (!text) {
     res.status(400).json({ success: false, error: 'text required' })
     return
   }
+
+  if (engine === 'offline') {
+    console.log('Using offline detection')
+    try {
+      const results = await offlineService.detectScripture(text)
+      for (const item of results) {
+        await scriptureStore.detect({ 
+          reference: item.reference, 
+          translation: item.translation, 
+          text: item.text, 
+          confidence: 0.95 
+        })
+      }
+      const queue = await scriptureStore.getQueue()
+      res.json({ success: true, data: { references: results.map(r => ({ reference: r.reference, version: r.translation })), queue, currentVersion: 'KJV' } })
+    } catch (err) {
+      console.error('Offline detection error:', err)
+      res.status(500).json({ success: false, error: 'Offline detection failed' })
+    }
+    return
+  }
+
   const ruleRefs = findReferencesRule(text)
   const llmResult = await extractScriptureReferences(text)
 

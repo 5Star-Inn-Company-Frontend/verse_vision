@@ -1,9 +1,10 @@
 const BASE = '/api'
 
 export const api = {
-  transcribe: async (audioBlob: Blob): Promise<{ text: string }> => {
+  transcribe: async (audioBlob: Blob, engine: 'openai' | 'offline' = 'openai'): Promise<{ text: string }> => {
     const fd = new FormData()
     fd.append('audio', audioBlob, 'audio.webm')
+    fd.append('engine', engine)
     const res = await fetch(`${BASE}/ai/transcribe`, {
       method: 'POST',
       body: fd,
@@ -11,11 +12,11 @@ export const api = {
     const json = await res.json()
     return json.data
   },
-  detectScripture: async (text: string) => {
+  detectScripture: async (text: string, engine: 'openai' | 'offline' = 'openai') => {
     const res = await fetch(`${BASE}/ai/scripture/detect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, engine }),
     })
     const json = await res.json()
     return json.data // returns { references, queue }

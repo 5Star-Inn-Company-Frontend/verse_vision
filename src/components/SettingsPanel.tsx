@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function SettingsPanel() {
-  const { autoApproveEnabled, autoApproveDelayMs, loadSettings, updateSettings, iceServers, loadIceServers, updateIceServers } = useOperatorStore()
+  const { autoApproveEnabled, autoApproveDelayMs, loadSettings, updateSettings, iceServers, loadIceServers, updateIceServers, scriptureDetectionEngine, setScriptureDetectionEngine } = useOperatorStore()
   const [peers, setPeers] = useState<string[]>([])
   const [sessions, setSessions] = useState<Array<{ from: string; to: string; startedAt: number }>>([])
   const [iceText, setIceText] = useState('')
@@ -16,6 +16,23 @@ export default function SettingsPanel() {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <h3 className="text-sm font-semibold text-gray-100 mb-2">Settings</h3>
+      <div className="flex items-center justify-between mb-3">
+        <label className="text-xs text-gray-300">Detection Engine</label>
+        <div className="flex bg-gray-800 rounded p-0.5">
+          <button
+            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'openai' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setScriptureDetectionEngine('openai')}
+          >
+            Online (OpenAI)
+          </button>
+          <button
+            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'offline' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setScriptureDetectionEngine('offline')}
+          >
+            Offline (Local)
+          </button>
+        </div>
+      </div>
       <div className="flex items-center justify-between mb-3">
         <label className="text-xs text-gray-300">Auto-Approve</label>
         <button

@@ -3,7 +3,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { api } from '@/lib/api'
 
 export default function AudioService() {
-  const { activeAudioCameraId, liveStreams, setScriptureQueue } = useOperatorStore()
+  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine } = useOperatorStore()
   const processingRef = useRef(false)
   const sessionRef = useRef<string>('')
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -133,7 +133,7 @@ export default function AudioService() {
 
     try {
       // 1. Transcribe
-      const { text } = await api.transcribe(blob)
+      const { text } = await api.transcribe(blob, scriptureDetectionEngine)
       if (!text || text.trim().length < 5) {
         processingRef.current = false
         return
@@ -141,7 +141,7 @@ export default function AudioService() {
       console.log('[AudioService] Transcribed:', text)
 
       // 2. Detect
-      const { queue } = await api.detectScripture(text)
+      const { queue } = await api.detectScripture(text, scriptureDetectionEngine)
       
       // 3. Update Store
       if (queue) setScriptureQueue(queue)

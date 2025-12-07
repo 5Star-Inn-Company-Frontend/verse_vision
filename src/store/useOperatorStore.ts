@@ -34,6 +34,7 @@ type OperatorState = {
   translationEnabledIgbo: boolean
   translationEnabledFrench: boolean
   translationEngine: 'openai' | 'marian'
+  scriptureDetectionEngine: 'openai' | 'offline'
   showScriptureOverlay: boolean
   recordingEnabled: boolean
   countdownEndAt: number | null
@@ -53,6 +54,7 @@ type OperatorState = {
     translationEnabledFrench?: boolean
   }) => Promise<void>
   setTranslationEngine: (engine: 'openai' | 'marian') => void
+  setScriptureDetectionEngine: (engine: 'openai' | 'offline') => void
   activeAudioCameraId: string | null
   setActiveAudioCamera: (id: string) => Promise<void>
   translations: { Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }
@@ -132,7 +134,8 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   translationEnabledHausa: true,
   translationEnabledIgbo: true,
   translationEnabledFrench: true,
-  translationEngine: 'openai',
+  translationEngine: 'marian',
+  scriptureDetectionEngine: 'offline',
   showScriptureOverlay: true,
   recordingEnabled: false,
   countdownEndAt: null,
@@ -206,6 +209,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     publish('settings', { showScriptureOverlay: s.showScriptureOverlay })
   },
   setTranslationEngine: (engine) => set({ translationEngine: engine }),
+  setScriptureDetectionEngine: (engine) => set({ scriptureDetectionEngine: engine }),
   activeAudioCameraId: null,
   setActiveAudioCamera: async (id) => {
     const s = await api.updateSettings({ activeAudioCameraId: id })

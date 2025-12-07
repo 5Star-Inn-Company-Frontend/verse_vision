@@ -4,6 +4,7 @@ import path from 'path'
 class MarianService {
   private process: ChildProcess | null = null
   private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void }> = []
+  private buffer: string = ''
   
   constructor() {
     // Lazy start or auto start? Let's auto start to load models
@@ -17,15 +18,21 @@ class MarianService {
     this.process = spawn('python', [scriptPath])
 
     this.process.stdout?.on('data', (data) => {
-      const lines = data.toString().split('\n')
-      for (const line of lines) {
-        if (!line.trim()) continue
+      this.buffer += data.toString()
+      
+      let newlineIndex
+      while ((newlineIndex = this.buffer.indexOf('\n')) !== -1) {
+        const line = this.buffer.slice(0, newlineIndex).trim()
+        this.buffer = this.buffer.slice(newlineIndex + 1)
+        
+        if (!line) continue
+        
         try {
           const result = JSON.parse(line)
           const req = this.queue.shift()
           if (req) req.resolve(result)
         } catch (e) {
-          console.error('Marian Parse Error:', e)
+          console.error('Marian Parse Error:', e, 'Line:', line)
         }
       }
     })
