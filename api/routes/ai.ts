@@ -2,7 +2,6 @@ import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText } from '../services/ai/openai.js'
 import { translateTextMarian } from '../services/ai/marian.js'
 import { offlineService } from '../services/ai/offline.js'
@@ -10,9 +9,9 @@ import { findReferencesRule } from '../services/ai/scriptureDetection.js'
 import { scriptureStore } from '../services/scriptureStore.js'
 
 const router = Router()
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const tmpDir = path.resolve(__dirname, '../tmp')
+const tmpDir = process.env.VV_DATA_DIR
+  ? path.join(process.env.VV_DATA_DIR, 'tmp')
+  : path.resolve(__dirname, '../tmp')
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
 
 const upload = multer({ dest: tmpDir })

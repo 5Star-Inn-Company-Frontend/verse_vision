@@ -1,6 +1,7 @@
 
 import { spawn, type ChildProcess } from 'child_process'
 import path from 'path'
+import fs from 'fs'
 
 class OfflineService {
   private process: ChildProcess | null = null
@@ -12,7 +13,15 @@ class OfflineService {
   }
 
   private start() {
-    const scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
+    let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
+    
+    if (process.env.RESOURCES_PATH) {
+      const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'offline_server.py')
+      if (fs.existsSync(prodPath)) {
+        scriptPath = prodPath
+      }
+    }
+    
     console.log('Starting Offline AI service:', scriptPath)
     
     this.process = spawn('python', [scriptPath])

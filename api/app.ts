@@ -10,7 +10,6 @@ import express, {
 import cors from 'cors'
 import path from 'path'
 import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import scriptureRoutes from './routes/scripture.js'
 import settingsRoutes from './routes/settings.js'
@@ -23,10 +22,6 @@ import mediaRoutes from './routes/media.js'
 import aiRoutes from './routes/ai.js'
 import webrtcRoutes from './routes/webrtc.js'
 import { startVideoProcessor } from './services/videoProcessor.js'
-
-// for esm mode
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 // load env
 dotenv.config()
@@ -63,7 +58,11 @@ app.use(
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
     next()
   },
-  express.static(path.resolve(__dirname, '../uploads')),
+  express.static(
+    process.env.VV_DATA_DIR
+      ? path.join(process.env.VV_DATA_DIR, 'uploads')
+      : path.resolve(__dirname, '../uploads'),
+  ),
 )
 
 /**

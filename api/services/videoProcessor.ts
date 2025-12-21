@@ -1,11 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
-import { fileURLToPath } from 'url'
 import { videoStore } from './videoStore.js'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 function ensureDir(p: string) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true })
@@ -17,7 +13,9 @@ async function processJob(id: string) {
   await videoStore.update(id, { status: 'processing' })
   try {
     const ff = process.env.FFMPEG_PATH || 'ffmpeg'
-    const uploadsRoot = path.resolve(__dirname, '../uploads')
+    const uploadsRoot = process.env.VV_DATA_DIR
+      ? path.join(process.env.VV_DATA_DIR, 'uploads')
+      : path.resolve(__dirname, '../uploads')
     const outDir = path.resolve(uploadsRoot, 'hls', id)
     ensureDir(outDir)
     const inputAbs = path.resolve(uploadsRoot, job.inputPath.replace('/uploads/', ''))

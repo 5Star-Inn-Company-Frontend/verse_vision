@@ -3,14 +3,13 @@ import QRCode from 'qrcode'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { cameraStore } from '../services/cameraStore.js'
 import { broadcast } from '../services/wsBus.js'
 
 const router = Router()
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const cameraDir = path.resolve(__dirname, '../uploads/cameras')
+const cameraDir = process.env.VV_DATA_DIR
+  ? path.join(process.env.VV_DATA_DIR, 'uploads', 'cameras')
+  : path.resolve(__dirname, '../uploads/cameras')
 if (!fs.existsSync(cameraDir)) fs.mkdirSync(cameraDir, { recursive: true })
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, cameraDir),

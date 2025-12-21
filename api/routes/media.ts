@@ -2,13 +2,12 @@ import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'url'
 import { videoStore } from '../services/videoStore.js'
 
 const router = Router()
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const uploadDir = path.resolve(__dirname, '../uploads')
+const uploadDir = process.env.VV_DATA_DIR
+  ? path.join(process.env.VV_DATA_DIR, 'uploads')
+  : path.resolve(__dirname, '../uploads')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
 const storage = multer.diskStorage({

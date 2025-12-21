@@ -42,7 +42,7 @@ async function seedIfEmpty() {
   }
 }
 
-await seedIfEmpty()
+void seedIfEmpty()
 
 export const scriptureStore = {
   getQueue: async (): Promise<ScriptureItem[]> => {
