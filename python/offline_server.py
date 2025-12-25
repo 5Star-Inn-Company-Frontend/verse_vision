@@ -4,16 +4,35 @@ import json
 import os
 import re
 import requests
+import difflib
 from faster_whisper import WhisperModel
 
 # Configuration
 MODEL_SIZE = "base" # Reverted to base as small requires download and we are offline
-BIBLE_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "bible_kjv.json")
-BIBLE_URL = "https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_kjv.json"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+
+BIBLE_CONFIG = {
+    'kjv': {
+        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_kjv.json',
+        'path': os.path.join(DATA_DIR, 'bible_kjv.json'),
+        'name': 'King James Version'
+    },
+    'bbe': {
+        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_bbe.json',
+        'path': os.path.join(DATA_DIR, 'bible_bbe.json'),
+        'name': 'Bible in Basic English'
+    },
+    'fr': {
+        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/fr_apee.json',
+        'path': os.path.join(DATA_DIR, 'bible_fr.json'),
+        'name': 'French Bible (Epee)'
+    }
+}
 
 # Globals
 model = None
-bible_data = []
+bible_versions = {}
+default_version = 'kjv'
 
 def load_whisper():
     global model
@@ -26,29 +45,40 @@ def load_whisper():
         print(f"Error loading Whisper: {e}", file=sys.stderr)
 
 def load_bible():
-    global bible_data
-    if not os.path.exists(BIBLE_JSON_PATH):
-        print("Downloading KJV Bible database...", file=sys.stderr)
-        try:
-            os.makedirs(os.path.dirname(BIBLE_JSON_PATH), exist_ok=True)
-            response = requests.get(BIBLE_URL)
-            if response.status_code == 200:
-                with open(BIBLE_JSON_PATH, 'wb') as f:
-                    f.write(response.content)
-                print("Bible database downloaded.", file=sys.stderr)
-            else:
-                print(f"Failed to download Bible: {response.status_code}", file=sys.stderr)
-                return
-        except Exception as e:
-            print(f"Error downloading Bible: {e}", file=sys.stderr)
-            return
-
+    global bible_versions
+    
+    # Ensure data directory exists
     try:
-        with open(BIBLE_JSON_PATH, 'r', encoding='utf-8-sig') as f:
-            bible_data = json.load(f)
-        print(f"Bible database loaded ({len(bible_data)} books).", file=sys.stderr)
+        os.makedirs(DATA_DIR, exist_ok=True)
     except Exception as e:
-        print(f"Error loading Bible JSON: {e}", file=sys.stderr)
+        print(f"Error creating data directory: {e}", file=sys.stderr)
+
+    for key, config in BIBLE_CONFIG.items():
+        path = config['path']
+        url = config['url']
+        
+        if not os.path.exists(path):
+            print(f"Downloading {config['name']}...", file=sys.stderr)
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    with open(path, 'wb') as f:
+                        f.write(response.content)
+                    print(f"Downloaded {key}.", file=sys.stderr)
+                else:
+                    print(f"Failed to download {key}: {response.status_code}", file=sys.stderr)
+                    continue
+            except Exception as e:
+                print(f"Error downloading {key}: {e}", file=sys.stderr)
+                continue
+
+        try:
+            with open(path, 'r', encoding='utf-8-sig') as f:
+                data = json.load(f)
+                bible_versions[key] = data
+            print(f"Loaded {config['name']} ({len(data)} books).", file=sys.stderr)
+        except Exception as e:
+            print(f"Error loading {key}: {e}", file=sys.stderr)
 
 def transcribe(file_path):
     if not model:
@@ -70,7 +100,7 @@ def transcribe(file_path):
             beam_size=5, 
             language="en",
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=1000)
+            vad_parameters=dict(min_silence_duration_ms=500)
         )
         
         print(f"Detected language '{info.language}' with probability {info.language_probability}", file=sys.stderr)
@@ -81,6 +111,9 @@ def transcribe(file_path):
             text_segments.append(segment.text)
             
         text = " ".join(text_segments)
+        if not text.strip():
+            print("WARNING: Transcription returned empty text. Audio might be silent or VAD filtered it out.", file=sys.stderr)
+            
         print(f"Offline text '{text}'", file=sys.stderr)
         return text.strip()
     except Exception as e:
@@ -89,33 +122,80 @@ def transcribe(file_path):
         traceback.print_exc(file=sys.stderr)
         return ""
 
-def find_book(name):
-    # Simple fuzzy-ish match: startswith or exact
-    name_lower = name.lower()
-    for book in bible_data:
-        if book['name'].lower() == name_lower or book['name'].lower().startswith(name_lower):
+def find_book_fuzzy(name, version_key='kjv'):
+    if version_key not in bible_versions:
+        return None
+        
+    books = bible_versions[version_key]
+    name_lower = name.lower().strip()
+    
+    # 1. Exact match (fast)
+    for book in books:
+        if book['name'].lower() == name_lower:
             return book
-        # Handle common abbreviations could go here
+            
+    # 2. Starts with (common for abbreviations like "Gen")
+    for book in books:
+        if book['name'].lower().startswith(name_lower):
+            return book
+            
+    # 3. Fuzzy match (using difflib)
+    # Collect all book names
+    book_names = [b['name'] for b in books]
+    # Get closest match
+    matches = difflib.get_close_matches(name, book_names, n=1, cutoff=0.6)
+    
+    if matches:
+        match_name = matches[0]
+        # Find the book object again
+        for book in books:
+            if book['name'] == match_name:
+                print(f"Fuzzy match: '{name}' -> '{match_name}'", file=sys.stderr)
+                return book
+                
     return None
 
 def extract_references(text):
-    # Regex for "Book Chapter:Verse", "Book Chapter Verse", "Book Chapter v Verse", "Book Chapter verse Verse"
-    # Example: "John 3:16", "Genesis 1 1", "Genesis 1 verse 1", "John 3 v 16"
-    # Group 1: Book (e.g., "John", "1 Peter")
+    # Detect version switch request
+    target_version = default_version
+    
+    version_patterns = {
+        'kjv': [r'\bkjv\b', r'\bking james\b'],
+        'bbe': [r'\bbbe\b', r'\bbasic english\b'],
+        'fr': [r'\bfrench\b', r'\bfrançais\b', r'\bfrancais\b']
+    }
+    
+    for v_key, patterns in version_patterns.items():
+        for p in patterns:
+            # Check if p is a list (should be a regex string from above, but I iterated values)
+            # patterns is the list of regexes
+            if re.search(p, text, re.IGNORECASE):
+                target_version = v_key
+                print(f"Detected version switch to: {target_version}", file=sys.stderr)
+                break
+    
+    # Improved Regex:
+    # Matches: "John 3:16", "1 John 3 16", "Song of Solomon 2 verse 4", "Genesis Chapter 1 v 1"
+    # Group 1: Book Name (allow spaces)
     # Group 2: Chapter
     # Group 3: Verse Start
     # Group 4: Verse End (Optional)
-    pattern = r'\b([1-3]?\s?[A-Za-z]+)\s+(\d+)(?:\s*[:v]|\s+verse\s+|\s)(\d+)(?:-(\d+))?\b'
+    pattern = r'\b((?:[1-3]\s)?(?:[A-Za-z]+(?:\s[A-Za-z]+)*))\s+(?:chapter\s+)?(\d+)\s*(?:[:v]|\s+verse\s+|\s)\s*(\d+)(?:-(\d+))?\b'
     
-    # Case insensitive search
     matches = re.findall(pattern, text, re.IGNORECASE)
     
-    print(f"Detecting references in: '{text}' found {len(matches)} matches", file=sys.stderr)
+    print(f"Detecting references in: '{text}' found {len(matches)} matches (Version: {target_version})", file=sys.stderr)
     
     results = []
     for match in matches:
-        book_name, chapter_num, verse_start, verse_end = match
-        book = find_book(book_name.strip())
+        book_candidate, chapter_num, verse_start, verse_end = match
+        book_candidate = book_candidate.strip()
+        
+        # Heuristic to skip common non-book words that match the pattern (e.g. "Page 1 2")
+        if book_candidate.lower() in ['page', 'chapter', 'verse', 'number', 'item', 'part', 'section']:
+            continue
+            
+        book = find_book_fuzzy(book_candidate, target_version)
         if not book:
             continue
             
@@ -128,16 +208,9 @@ def extract_references(text):
         start = int(verse_start) - 1
         end = int(verse_end) if verse_end else start + 1
         
-        # Adjust for 0-based index vs 1-based verse numbers
-        # The JSON structure usually is chapters -> array of verses (strings)
-        # Verify JSON structure: usually chapters is array of array of strings?
-        # Let's assume structure from thiagobodruk/bible:
-        # [ { "abbrev": "gn", "chapters": [ [ "In the beginning...", ... ], ... ], "name": "Genesis" }, ... ]
-        
         verses_text = []
         if start < 0: start = 0
         
-        # Handle verse retrieval
         try:
             current_chapter = chapter # List of verses
             for i in range(start, end):
@@ -155,7 +228,7 @@ def extract_references(text):
             results.append({
                 "reference": ref_string,
                 "text": " ".join(verses_text),
-                "translation": "KJV"
+                "translation": target_version.upper()
             })
             
     return results

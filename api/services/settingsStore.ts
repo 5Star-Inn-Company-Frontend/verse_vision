@@ -16,6 +16,8 @@ export type AppSettings = {
   recordingEnabled?: boolean
   countdownEndAt?: number | null
   iceServersJson?: string | null
+  translationEngine?: 'openai' | 'marian'
+  scriptureDetectionEngine?: 'openai' | 'offline'
 }
 
 const defaults: AppSettings = {
@@ -34,6 +36,8 @@ const defaults: AppSettings = {
   recordingEnabled: false,
   countdownEndAt: null,
   iceServersJson: null,
+  translationEngine: 'marian',
+  scriptureDetectionEngine: 'offline',
 }
 
 export const settingsStore = {
@@ -60,6 +64,8 @@ export const settingsStore = {
       recordingEnabled: map.get('recordingEnabled') === 'true' ? true : defaults.recordingEnabled,
       countdownEndAt: map.get('countdownEndAt') ? Number(map.get('countdownEndAt')) : null,
       iceServersJson: (map.get('iceServersJson') as string) ?? defaults.iceServersJson ?? null,
+      translationEngine: (map.get('translationEngine') as AppSettings['translationEngine']) ?? defaults.translationEngine,
+      scriptureDetectionEngine: (map.get('scriptureDetectionEngine') as AppSettings['scriptureDetectionEngine']) ?? defaults.scriptureDetectionEngine,
     }
   },
   set: async (partial: Partial<AppSettings>): Promise<AppSettings> => {
@@ -82,6 +88,8 @@ export const settingsStore = {
       ['recordingEnabled', String(next.recordingEnabled ?? false)],
       ['countdownEndAt', String(next.countdownEndAt ?? '')],
       ['iceServersJson', String(next.iceServersJson ?? '')],
+      ['translationEngine', String(next.translationEngine ?? defaults.translationEngine)],
+      ['scriptureDetectionEngine', String(next.scriptureDetectionEngine ?? defaults.scriptureDetectionEngine)],
     ]
     for (const [k, v] of entries) {
       if (partial[k as keyof AppSettings] !== undefined) {

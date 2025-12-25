@@ -7,6 +7,7 @@ let cachedConfig: RTCConfiguration | null = null
 const peers = new Map<string, RTCPeerConnection>()
 
 function sigUrl(): string {
+  if (window.location.protocol === 'file:') return 'ws://localhost:3001/ws'
   const u = new URL(window.location.href)
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'
   u.pathname = '/ws'
@@ -15,27 +16,47 @@ function sigUrl(): string {
   return u.toString()
 }
 
-function ensureWs(): void {
-  if (ws && ws.readyState === WebSocket.OPEN) return
-  ws = new WebSocket(sigUrl())
-  ws.addEventListener('open', () => {
-    const id = localStorage.getItem('peerId') || `operator-${Math.random().toString(36).slice(2, 8)}`
-    localStorage.setItem('peerId', id)
-    ws?.send(JSON.stringify({ type: 'register', id }))
-  })
-  ws.addEventListener('message', (ev) => {
-    const msg = JSON.parse(String(ev.data)) as SigMsg
-    if (msg.type === 'answer' && msg.from && msg.sdp) {
-      const pc = peers.get(msg.from)
-      if (pc) void pc.setRemoteDescription(msg.sdp)
-    } else if (msg.type === 'candidate' && msg.from && msg.candidate) {
-      const pc = peers.get(msg.from)
-      if (pc) void pc.addIceCandidate(msg.candidate)
+function ensureWs(): Promise<void> {
+  console.log('samji ws ensureWs')
+  return new Promise((resolve) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      resolve()
+      return
+    }
+
+    if (!ws || ws.readyState === WebSocket.CLOSED) {
+      ws = new WebSocket(sigUrl())
+      
+      const onOpen = () => {
+        console.log('samji ws onOpen')
+        const id = localStorage.getItem('peerId') || `operator-${Math.random().toString(36).slice(2, 8)}`
+        localStorage.setItem('peerId', id)
+        ws?.send(JSON.stringify({ type: 'register', id }))
+        resolve()
+      }
+      
+      ws.addEventListener('open', onOpen)
+      
+      ws.addEventListener('message', (ev) => {
+        const msg = JSON.parse(String(ev.data)) as SigMsg
+        console.log('samji ws onmessage',msg)
+        if (msg.type === 'answer' && msg.from && msg.sdp) {
+          const pc = peers.get(msg.from)
+          if (pc) void pc.setRemoteDescription(msg.sdp)
+        } else if (msg.type === 'candidate' && msg.from && msg.candidate) {
+          const pc = peers.get(msg.from)
+          if (pc) void pc.addIceCandidate(msg.candidate)
+        }
+      })
+    } else {
+      // Already connecting, just wait
+      ws.addEventListener('open', () => resolve())
     }
   })
 }
 
 function send(to: string, payload: Omit<SigMsg, 'to'>): void {
+  console.log('samji ws sending')
   if (!ws || ws.readyState !== WebSocket.OPEN) return
   const from = localStorage.getItem('peerId') || ''
   const msg = { ...payload, to, from }
@@ -43,11 +64,14 @@ function send(to: string, payload: Omit<SigMsg, 'to'>): void {
 }
 
 export async function connectToCamera(id: string): Promise<void> {
-  ensureWs()
+  console.log("samji connectToCamera",id)
+  await ensureWs()
+  console.log("samji Passed ensureWs",id)
   if (!cachedConfig) {
     try {
       const res = await fetch('/api/webrtc/config')
       const json = await res.json()
+      console.log("samji json",json);
       const iceServers = (json?.data?.iceServers || []) as RTCIceServer[]
       cachedConfig = { iceServers }
     } catch { cachedConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } }
@@ -79,4 +103,10 @@ export function disconnectCamera(id: string): void {
   }
   const store = useOperatorStore.getState()
   store.setLiveStream(id, null)
+  // inform remote peer and backend
+  send(id, { type: 'disconnect' })
+  try {
+    void fetch(`/api/camera/${id}`, { method: 'DELETE' })
+  } catch (e) { void e }
+  store.removeCamera(id)
 }

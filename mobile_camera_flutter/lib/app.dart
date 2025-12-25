@@ -42,7 +42,12 @@ class _PairAndPreviewPageState extends State<PairAndPreviewPage> {
     Widget body;
     switch (svc.current) {
       case AppScreen.welcome:
-        body = WelcomeScreen(onConnect: () => svc.setScreen(AppScreen.qr), onSettings: () => svc.setScreen(AppScreen.settings));
+        body = WelcomeScreen(
+          onConnect: () => svc.setScreen(AppScreen.qr), 
+          onSettings: () => svc.setScreen(AppScreen.settings),
+          hasSaved: svc.hasSaved,
+          onReconnect: () => svc.connectSaved(),
+        );
         break;
       case AppScreen.qr:
         body = QRScreen(service: svc);

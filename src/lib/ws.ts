@@ -2,6 +2,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { connectToCamera } from '@/lib/webrtc'
 
 function url(): string {
+  if (window.location.protocol === 'file:') return 'ws://localhost:3001/ws'
   const u = new URL(window.location.href)
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'
   u.pathname = '/ws'
@@ -34,6 +35,8 @@ export function startWs(): void {
           if (!connected.has(msg.camera.id)) { connected.add(msg.camera.id); void connectToCamera(msg.camera.id) }
         } else if (msg.type === 'cameraFrame' && msg.cameraId && msg.previewPath) {
           store.updateCameraPreview(msg.cameraId, msg.previewPath)
+        } else if (msg.type === 'cameraRemoved' && msg.cameraId) {
+          store.removeCamera(msg.cameraId)
         }
       } catch (e) { void e }
     })

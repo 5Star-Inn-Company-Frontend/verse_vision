@@ -53,8 +53,8 @@ type OperatorState = {
     translationEnabledIgbo?: boolean
     translationEnabledFrench?: boolean
   }) => Promise<void>
-  setTranslationEngine: (engine: 'openai' | 'marian') => void
-  setScriptureDetectionEngine: (engine: 'openai' | 'offline') => void
+  setTranslationEngine: (engine: 'openai' | 'marian') => Promise<void>
+  setScriptureDetectionEngine: (engine: 'openai' | 'offline') => Promise<void>
   activeAudioCameraId: string | null
   setActiveAudioCamera: (id: string) => Promise<void>
   translations: { Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }
@@ -76,6 +76,7 @@ type OperatorState = {
   upsertCamera: (rec: { id: string; name?: string | null; previewPath?: string | null }) => void
   updateCameraPreview: (id: string, previewPath: string) => void
   updateCameraHeartbeat: (id: string) => void
+  removeCamera: (id: string) => void
   liveStreams: Record<string, MediaStream | null>
   setLiveStream: (id: string, stream: MediaStream | null) => void
   iceServers: RTCIceServer[]
@@ -88,43 +89,16 @@ type OperatorState = {
 export const useOperatorStore = create<OperatorState>((set, get) => ({
   cameras: [
     {
-      id: 'cam-1',
-      name: 'Pulpit Close-up',
-      battery: 82,
+      id: 'cam-default',
+      name: 'Default',
+      battery: 0,
       signal: 4,
       connected: true,
       previewUrl: 'https://trae-api-sg.mchost.guru/api/ide/v1/text_to_image?prompt=A%20smartphone%20camera%20preview%20frame%20of%20a%20church%20pulpit%20with%20a%20speaker%20in%20soft%20studio%20lighting%2C%20bokeh%20background%2C%20broadcast%20look%20%2D%20clean%20composition%20and%20subtle%20grid%20overlays%2C%20photorealistic%20style%2C%20SDXL&image_size=landscape_16_9',
-      audioLevel: 36,
-    },
-    {
-      id: 'cam-2',
-      name: 'Wide Angle',
-      battery: 65,
-      signal: 3,
-      connected: true,
-      previewUrl: 'https://trae-api-sg.mchost.guru/api/ide/v1/text_to_image?prompt=A%20wide%20angle%20view%20of%20a%20church%20sanctuary%20with%20congregation%2C%20natural%20lighting%2C%20balanced%20colors%2C%20broadcast%20preview%20frame%20with%20grid%20overlay%2C%20photorealistic%20SDXL%20style&image_size=landscape_16_9',
-      audioLevel: 22,
-    },
-    {
-      id: 'cam-3',
-      name: 'Choir',
-      battery: 58,
-      signal: 2,
-      connected: true,
-      previewUrl: 'https://trae-api-sg.mchost.guru/api/ide/v1/text_to_image?prompt=A%20close%20view%20of%20a%20choir%20on%20stage%20singing%2C%20warm%20lighting%2C%20broadcast%20preview%20frame%20with%20alignment%20grid%2C%20photorealistic%20SDXL&image_size=landscape_16_9',
-      audioLevel: 18,
-    },
-    {
-      id: 'cam-4',
-      name: 'Audience',
-      battery: 74,
-      signal: 4,
-      connected: true,
-      previewUrl: 'https://trae-api-sg.mchost.guru/api/ide/v1/text_to_image?prompt=Audience%20seating%20area%20in%20a%20church%20sanctuary%2C%20subtle%20grid%20overlay%2C%20clean%20broadcast%20preview%20frame%2C%20photorealistic%20SDXL&image_size=landscape_16_9',
-      audioLevel: 12,
-    },
+      audioLevel: 0,
+    }
   ],
-  primaryCameraId: 'cam-1',
+  primaryCameraId: 'cam-default',
   scriptureQueue: [],
   currentScripture: null,
   autoApproveEnabled: false,
@@ -186,6 +160,8 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEnabledFrench: s.translationEnabledFrench ?? get().translationEnabledFrench,
       recordingEnabled: s.recordingEnabled ?? get().recordingEnabled,
       countdownEndAt: s.countdownEndAt ?? get().countdownEndAt,
+      scriptureDetectionEngine: s.scriptureDetectionEngine ?? get().scriptureDetectionEngine,
+      translationEngine: s.translationEngine ?? get().translationEngine,
     })
   },
   updateSettings: async (patch) => {
@@ -208,8 +184,14 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     set({ showScriptureOverlay: s.showScriptureOverlay })
     publish('settings', { showScriptureOverlay: s.showScriptureOverlay })
   },
-  setTranslationEngine: (engine) => set({ translationEngine: engine }),
-  setScriptureDetectionEngine: (engine) => set({ scriptureDetectionEngine: engine }),
+  setTranslationEngine: async (engine) => {
+    const s = await api.updateSettings({ translationEngine: engine })
+    set({ translationEngine: s.translationEngine as 'openai' | 'marian' })
+  },
+  setScriptureDetectionEngine: async (engine) => {
+    const s = await api.updateSettings({ scriptureDetectionEngine: engine })
+    set({ scriptureDetectionEngine: s.scriptureDetectionEngine as 'openai' | 'offline' })
+  },
   activeAudioCameraId: null,
   setActiveAudioCamera: async (id) => {
     const s = await api.updateSettings({ activeAudioCameraId: id })
@@ -254,7 +236,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   nextActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: s.activePlaylistItemPage + 1 })),
   prevActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: Math.max(1, s.activePlaylistItemPage - 1) })),
   upsertCamera: (rec) => {
-    const url = rec.previewPath ? `/uploads/${rec.previewPath}` : ''
+    const url = rec.previewPath ? (rec.previewPath.startsWith('/uploads') ? rec.previewPath : `/uploads/${rec.previewPath}`) : ''
     const cams = get().cameras
     const idx = cams.findIndex((c) => c.id === rec.id)
     if (idx >= 0) {
@@ -267,11 +249,14 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     }
   },
   updateCameraPreview: (id, previewPath) => {
-    const url = `/uploads/${previewPath}`
+    const url = previewPath.startsWith('/uploads') ? previewPath : `/uploads/${previewPath}`
     set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, previewUrl: url, connected: true } : c)) })
   },
   updateCameraHeartbeat: (id) => {
     set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, connected: true } : c)) })
+  },
+  removeCamera: (id) => {
+    set({ cameras: get().cameras.filter((c) => c.id !== id) })
   },
   liveStreams: {},
   setLiveStream: (id, stream) => {

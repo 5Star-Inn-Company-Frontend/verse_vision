@@ -3,7 +3,17 @@ import 'package:flutter/material.dart';
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onConnect;
   final VoidCallback onSettings;
-  const WelcomeScreen({super.key, required this.onConnect, required this.onSettings});
+  final VoidCallback? onReconnect;
+  final bool hasSaved;
+
+  const WelcomeScreen({
+    super.key, 
+    required this.onConnect, 
+    required this.onSettings,
+    this.onReconnect,
+    this.hasSaved = false,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -14,7 +24,17 @@ class WelcomeScreen extends StatelessWidget {
         const SizedBox(height: 16),
         const Text('High-quality mobile streaming to VerseVision'),
         const SizedBox(height: 24),
-        ElevatedButton(onPressed: onConnect, child: const Text('Connect to Platform')),
+        if (hasSaved && onReconnect != null) ...[
+          ElevatedButton(
+            onPressed: onReconnect,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, foregroundColor: Colors.white),
+            child: const Text('Start Camera Feed'),
+          ),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onConnect, child: const Text('Scan New Code')),
+        ] else ...[
+          ElevatedButton(onPressed: onConnect, child: const Text('Connect to Platform')),
+        ],
         const SizedBox(height: 8),
         OutlinedButton(onPressed: onSettings, child: const Text('Settings')),
       ]),

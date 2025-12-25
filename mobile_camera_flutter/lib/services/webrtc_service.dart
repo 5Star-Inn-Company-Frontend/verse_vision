@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppScreen { welcome, qr, connecting, connected, camera, lock, settings }
 
@@ -31,8 +32,42 @@ class WebRTCService extends ChangeNotifier {
   String connectionType = 'Unknown';
   Timer? statusTimer;
 
+  bool _hasSaved = false;
+  bool get hasSaved => _hasSaved;
+
   WebRTCService() {
     renderer.initialize();
+    _loadSaved();
+  }
+
+  Future<void> _loadSaved() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('server');
+      final t = prefs.getString('token');
+      final d = prefs.getString('deviceId');
+      final n = prefs.getString('name');
+      if (s != null && s.isNotEmpty && t != null && t.isNotEmpty) {
+        server = s;
+        token = t;
+        if (d != null) deviceId = d;
+        if (n != null) name = n;
+        _hasSaved = true;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveConnection() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('server', server);
+      await prefs.setString('token', token);
+      await prefs.setString('deviceId', deviceId);
+      await prefs.setString('name', name);
+      _hasSaved = true;
+      notifyListeners();
+    } catch (_) {}
   }
 
   @override
@@ -57,6 +92,14 @@ class WebRTCService extends ChangeNotifier {
       final res = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: jsonEncode({'token': token, 'deviceId': deviceId, 'name': name}));
       if (res.statusCode >= 200 && res.statusCode < 300) {
         print("samji Pairing successful");
+        print(res.body);
+        try {
+          final obj = jsonDecode(res.body);
+          final data = obj is Map ? obj['data'] : null;
+          if (data is Map && data['id'] is String) {
+            deviceId = data['id'] as String;
+          }
+        } catch (_) {}
         paired = true;
         _startHeartbeat();
         await _ensureWs();
@@ -230,13 +273,20 @@ class WebRTCService extends ChangeNotifier {
       }
     }
     if (scannedToken == null && text.isNotEmpty) scannedToken = text.trim();
-    //ToDo: Uncomment this when going to live
-    // if (scannedServer != null) server = scannedServer;
+    if (scannedServer != null) server = scannedServer;
     if (scannedToken != null) token = scannedToken;
     if (scannedDeviceId != null) deviceId = scannedDeviceId;
     if (scannedName != null) name = scannedName;
+    _saveConnection();
     notifyListeners();
     if (!paired && server.isNotEmpty && token.isNotEmpty) {
+      setScreen(AppScreen.connecting);
+      pair();
+    }
+  }
+
+  void connectSaved() {
+    if (_hasSaved && !paired) {
       setScreen(AppScreen.connecting);
       pair();
     }

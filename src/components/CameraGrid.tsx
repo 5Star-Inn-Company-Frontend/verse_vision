@@ -3,7 +3,10 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { connectToCamera, disconnectCamera } from '@/lib/webrtc'
 
 export default function CameraGrid() {
-  const { cameras, setPrimaryCamera, activeAudioCameraId, setActiveAudioCamera, liveStreams } = useOperatorStore()
+  const { cameras, setPrimaryCamera, activeAudioCameraId, setActiveAudioCamera, liveStreams, loadCameras } = useOperatorStore()
+  useEffect(() => {
+    void loadCameras()
+  }, [loadCameras])
   return (
     <div className="h-full w-full bg-gray-900 rounded-lg border border-gray-700 p-3">
       <div className="flex items-center justify-between mb-2">
@@ -15,7 +18,7 @@ export default function CameraGrid() {
           <div key={cam.id} onClick={() => { setPrimaryCamera(cam.id); }} role="button" tabIndex={0} className="group relative bg-black rounded overflow-hidden border border-gray-700 cursor-pointer">
             <CamPreview stream={liveStreams[cam.id]} fallback={cam.previewUrl} name={cam.name} />
             <div className="absolute top-1 left-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">
-              {cam.name}
+              {cam.id}
             </div>
             <div className="absolute bottom-1 right-1 bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded">
               🔊 {cam.audioLevel}
@@ -35,13 +38,15 @@ export default function CameraGrid() {
               >
                 Connect Live
               </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); disconnectCamera(cam.id) }}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-white"
-              >
-                Disconnect
-              </button>
+              {cam.id !== 'cam-default' && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); disconnectCamera(cam.id) }}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-white"
+                >
+                  Disconnect
+                </button>
+              )}
             </div>
           </div>
         ))}

@@ -40,7 +40,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request & { file?
     } else {
       text = await transcribeAudio(targetPath)
     }
-    console.log('Transcription:', text);
+    console.log(`${engine} Transcription:`, text);
     res.json({ success: true, data: { text } })
   } catch (err) {
     console.error('Transcription error:', err)

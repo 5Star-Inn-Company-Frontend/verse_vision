@@ -64,4 +64,12 @@ router.get('/list', async (_req: Request, res: Response) => {
   res.json({ success: true, data: cams })
 })
 
+router.delete('/:id', async (req: Request, res: Response) => {
+  const { id } = req.params
+  if (!id) { res.status(400).json({ success: false, error: 'id required' }); return }
+  await cameraStore.remove(id)
+  broadcast({ type: 'cameraRemoved', cameraId: id, ts: Date.now() })
+  res.json({ success: true })
+})
+
 export default router

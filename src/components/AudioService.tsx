@@ -132,8 +132,9 @@ export default function AudioService() {
     processingRef.current = true
 
     try {
+      const engine = useOperatorStore.getState().scriptureDetectionEngine
       // 1. Transcribe
-      const { text } = await api.transcribe(blob, scriptureDetectionEngine)
+      const { text } = await api.transcribe(blob, engine)
       if (!text || text.trim().length < 5) {
         processingRef.current = false
         return
@@ -141,7 +142,7 @@ export default function AudioService() {
       console.log('[AudioService] Transcribed:', text)
 
       // 2. Detect
-      const { queue } = await api.detectScripture(text, scriptureDetectionEngine)
+      const { queue } = await api.detectScripture(text, engine)
       
       // 3. Update Store
       if (queue) setScriptureQueue(queue)

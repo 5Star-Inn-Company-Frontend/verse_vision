@@ -62,5 +62,9 @@ export const cameraStore = {
       previewPath: (r[5] as string) || null,
     }))
   },
+  remove: async (id: string): Promise<void> => {
+    const db = await getDb()
+    db.run('DELETE FROM cameras WHERE id = ?', [id])
+    await saveDb(db)
+  },
 }
-
