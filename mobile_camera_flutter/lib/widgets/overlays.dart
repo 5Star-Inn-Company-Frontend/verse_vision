@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ScanOverlayPainter extends CustomPainter {
+  final double value;
+  ScanOverlayPainter({required this.value});
+
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..color = const Color.fromARGB(200, 0, 0, 0)..style = PaintingStyle.fill;
@@ -22,12 +25,12 @@ class ScanOverlayPainter extends CustomPainter {
     canvas.drawLine(frame.bottomLeft, frame.bottomLeft + const Offset(0, -c), g);
     canvas.drawLine(frame.bottomRight, frame.bottomRight + const Offset(-c, 0), g);
     canvas.drawLine(frame.bottomRight, frame.bottomRight + const Offset(0, -c), g);
-    final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    final y = frame.top + (frame.height) * ((t % 2) / 2);
-    canvas.drawLine(Offset(frame.left, y), Offset(frame.right, y), Paint()..color = Colors.redAccent..strokeWidth = 2);
+    
+    final y = frame.top + (frame.height) * value;
+    canvas.drawLine(Offset(frame.left, y), Offset(frame.right, y), Paint()..color = const Color(0xFF0EA5E9)..strokeWidth = 2);
   }
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant ScanOverlayPainter oldDelegate) => oldDelegate.value != value;
 }
 
 class GridOverlayPainter extends CustomPainter {

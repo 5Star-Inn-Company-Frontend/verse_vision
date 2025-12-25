@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:battery_plus/battery_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 enum AppScreen { welcome, qr, connecting, connected, camera, lock, settings }
 
@@ -74,6 +76,7 @@ class WebRTCService extends ChangeNotifier {
   void dispose() {
     heartbeatTimer?.cancel();
     statusTimer?.cancel();
+    WakelockPlus.disable();
     try { renderer.dispose(); } catch (_) {}
     try { pc?.close(); } catch (_) {}
     try { ws?.close(); } catch (_) {}
@@ -122,13 +125,20 @@ class WebRTCService extends ChangeNotifier {
   }
 
   static const _channel = MethodChannel('versevision/device');
+  final Battery _battery = Battery();
 
   Future<void> _updateBattery() async {
     try {
-      final lvl = await _channel.invokeMethod<int>('batteryLevel');
-      batteryLevel = (lvl ?? 0).clamp(0, 100);
+      final lvl = await _battery.batteryLevel;
+      batteryLevel = (lvl).clamp(0, 100);
       notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+      try {
+         final lvl = await _channel.invokeMethod<int>('batteryLevel');
+         batteryLevel = (lvl ?? 0).clamp(0, 100);
+         notifyListeners();
+      } catch (_) {}
+    }
   }
 
   Future<void> _updateConnectivity() async {
@@ -153,6 +163,7 @@ class WebRTCService extends ChangeNotifier {
 
   Future<void> initWebRTC() async {
     print("samji Initializing WebRTC");
+    await WakelockPlus.enable();
     await _ensureWs();
     final facing = useBackCamera ? 'environment' : 'user';
     final dims = resolution == '1080p' ? {'ideal': 1920} : {'ideal': 1280};

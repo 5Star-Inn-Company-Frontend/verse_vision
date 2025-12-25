@@ -6,18 +6,52 @@ class LockScreen extends StatelessWidget {
   const LockScreen({super.key, required this.service});
   @override
   Widget build(BuildContext context) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      TweenAnimationBuilder<double>(tween: Tween(begin: 0.8, end: 1), duration: const Duration(milliseconds: 800), builder: (c, v, _) {
-        return Transform.scale(scale: v, child: const Icon(Icons.lock, size: 64));
-      }),
-      const SizedBox(height: 12),
-      const Text('Battery 87%'),
-      const SizedBox(height: 6),
-      Text('Streaming ${service.durationText()}'),
-      const SizedBox(height: 12),
-      const Text('Camera continues streaming in background'),
-      const SizedBox(height: 16),
-      ElevatedButton(onPressed: () => service.setScreen(AppScreen.camera), child: const Text('Unlock')),
-    ]));
+    return Container(
+      color: Colors.black, // Force black for battery saving on OLED
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.8, end: 1),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeInOut,
+              builder: (c, v, _) {
+                return Transform.scale(
+                  scale: v,
+                  child: Icon(Icons.lock_outline, size: 80, color: Theme.of(context).colorScheme.primary),
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+            Text(
+              '${service.batteryLevel}%',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Streaming ${service.durationText()}',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'Camera active in background',
+              style: TextStyle(color: Colors.white30),
+            ),
+            const SizedBox(height: 48),
+            OutlinedButton.icon(
+              onPressed: () => service.setScreen(AppScreen.camera),
+              icon: const Icon(Icons.lock_open),
+              label: const Text('Unlock'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">
+  <!-- Defs for gradients -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon Section (Left) -->
+  <g transform="translate(10, 10)">
+    <!-- Stylized Book / V Shape -->
+    <path d="M10 20 L40 70 L70 20" stroke="url(#grad1)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Vision / Lens Element (Eye shape overlaying the V) -->
+    <path d="M10 35 Q40 5 70 35 Q40 65 10 35 Z" fill="none" stroke="url(#grad2)" stroke-width="4" opacity="0.8"/>
+    <circle cx="40" cy="35" r="8" fill="url(#grad2)" />
+  </g>
+
+  <!-- Text Section (Right) -->
+  <text x="90" y="65" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="#1f2937">
+    Verse<tspan fill="#6366f1">Vision</tspan>
+  </text>
+</svg>
