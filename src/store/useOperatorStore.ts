@@ -200,7 +200,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   translations: {},
   fetchTranslations: async (text: string) => {
     const data = await api.translate(text, get().translationEngine)
-    set({ translations: data })
+    set({ translations: data || {} })
   },
   showLyricsOverlay: false,
   currentSongId: null,

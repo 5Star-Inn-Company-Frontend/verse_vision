@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function ProgramPreview() {
-  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams } = useOperatorStore()
+  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams } = useOperatorStore()
   const cam = cameras.find((c) => c.id === primaryCameraId) || cameras[0]
   const prevCamId = useRef<string | null>(primaryCameraId)
   const [crossfade, setCrossfade] = useState(false)
@@ -18,7 +18,7 @@ export default function ProgramPreview() {
     if (currentScripture?.text) {
       void fetchTranslations(currentScripture.text)
     }
-  }, [currentScripture, fetchTranslations])
+  }, [currentScripture, fetchTranslations, translationEngine])
   useEffect(() => {
     if (prevCamId.current && prevCamId.current !== primaryCameraId) {
       setCrossfade(true)
@@ -33,14 +33,26 @@ export default function ProgramPreview() {
     return () => window.clearInterval(id)
   }, [])
   const activeTranslations = useMemo(() => {
-    const base = currentScripture?.text || ''
+    const t = (translations || {}) as Record<string, string | undefined>
+    // console.log('activeTranslations calc:', t)
     const langs: { label: string; text: string; color: string }[] = []
-    if (translationEnabledYoruba) langs.push({ label: 'Yoruba', text: base, color: 'text-emerald-300' })
-    if (translationEnabledHausa) langs.push({ label: 'Hausa', text: base, color: 'text-blue-300' })
-    if (translationEnabledIgbo) langs.push({ label: 'Igbo', text: base, color: 'text-pink-300' })
-    if (translationEnabledFrench) langs.push({ label: 'French', text: base, color: 'text-yellow-300' })
+    
+    const getVal = (k: string) => t[k] || t[k.toLowerCase()] || t[k.toUpperCase()]
+
+    const yo = getVal('Yoruba')
+    if (translationEnabledYoruba && yo) langs.push({ label: 'Yoruba', text: yo, color: 'text-emerald-300' })
+    
+    const ha = getVal('Hausa')
+    if (translationEnabledHausa && ha) langs.push({ label: 'Hausa', text: ha, color: 'text-blue-300' })
+    
+    const ig = getVal('Igbo')
+    if (translationEnabledIgbo && ig) langs.push({ label: 'Igbo', text: ig, color: 'text-pink-300' })
+    
+    const fr = getVal('French')
+    if (translationEnabledFrench && fr) langs.push({ label: 'French', text: fr, color: 'text-yellow-300' })
+    
     return langs
-  }, [currentScripture, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench])
+  }, [translations, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench])
 
   return (
     <div className="h-full w-full bg-black rounded-lg overflow-hidden border border-gray-700">
@@ -78,7 +90,7 @@ export default function ProgramPreview() {
                 {currentScripture.text}
               </div>
             </div>
-            {[{ label: 'Yoruba', text: translations.Yoruba || activeTranslations.find(x=>x.label==='Yoruba')?.text || '', color: 'text-emerald-300' },{ label: 'Hausa', text: translations.Hausa || activeTranslations.find(x=>x.label==='Hausa')?.text || '', color: 'text-blue-300' },{ label: 'Igbo', text: translations.Igbo || activeTranslations.find(x=>x.label==='Igbo')?.text || '', color: 'text-pink-300' },{ label: 'French', text: translations.French || activeTranslations.find(x=>x.label==='French')?.text || '', color: 'text-yellow-300' }].filter(t=>t.text).map((t) => (
+            {activeTranslations.map((t) => (
               <div key={t.label} className="bg-black/60 text-white rounded-md p-2">
                 <div className={`text-[11px] opacity-80 mb-1 ${t.color}`}>{t.label}</div>
                 <div className="text-xs leading-relaxed">{t.text}</div>
@@ -86,21 +98,23 @@ export default function ProgramPreview() {
             ))}
           </div>
         )}
-        {currentScripture && showScriptureOverlay && translationStyle === 'split' && activeTranslations[0] && (
+        {currentScripture && showScriptureOverlay && translationStyle === 'split' && (
           <div className="absolute bottom-0 left-0 w-full px-6 py-4 grid grid-cols-2 gap-3">
-            <div className="bg-black/70 text-white rounded-md p-3">
+            <div className={`bg-black/70 text-white rounded-md p-3 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
               <div className="text-xs opacity-80 mb-1">
                 {currentScripture.reference} • {currentScripture.translation}
               </div>
               <div className="text-sm leading-relaxed">{currentScripture.text}</div>
             </div>
-            <div className="bg-black/60 text-white rounded-md p-3">
-              <div className={`text-[11px] opacity-80 mb-1 ${activeTranslations[0].color}`}>{activeTranslations[0].label}</div>
-              <div className="text-sm leading-relaxed">{activeTranslations[0].text}</div>
-            </div>
+            {activeTranslations.map((t) => (
+              <div className="bg-black/60 text-white rounded-md p-3" key={t.label}>
+                <div className={`text-[11px] opacity-80 mb-1 ${t.color}`}>{t.label}</div>
+                <div className="text-sm leading-relaxed">{t.text}</div>
+              </div>
+            ))}
           </div>
         )}
-        {currentScripture && showScriptureOverlay && translationStyle === 'ticker' && activeTranslations.length > 0 && (
+        {currentScripture && showScriptureOverlay && translationStyle === 'ticker' && (
           <div className="absolute bottom-0 left-0 w-full">
             <div className="bg-black/70 text-white text-xs whitespace-nowrap overflow-hidden">
               <div className="animate-[ticker_15s_linear_infinite] inline-block px-4">

@@ -16,7 +16,7 @@ export default function TranslationPanel() {
 
   useEffect(() => {
     void loadSettings()
-  }, [loadSettings])
+  }, [loadSettings, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translationEngine])
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">

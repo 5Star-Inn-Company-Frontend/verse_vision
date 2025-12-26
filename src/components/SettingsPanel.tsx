@@ -57,7 +57,7 @@ export default function SettingsPanel() {
           className="w-full"
         />
       </div>
-      <div className="mt-4">
+      {/* <div className="mt-4">
         <div className="flex items-center justify-between">
           <label className="text-xs text-gray-300">ICE Servers (JSON)</label>
           <button
@@ -112,7 +112,7 @@ export default function SettingsPanel() {
           <div className="mb-1">Peers: {peers.join(', ') || '—'}</div>
           <div>Sessions: {sessions.map((s) => `${s.from}→${s.to}`).join(', ') || '—'}</div>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }
