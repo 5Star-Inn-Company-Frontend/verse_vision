@@ -134,6 +134,20 @@ export const api = {
     const json = await res.json()
     return json.data
   },
+  fetchLyrics: async (title: string) => {
+    try {
+      const res = await fetch(`${BASE}/ai/lyrics/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      })
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.data as { title: string; lines: string[] }
+    } catch {
+      return null
+    }
+  },
   listSongs: async () => {
     try {
       const res = await fetch(`${BASE}/lyrics/songs`)
@@ -144,7 +158,7 @@ export const api = {
       return []
     }
   },
-  createSong: async (payload: { title: string; language?: string | null; lines: string[] }) => {
+  createSong: async (payload: { title: string; language?: string | null; lines: string[]; source?: 'default' | 'ai' | 'uploaded' }) => {
     try {
       const res = await fetch(`${BASE}/lyrics/songs`, {
         method: 'POST',

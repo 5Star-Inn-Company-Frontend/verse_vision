@@ -24,6 +24,7 @@ Text: ${text}`
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
+      max_tokens: 2000,
     })
     const out = res.choices[0]?.message?.content || ''
     const parsed = JSON.parse(out)
@@ -52,7 +53,9 @@ Text: ${text}`
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
+      max_tokens: 2000,
     })
+    console.log('OpenAI Debug:', JSON.stringify(res.choices[0], null, 2))
     const out = res.choices[0]?.message?.content || '{}'
     const parsed = JSON.parse(out)
     
@@ -85,12 +88,77 @@ Example: {"text": "For God so loved the world..."}`
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
+      max_tokens: 2000,
     })
+    console.log('OpenAI Debug:', JSON.stringify(res.choices[0], null, 2))
     const out = res.choices[0]?.message?.content || '{}'
     const parsed = JSON.parse(out)
     return parsed.text || ''
   } catch (err) {
     console.error('Scripture fetch error:', err)
     return ''
+  }
+}
+
+export async function fetchSongLyrics(title: string): Promise<{ title: string; lines: string[] } | null> {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
+  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
+  if (!client) return null
+
+  const prompt = `Find the lyrics for the Christian hymn or song titled "${title}".
+  Return a JSON object with keys:
+  - "title": The correct full title of the song.
+  - "lines": An array of strings, where each string is a full stanza (verse or chorus).
+    - Format each stanza with a header (e.g., "Verse 1", "Verse 2", "Chorus") followed by the lyrics.
+    - Use newline characters (\\n) to separate lines.
+    - Indent the 2nd and 4th lines of each verse with 2 spaces (\\u0020\\u0020) to match traditional hymn formatting.
+
+  Example: {"title": "Amazing Grace", "lines": ["Verse 1\\nAmazing grace! how sweet the sound,\\n  That saved a wretch like me!\\nI once was lost, but now am found;\\n  Was blind, but now I see.", "Verse 2\\n..."]}
+  If the song is not found or known, return null (empty JSON or null).`
+
+  try {
+    const res = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      max_tokens: 2000,
+    })
+    
+    console.log("AI hymn search: ",res);
+    const choice = res.choices[0]
+    const out = choice?.message?.content || '{}'
+    const finishReason = choice?.finish_reason
+
+    if (finishReason === 'content_filter') {
+      console.warn(`Lyrics for "${title}" were restricted by AI content filter (copyright).`)
+      return null
+    }
+
+    // Attempt to sanitize potential JSON issues before parsing
+    // Sometimes GPT returns incomplete JSON or markdown blocks despite response_format
+    let cleanOut = out.trim()
+    if (cleanOut.startsWith('```json')) {
+      cleanOut = cleanOut.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+    } else if (cleanOut.startsWith('```')) {
+      cleanOut = cleanOut.replace(/^```\s*/, '').replace(/\s*```$/, '')
+    }
+
+    try {
+      const parsed = JSON.parse(cleanOut)
+      if (!parsed.title || !Array.isArray(parsed.lines)) return null
+      return { title: parsed.title, lines: parsed.lines }
+    } catch (parseErr) {
+      // Only log full error if it wasn't a length issue
+      if (finishReason !== 'length') {
+        console.warn('JSON Parse Warning:', parseErr instanceof Error ? parseErr.message : parseErr)
+      } else {
+        console.warn('Lyrics generation truncated (max tokens reached).')
+      }
+      return null
+    }
+
+  } catch (err) {
+    console.error('Lyrics fetch error:', err)
+    return null
   }
 }

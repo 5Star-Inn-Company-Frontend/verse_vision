@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText } from '../services/ai/openai.js'
+import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText, fetchSongLyrics } from '../services/ai/openai.js'
 import { translateTextMarian } from '../services/ai/marian.js'
 import { offlineService } from '../services/ai/offline.js'
 import { findReferencesRule } from '../services/ai/scriptureDetection.js'
@@ -147,6 +147,26 @@ router.post('/translate', async (req: Request, res: Response) => {
     // But for robustness, maybe fallback?
     // Let's just report error for now as fallback might cost money.
     res.status(500).json({ success: false, error: 'Translation failed' })
+  }
+})
+
+router.post('/lyrics/fetch', async (req: Request, res: Response) => {
+  const { title } = req.body || {}
+  if (!title) {
+    res.status(400).json({ success: false, error: 'title required' })
+    return
+  }
+  try {
+    const data = await fetchSongLyrics(title)
+    console.log("Hymn fetch ai:",data);
+    if (!data) {
+      res.status(404).json({ success: false, error: 'Lyrics not found' })
+      return
+    }
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('Lyrics fetch route error:', err)
+    res.status(500).json({ success: false, error: 'Fetch failed' })
   }
 })
 

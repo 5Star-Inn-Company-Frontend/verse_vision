@@ -10,12 +10,12 @@ router.get('/songs', async (req: Request, res: Response) => {
 })
 
 router.post('/songs', async (req: Request, res: Response) => {
-  const { title, language, lines } = req.body || {}
+  const { title, language, lines, source } = req.body || {}
   if (!title || !Array.isArray(lines)) {
     res.status(400).json({ success: false, error: 'title and lines required' })
     return
   }
-  const data = await lyricsStore.create({ title, language, lines })
+  const data = await lyricsStore.create({ title, language, lines, source })
   res.status(201).json({ success: true, data })
 })
 
@@ -47,4 +47,3 @@ router.post('/current', async (req: Request, res: Response) => {
 })
 
 export default router
-

@@ -288,7 +288,7 @@ function LyricsText({ currentSongId, currentLineIndex }: { currentSongId: string
     })()
     return () => { mounted = false }
   }, [currentSongId, currentLineIndex])
-  return <span className="text-sm">{text}</span>
+  return <div className="text-sm whitespace-pre-wrap leading-relaxed">{text}</div>
 }
 function VideoLive({ stream }: { stream: MediaStream }) {
   const ref = useRef<HTMLVideoElement | null>(null)

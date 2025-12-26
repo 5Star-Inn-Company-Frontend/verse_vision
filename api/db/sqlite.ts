@@ -61,7 +61,8 @@ async function openDatabase(): Promise<Database> {
       title TEXT NOT NULL,
       language TEXT,
       lines TEXT NOT NULL,
-      created_at INTEGER
+      created_at INTEGER,
+      source TEXT
     );
     CREATE TABLE IF NOT EXISTS playlists (
       id TEXT PRIMARY KEY,
@@ -99,6 +100,7 @@ async function openDatabase(): Promise<Database> {
       signal INTEGER
     );
   `)
+  try { db.exec('ALTER TABLE songs ADD COLUMN source TEXT'); } catch {}
   try { db.exec('ALTER TABLE cameras ADD COLUMN battery INTEGER'); } catch {}
   try { db.exec('ALTER TABLE cameras ADD COLUMN signal INTEGER'); } catch {}
   return db
