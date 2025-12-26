@@ -1,13 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import { connectToCamera } from '@/lib/webrtc'
 
 export default function ProgramPreview() {
-  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams } = useOperatorStore()
+  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams, loadCameras } = useOperatorStore()
   const cam = cameras.find((c) => c.id === primaryCameraId) || cameras[0]
   const prevCamId = useRef<string | null>(primaryCameraId)
   const [crossfade, setCrossfade] = useState(false)
   const [, force] = useState(0)
+  const connectingRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    void loadCameras()
+  }, [loadCameras])
+
+  useEffect(() => {
+    if (window.location.pathname === '/program' && primaryCameraId && !liveStreams[primaryCameraId]) {
+      if (!connectingRef.current.has(primaryCameraId)) {
+        connectingRef.current.add(primaryCameraId)
+        void connectToCamera(primaryCameraId).finally(() => {
+          setTimeout(() => connectingRef.current.delete(primaryCameraId!), 5000)
+        })
+      }
+    }
+  }, [primaryCameraId, liveStreams])
+
   useEffect(() => {
     void loadCurrent()
   }, [loadCurrent])
@@ -57,7 +75,18 @@ export default function ProgramPreview() {
   return (
     <div className="h-full w-full bg-black rounded-lg overflow-hidden border border-gray-700">
       <div className="flex items-center justify-between px-3 py-2 bg-gray-900 text-gray-100 text-sm">
-        <span>Program Preview</span>
+        <div className="flex items-center gap-4">
+          <span>Program Preview</span>
+          {window.location.pathname !== '/program' && (
+            <button
+              onClick={() => window.open('/program', '_blank', 'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no')}
+              className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
+            >
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              Go Live
+            </button>
+          )}
+        </div>
         <span className="opacity-75">{cam?.name}</span>
       </div>
       <div className="relative">
@@ -131,7 +160,7 @@ export default function ProgramPreview() {
         {showLyricsOverlay && (
           <div className="absolute bottom-16 left-0 w-full px-6">
             <div className="bg-black/70 text-white rounded-md p-3 text-center">
-              <LyricsText currentSongId={currentSongId} currentLineIndex={currentLineIndex} />
+              <LyricsText />
             </div>
           </div>
         )}
@@ -277,23 +306,12 @@ function PdfOverlay({ url, title, page }: { url: string; title: string; page: nu
   )
 }
 
-function LyricsText({ currentSongId, currentLineIndex }: { currentSongId: string | null; currentLineIndex: number }) {
-  const [text, setText] = useState<string>('')
-  useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      if (!currentSongId) { setText(''); return }
-      const songs = await api.listSongs() as Array<{ id: string; lines: string[] }>
-      const song = songs.find((s) => s.id === currentSongId)
-      if (!song) { setText(''); return }
-      const line = song.lines[currentLineIndex] || ''
-      if (mounted) setText(line)
-    })()
-    return () => { mounted = false }
-  }, [currentSongId, currentLineIndex])
+function LyricsText() {
+  const { currentSongLines, currentLineIndex } = useOperatorStore()
+  const text = currentSongLines[currentLineIndex] || ''
   return <div className="text-sm whitespace-pre-wrap leading-relaxed">{text}</div>
 }
-function VideoLive({ stream }: { stream: MediaStream }) {
+const VideoLive = memo(function VideoLive({ stream }: { stream: MediaStream }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   useEffect(() => {
     const v = ref.current
@@ -302,4 +320,4 @@ function VideoLive({ stream }: { stream: MediaStream }) {
     v.play().catch(() => {})
   }, [stream])
   return <video ref={ref} className="w-full aspect-video object-cover" muted />
-}
+})

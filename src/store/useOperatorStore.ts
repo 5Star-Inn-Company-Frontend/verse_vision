@@ -41,6 +41,7 @@ type OperatorState = {
   approveScripture: (id: string) => void
   rejectScripture: (id: string) => void
   setPrimaryCamera: (id: string) => void
+  syncPrimaryCamera: (id: string) => void
   loadQueue: () => Promise<void>
   loadCurrent: () => Promise<void>
   updateScripture: (id: string, patch: Partial<ScriptureItem>) => Promise<void>
@@ -62,14 +63,26 @@ type OperatorState = {
   showLyricsOverlay: boolean
   currentSongId: string | null
   currentLineIndex: number
+  currentSongLines: string[]
   loadCurrentLyric: () => Promise<void>
   setCurrentLyric: (payload: { songId: string | null; lineIndex: number; show: boolean }) => Promise<void>
+  syncLyricState: (payload: { songId: string | null; lineIndex: number; show: boolean }) => Promise<void>
   toggleScriptureOverlay: (show: boolean) => Promise<void>
   setRecordingEnabled: (enabled: boolean) => Promise<void>
   startCountdown: (ms: number) => Promise<void>
   stopCountdown: () => Promise<void>
   activePlaylistItem?: { id: string; type: string; title: string; url?: string | null }
   setActivePlaylistItem: (item?: { id: string; type: string; title: string; url?: string | null }) => void
+  syncPlaylistState: (item?: { id: string; type: string; title: string; url?: string | null }) => void
+  syncScripture: (item: ScriptureItem | null) => void
+  syncTranslationSettings: (patch: {
+    translationStyle?: 'subtitle' | 'split' | 'ticker'
+    translationEnabledYoruba?: boolean
+    translationEnabledHausa?: boolean
+    translationEnabledIgbo?: boolean
+    translationEnabledFrench?: boolean
+  }) => void
+  syncSettings: (patch: { showScriptureOverlay?: boolean; recordingEnabled?: boolean; countdownEndAt?: number | null }) => void
   activePlaylistItemPage: number
   nextActivePlaylistItemPage: () => void
   prevActivePlaylistItemPage: () => void
@@ -127,7 +140,13 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       scriptureQueue: state.scriptureQueue.filter((s) => s.id !== id),
     }))
   },
-  setPrimaryCamera: (id) => { set({ primaryCameraId: id }); publish('camera-primary', { id }) },
+  setPrimaryCamera: (id) => { 
+    set({ primaryCameraId: id })
+    publish('camera-primary', { id }) 
+  },
+  syncPrimaryCamera: (id) => {
+    set({ primaryCameraId: id })
+  },
   // publish camera change
   setPrimaryCameraPublish: (id: string) => {
     set({ primaryCameraId: id })
@@ -143,11 +162,15 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   },
   updateScripture: async (id, patch) => {
     const updated = await api.update(id, patch)
+    const isCurrent = get().currentScripture?.id === id
+    const newCurrent = isCurrent ? { ...get().currentScripture!, ...updated } : get().currentScripture
     set({
       scriptureQueue: get().scriptureQueue.map((q) => (q.id === id ? { ...q, ...updated } : q)),
-      currentScripture: get().currentScripture?.id === id ? { ...get().currentScripture!, ...updated } : get().currentScripture,
+      currentScripture: newCurrent,
     })
+    if (isCurrent) publish('scripture-current', newCurrent)
   },
+  syncScripture: (item) => set({ currentScripture: item }),
   loadSettings: async () => {
     const s = await api.getSettings() as Partial<import('@/../api/services/settingsStore').AppSettings>
     set({
@@ -177,7 +200,23 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEnabledIgbo: s.translationEnabledIgbo,
       translationEnabledFrench: s.translationEnabledFrench,
     })
-    // publish('translation-settings', patch)
+    publish('translation-settings', patch)
+  },
+  syncTranslationSettings: (patch) => {
+    set((state) => ({
+      translationStyle: patch.translationStyle ?? state.translationStyle,
+      translationEnabledYoruba: patch.translationEnabledYoruba ?? state.translationEnabledYoruba,
+      translationEnabledHausa: patch.translationEnabledHausa ?? state.translationEnabledHausa,
+      translationEnabledIgbo: patch.translationEnabledIgbo ?? state.translationEnabledIgbo,
+      translationEnabledFrench: patch.translationEnabledFrench ?? state.translationEnabledFrench,
+    }))
+  },
+  syncSettings: (patch) => {
+    set((s) => ({
+      showScriptureOverlay: patch.showScriptureOverlay ?? s.showScriptureOverlay,
+      recordingEnabled: patch.recordingEnabled ?? s.recordingEnabled,
+      countdownEndAt: patch.countdownEndAt !== undefined ? patch.countdownEndAt : s.countdownEndAt
+    }))
   },
   toggleScriptureOverlay: async (show: boolean) => {
     const s = await api.updateSettings({ showScriptureOverlay: show })
@@ -205,13 +244,28 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   showLyricsOverlay: false,
   currentSongId: null,
   currentLineIndex: 0,
+  currentSongLines: [],
   loadCurrentLyric: async () => {
     const cur = await api.getCurrentLyric()
-    set({ showLyricsOverlay: cur.show, currentSongId: cur.songId, currentLineIndex: cur.lineIndex })
+    await get().syncLyricState(cur)
+  },
+  syncLyricState: async (cur) => {
+    const store = get()
+    let lines = store.currentSongLines
+    if (store.currentSongId !== cur.songId && cur.songId) {
+      try {
+        const songs = await api.listSongs() as Array<{ id: string; lines: string[] }>
+        const song = songs.find((s) => s.id === cur.songId)
+        lines = song ? song.lines : []
+      } catch { lines = [] }
+    } else if (!cur.songId) {
+      lines = []
+    }
+    set({ showLyricsOverlay: cur.show, currentSongId: cur.songId, currentLineIndex: cur.lineIndex, currentSongLines: lines })
   },
   setCurrentLyric: async (payload) => {
     const cur = await api.setCurrentLyric(payload)
-    set({ showLyricsOverlay: cur.show, currentSongId: cur.songId, currentLineIndex: cur.lineIndex })
+    await get().syncLyricState(cur)
     publish('lyric-current', cur)
   },
   setRecordingEnabled: async (enabled) => {
@@ -232,6 +286,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   },
   activePlaylistItem: undefined,
   setActivePlaylistItem: (item) => { set({ activePlaylistItem: item }); publish('playlist-active', item) },
+  syncPlaylistState: (item) => { set({ activePlaylistItem: item }) },
   activePlaylistItemPage: 1,
   nextActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: s.activePlaylistItemPage + 1 })),
   prevActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: Math.max(1, s.activePlaylistItemPage - 1) })),
