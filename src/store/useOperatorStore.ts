@@ -177,7 +177,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEnabledIgbo: s.translationEnabledIgbo,
       translationEnabledFrench: s.translationEnabledFrench,
     })
-    publish('translation-settings', patch)
+    // publish('translation-settings', patch)
   },
   toggleScriptureOverlay: async (show: boolean) => {
     const s = await api.updateSettings({ showScriptureOverlay: show })

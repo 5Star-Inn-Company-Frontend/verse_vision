@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import { spawnSync } from 'child_process'
 import { videoStore } from '../services/videoStore.js'
 
 const router = Router()
@@ -28,10 +29,34 @@ router.post('/upload', upload.single('file'), (req: Request & { file?: { filenam
   const publicBase = process.env.PUBLIC_SERVER_URL || 'http://localhost:3001'
   const rel = `/uploads/${req.file.filename}`
   const isVideo = (req.file.mimetype || '').startsWith('video/')
+  const ext = (req.file.originalname || '').toLowerCase().split('.').pop()
   let jobId: string | undefined
   if (isVideo) {
     // enqueue video processing job
     void videoStore.enqueue(rel, req.file.originalname || null).then((job) => { jobId = job.id })
+  }
+  // Attempt PPT/PPTX -> PDF conversion (synchronous) if LibreOffice is available
+  if (ext === 'ppt' || ext === 'pptx') {
+    try {
+      const uploadDir = process.env.VV_DATA_DIR
+        ? path.join(process.env.VV_DATA_DIR, 'uploads')
+        : path.resolve(__dirname, '../uploads')
+      const fullPath = path.join(uploadDir, req.file.filename)
+      const soffice = spawnSync('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', uploadDir, fullPath], { stdio: 'pipe' })
+      if (soffice.status === 0) {
+        const base = req.file.filename.replace(/\.[^.]+$/, '')
+        const pdfName = `${base}.pdf`
+        const pdfPath = path.join(uploadDir, pdfName)
+        if (fs.existsSync(pdfPath)) {
+          const pdfRel = `/uploads/${pdfName}`
+          res.status(201).json({ success: true, data: { path: pdfRel, url: `${publicBase}${pdfRel}`, jobId } })
+          return
+        }
+      }
+      // fallthrough to original rel if conversion failed
+    } catch (e) {
+      // ignore conversion errors, return original file
+    }
   }
   res.status(201).json({ success: true, data: { path: rel, url: `${publicBase}${rel}`, jobId } })
 })

@@ -46,11 +46,7 @@ app.use('/api/playlists', playlistsRoutes)
 app.use('/api/media', mediaRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/webrtc', webrtcRoutes)
-app.use(express.static(path.resolve(__dirname, '../../dist')))
-app.get('*', (req: Request, res: Response) => {
-  const p = path.resolve(__dirname, '../../dist/index.html')
-  res.sendFile(p)
-})
+// Serve uploaded media BEFORE the catch-all route to avoid intercepting /uploads/*
 app.use(
   '/uploads',
   (req, res, next) => {
@@ -61,9 +57,16 @@ app.use(
   express.static(
     process.env.VV_DATA_DIR
       ? path.join(process.env.VV_DATA_DIR, 'uploads')
-      : path.resolve(__dirname, '../uploads'),
+      : path.resolve(__dirname, './uploads'),
   ),
 )
+
+// Frontend static (production builds)
+app.use(express.static(path.resolve(__dirname, '../../dist')))
+app.get('*', (req: Request, res: Response) => {
+  const p = path.resolve(__dirname, '../../dist/index.html')
+  res.sendFile(p)
+})
 
 /**
  * health

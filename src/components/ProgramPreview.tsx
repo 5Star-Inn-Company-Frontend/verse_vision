@@ -146,7 +146,10 @@ export default function ProgramPreview() {
             {activePlaylistItem.type === 'pdf' && activePlaylistItem.url && (
               <PdfOverlay url={activePlaylistItem.url} title={activePlaylistItem.title} page={activePlaylistItemPage} />
             )}
-            {activePlaylistItem.type === 'ppt' && (
+            {activePlaylistItem.type === 'ppt' && activePlaylistItem.url && activePlaylistItem.url.endsWith('.pdf') && (
+              <PdfOverlay url={activePlaylistItem.url} title={activePlaylistItem.title} page={activePlaylistItemPage} />
+            )}
+            {activePlaylistItem.type === 'ppt' && (!activePlaylistItem.url || !activePlaylistItem.url.endsWith('.pdf')) && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-2 rounded">
                 Presenting: {activePlaylistItem.title} • Page {activePlaylistItemPage}
               </div>

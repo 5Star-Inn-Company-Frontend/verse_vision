@@ -10,6 +10,25 @@ export default function PlaylistPanel() {
   const [newType, setNewType] = useState<'image' | 'video' | 'pdf' | 'ppt'>('image')
   const [newTitle, setNewTitle] = useState('New Item')
   const [file, setFile] = useState<File | null>(null)
+  const acceptByType = (t: typeof newType): string => {
+    switch (t) {
+      case 'image': return 'image/*'
+      case 'video': return 'video/*'
+      case 'pdf': return '.pdf'
+      case 'ppt': return '.ppt,.pptx'
+      default: return '*/*'
+    }
+  }
+  const validateFileForType = (f: File | null, t: typeof newType): boolean => {
+    if (!f) return true
+    const name = f.name.toLowerCase()
+    const mime = f.type.toLowerCase()
+    if (t === 'image') return mime.startsWith('image/')
+    if (t === 'video') return mime.startsWith('video/')
+    if (t === 'pdf') return name.endsWith('.pdf')
+    if (t === 'ppt') return name.endsWith('.ppt') || name.endsWith('.pptx')
+    return true
+  }
   useEffect(() => {
     void (async () => {
       const list = await api.listPlaylists()
@@ -80,10 +99,24 @@ export default function PlaylistPanel() {
             <option value="image">image</option>
             <option value="video">video</option>
             <option value="pdf">pdf</option>
-            <option value="ppt">ppt</option>
+            {/* <option value="ppt">ppt</option> */}
           </select>
           <input className="bg-gray-800 text-white text-xs rounded px-2 py-1" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-          <input type="file" className="text-xs" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <input
+            type="file"
+            className="text-xs"
+            accept={acceptByType(newType)}
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null
+              if (f && !validateFileForType(f, newType)) {
+                alert(`Invalid file type for ${newType}.`)
+                e.currentTarget.value = ''
+                setFile(null)
+                return
+              }
+              setFile(f)
+            }}
+          />
           <button
             className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
             onClick={async () => {
