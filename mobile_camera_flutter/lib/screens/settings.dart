@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/webrtc_service.dart';
+import 'privacy.dart';
 
 class SettingsScreen extends StatefulWidget {
   final WebRTCService service;
@@ -128,6 +129,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: const Text('Adaptive Bitrate'),
               ),
             ],
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        _buildSectionHeader(theme, 'About'),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.privacy_tip),
+            title: const Text('Data Usage & Privacy'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const PrivacyScreen()),
+              );
+            },
           ),
         ),
         

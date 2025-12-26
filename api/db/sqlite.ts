@@ -94,9 +94,13 @@ async function openDatabase(): Promise<Database> {
       device_id TEXT,
       token TEXT,
       last_heartbeat INTEGER,
-      preview_path TEXT
+      preview_path TEXT,
+      battery INTEGER,
+      signal INTEGER
     );
   `)
+  try { db.exec('ALTER TABLE cameras ADD COLUMN battery INTEGER'); } catch {}
+  try { db.exec('ALTER TABLE cameras ADD COLUMN signal INTEGER'); } catch {}
   return db
 }
 

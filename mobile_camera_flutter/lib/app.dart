@@ -12,6 +12,7 @@ class VerseVisionCameraApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'VerseVision Camera',
       themeMode: ThemeMode.dark,
       theme: ThemeData.dark(useMaterial3: true).copyWith(

@@ -7,18 +7,27 @@ export type CameraRec = {
   token?: string | null
   lastHeartbeat?: number | null
   previewPath?: string | null
+  battery?: number | null
+  signal?: number | null
 }
 
 export const cameraStore = {
   register: async (token: string, deviceId?: string, name?: string): Promise<CameraRec> => {
     const db = await getDb()
-    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path FROM cameras WHERE token = ?', [token])
+    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path, battery, signal FROM cameras WHERE token = ?', [token])
     const row = res[0]?.values?.[0]
     if (row) {
       const id = row[0] as string
       db.run('UPDATE cameras SET device_id = ?, name = ? WHERE id = ?', [deviceId ?? row[2], name ?? row[1], id])
       await saveDb(db)
-      return { id, name: (name ?? row[1]) as string, deviceId: (deviceId ?? row[2]) as string, token }
+      return { 
+        id, 
+        name: (name ?? row[1]) as string, 
+        deviceId: (deviceId ?? row[2]) as string, 
+        token,
+        battery: (row[6] as number) ?? null,
+        signal: (row[7] as number) ?? null
+      }
     }
     const id = 'cam-' + Math.random().toString(36).slice(2, 8)
     db.run('INSERT INTO cameras (id, name, device_id, token, last_heartbeat) VALUES (?, ?, ?, ?, ?)', [id, name ?? null, deviceId ?? null, token, Date.now()])
@@ -27,7 +36,7 @@ export const cameraStore = {
   },
   byToken: async (token: string): Promise<CameraRec | null> => {
     const db = await getDb()
-    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path FROM cameras WHERE token = ?', [token])
+    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path, battery, signal FROM cameras WHERE token = ?', [token])
     const row = res[0]?.values?.[0]
     if (!row) return null
     return {
@@ -37,11 +46,17 @@ export const cameraStore = {
       token: (row[3] as string) || null,
       lastHeartbeat: (row[4] as number) ?? null,
       previewPath: (row[5] as string) || null,
+      battery: (row[6] as number) ?? null,
+      signal: (row[7] as number) ?? null,
     }
   },
-  heartbeat: async (id: string): Promise<void> => {
+  heartbeat: async (id: string, battery?: number, signal?: number): Promise<void> => {
     const db = await getDb()
-    db.run('UPDATE cameras SET last_heartbeat = ? WHERE id = ?', [Date.now(), id])
+    if (battery !== undefined && signal !== undefined) {
+      db.run('UPDATE cameras SET last_heartbeat = ?, battery = ?, signal = ? WHERE id = ?', [Date.now(), battery, signal, id])
+    } else {
+      db.run('UPDATE cameras SET last_heartbeat = ? WHERE id = ?', [Date.now(), id])
+    }
     await saveDb(db)
   },
   setPreviewPath: async (id: string, rel: string): Promise<void> => {
@@ -51,7 +66,7 @@ export const cameraStore = {
   },
   list: async (): Promise<CameraRec[]> => {
     const db = await getDb()
-    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path FROM cameras ORDER BY last_heartbeat DESC')
+    const res = db.exec('SELECT id, name, device_id, token, last_heartbeat, preview_path, battery, signal FROM cameras ORDER BY last_heartbeat DESC')
     const rows = res[0]?.values || []
     return rows.map((r) => ({
       id: r[0] as string,
@@ -60,6 +75,8 @@ export const cameraStore = {
       token: (r[3] as string) || null,
       lastHeartbeat: (r[4] as number) ?? null,
       previewPath: (r[5] as string) || null,
+      battery: (r[6] as number) ?? null,
+      signal: (r[7] as number) ?? null,
     }))
   },
   remove: async (id: string): Promise<void> => {

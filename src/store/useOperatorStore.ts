@@ -73,9 +73,9 @@ type OperatorState = {
   activePlaylistItemPage: number
   nextActivePlaylistItemPage: () => void
   prevActivePlaylistItemPage: () => void
-  upsertCamera: (rec: { id: string; name?: string | null; previewPath?: string | null }) => void
+  upsertCamera: (rec: { id: string; name?: string | null; previewPath?: string | null; battery?: number | null; signal?: number | null }) => void
   updateCameraPreview: (id: string, previewPath: string) => void
-  updateCameraHeartbeat: (id: string) => void
+  updateCameraHeartbeat: (id: string, battery?: number | null, signal?: number | null) => void
   removeCamera: (id: string) => void
   liveStreams: Record<string, MediaStream | null>
   setLiveStream: (id: string, stream: MediaStream | null) => void
@@ -241,10 +241,25 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     const idx = cams.findIndex((c) => c.id === rec.id)
     if (idx >= 0) {
       const prev = cams[idx]
-      const next = { ...prev, name: rec.name ?? prev.name, previewUrl: url || prev.previewUrl, connected: true }
+      const next = { 
+        ...prev, 
+        name: rec.name ?? prev.name, 
+        previewUrl: url || prev.previewUrl, 
+        connected: true,
+        battery: rec.battery ?? prev.battery,
+        signal: rec.signal ?? prev.signal
+      }
       set({ cameras: [...cams.slice(0, idx), next, ...cams.slice(idx + 1)] })
     } else {
-      const added: Camera = { id: rec.id, name: rec.name || rec.id, battery: 100, signal: 4, connected: true, previewUrl: url || '', audioLevel: 0 }
+      const added: Camera = { 
+        id: rec.id, 
+        name: rec.name || rec.id, 
+        battery: rec.battery ?? 100, 
+        signal: rec.signal ?? 4, 
+        connected: true, 
+        previewUrl: url || '', 
+        audioLevel: 0 
+      }
       set({ cameras: [added, ...cams] })
     }
   },
@@ -252,8 +267,13 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     const url = previewPath.startsWith('/uploads') ? previewPath : `/uploads/${previewPath}`
     set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, previewUrl: url, connected: true } : c)) })
   },
-  updateCameraHeartbeat: (id) => {
-    set({ cameras: get().cameras.map((c) => (c.id === id ? { ...c, connected: true } : c)) })
+  updateCameraHeartbeat: (id, battery, signal) => {
+    set({ cameras: get().cameras.map((c) => (c.id === id ? { 
+      ...c, 
+      connected: true,
+      battery: battery ?? c.battery,
+      signal: signal ?? c.signal
+    } : c)) })
   },
   removeCamera: (id) => {
     set({ cameras: get().cameras.filter((c) => c.id !== id) })
@@ -283,8 +303,8 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       map.set(rec.id, {
         id: rec.id,
         name: rec.name || prev?.name || rec.id,
-        battery: prev?.battery ?? 100,
-        signal: prev?.signal ?? 4,
+        battery: rec.battery ?? prev?.battery ?? 100,
+        signal: rec.signal ?? prev?.signal ?? 4,
         connected: true,
         previewUrl: nextUrl,
         audioLevel: prev?.audioLevel ?? 0,

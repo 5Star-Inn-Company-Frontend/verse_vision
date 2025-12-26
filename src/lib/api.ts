@@ -95,7 +95,13 @@ export const api = {
       const res = await fetch(`${BASE}/camera/list`)
       if (!res.ok) return []
       const json = await res.json()
-      return json.data as Array<{ id: string; name?: string | null; previewPath?: string | null }>
+      return json.data as Array<{ 
+        id: string; 
+        name?: string | null; 
+        previewPath?: string | null; 
+        battery?: number | null; 
+        signal?: number | null 
+      }>
     } catch {
       return []
     }

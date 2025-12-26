@@ -43,9 +43,9 @@ export default function SyncBridge() {
           void connectToCamera(cam.id)
         }
       } else if (msg.name === 'cameraHeartbeat') {
-        const d = msg.data as { camera?: { id: string } }
+        const d = msg.data as { camera?: { id: string; battery?: number; signal?: number } }
         const cam = d.camera
-        if (cam?.id) { s.updateCameraHeartbeat(cam.id); void connectToCamera(cam.id) }
+        if (cam?.id) { s.updateCameraHeartbeat(cam.id, cam.battery, cam.signal) }
       }
     })
     return () => off()

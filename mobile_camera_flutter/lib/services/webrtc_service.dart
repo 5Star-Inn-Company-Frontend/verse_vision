@@ -72,6 +72,20 @@ class WebRTCService extends ChangeNotifier {
     } catch (_) {}
   }
 
+
+  Future<void> _clearConnection() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('server');
+      await prefs.remove('token');
+      await prefs.remove('deviceId');
+      await prefs.remove('name');
+      _hasSaved = false;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+
   @override
   void dispose() {
     heartbeatTimer?.cancel();
@@ -157,8 +171,26 @@ class WebRTCService extends ChangeNotifier {
     heartbeatTimer?.cancel();
     heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
       print("samji Sending heartbeat");
-      try { await http.post(Uri.parse('$server/api/camera/heartbeat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'token': token})); } catch (_) {}
+      try {
+        final signal = _getSignalStrength();
+        await http.post(
+          Uri.parse('$server/api/camera/heartbeat'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'token': token,
+            'battery': batteryLevel,
+            'signal': signal
+          })
+        );
+      } catch (_) {}
     });
+  }
+
+  int _getSignalStrength() {
+    if (connectionType == 'WiFi Strong') return 4;
+    if (connectionType == 'WiFi Medium') return 3;
+    if (connectionType == 'WiFi Weak') return 2;
+    return 0;
   }
 
   Future<void> initWebRTC() async {
@@ -220,7 +252,17 @@ class WebRTCService extends ChangeNotifier {
         try {
           final msg = jsonDecode(data as String);
           final t = msg['type'] as String?;
-          if (t == 'connect' && msg['from'] is String) {
+          if (t == 'disconnect') {
+            print("samji Remote disconnect received");
+            remoteId = '';
+            try { await pc?.close(); } catch (_) {}
+            pc = null;
+            try { localStream?.getTracks().forEach((t) => t.stop()); } catch (_) {}
+            localStream = null;
+            renderer.srcObject = null;
+            _clearConnection();
+            disconnect();
+          } else if (t == 'connect' && msg['from'] is String) {
             remoteId = msg['from'] as String;
           } else if (t == 'offer' && msg['from'] is String && msg['sdp'] != null && pc != null) {
             remoteId = msg['from'] as String;

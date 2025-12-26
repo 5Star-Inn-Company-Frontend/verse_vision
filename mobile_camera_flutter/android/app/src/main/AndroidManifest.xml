@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application
-        android:label="versevision_camera"
+        android:label="Versevision Camera"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

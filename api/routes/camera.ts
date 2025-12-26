@@ -37,11 +37,16 @@ router.post('/register', async (req: Request, res: Response) => {
 })
 
 router.post('/heartbeat', async (req: Request, res: Response) => {
-  const { token } = req.body || {}
+  const { token, battery, signal } = req.body || {}
   if (!token) { res.status(400).json({ success: false, error: 'token required' }); return }
   const cam = await cameraStore.byToken(token)
   if (!cam) { res.status(404).json({ success: false, error: 'not found' }); return }
-  await cameraStore.heartbeat(cam.id)
+  await cameraStore.heartbeat(cam.id, battery, signal)
+  
+  // Update cam object with new values for broadcast
+  if (battery !== undefined) cam.battery = battery
+  if (signal !== undefined) cam.signal = signal
+  
   broadcast({ type: 'cameraHeartbeat', camera: cam, ts: Date.now() })
   res.json({ success: true })
 })
