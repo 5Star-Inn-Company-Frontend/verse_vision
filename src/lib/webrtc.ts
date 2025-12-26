@@ -1,6 +1,6 @@
 import { useOperatorStore } from '@/store/useOperatorStore'
 
-type SigMsg = { type: 'registered' | 'connect' | 'disconnect' | 'offer' | 'answer' | 'candidate'; from?: string; to?: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit }
+type SigMsg = { type: 'registered' | 'connect' | 'disconnect' | 'offer' | 'answer' | 'candidate' | 'cameraHeartbeat'; from?: string; to?: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit; camera?: { id: string; heartbeat: number; battery?: number; signal?: number } }
 
 let ws: WebSocket | null = null
 let cachedConfig: RTCConfiguration | null = null
@@ -40,12 +40,16 @@ function ensureWs(): Promise<void> {
       ws.addEventListener('message', (ev) => {
         const msg = JSON.parse(String(ev.data)) as SigMsg
         console.log('samji ws onmessage',msg)
+        const store = useOperatorStore.getState()
+
         if (msg.type === 'answer' && msg.from && msg.sdp) {
           const pc = peers.get(msg.from)
           if (pc) void pc.setRemoteDescription(msg.sdp)
         } else if (msg.type === 'candidate' && msg.from && msg.candidate) {
           const pc = peers.get(msg.from)
           if (pc) void pc.addIceCandidate(msg.candidate)
+        } else if (msg.type === 'cameraHeartbeat' && msg.camera?.id) {
+          store.updateCameraHeartbeat(msg.camera.id,msg.camera.battery,msg.camera.signal)
         }
       })
     } else {

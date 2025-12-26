@@ -24,6 +24,7 @@ export function startWs(): void {
       ws?.send(JSON.stringify({ type: 'register', id }))
     })
     ws.addEventListener('message', (ev) => {
+      console.log("samji ws message l",ev);
       try {
         const msg = JSON.parse(String(ev.data)) as { type: string; camera?: { id?: string; name?: string | null; previewPath?: string | null }; cameraId?: string; previewPath?: string }
         const store = useOperatorStore.getState()
