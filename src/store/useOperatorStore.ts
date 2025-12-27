@@ -206,7 +206,16 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   syncScripture: (item) => set({ currentScripture: item }),
   loadSettings: async () => {
     const s = await api.getSettings() as Partial<import('@/../api/services/settingsStore').AppSettings>
+    let plan = get().userPlan
+    if (s.cloudApiToken) {
+      api.setToken(s.cloudApiToken)
+      const user = await api.me()
+      if (user) {
+        plan = user.active_subscription?.plan?.slug || 'starter'
+      }
+    }
     set({
+      userPlan: plan,
       autoApproveEnabled: s.autoApproveEnabled ?? get().autoApproveEnabled,
       autoApproveDelayMs: s.autoApproveDelayMs ?? get().autoApproveDelayMs,
       translationStyle: s.translationStyle ?? get().translationStyle,
@@ -270,6 +279,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     set({ scriptureDetectionEngine: s.scriptureDetectionEngine })
   },
   setCloudToken: async (token) => {
+    api.setToken(token)
     const s = await api.updateSettings({ cloudApiToken: token })
     set({ cloudApiToken: s.cloudApiToken })
   },

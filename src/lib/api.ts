@@ -1,12 +1,36 @@
 const BASE = '/api'
+const CLOUD = 'http://localhost:8000/api'
+let authToken: string | null = null
 
 export const api = {
+  setToken: (token: string | null) => {
+    authToken = token
+  },
+  _headers: () => {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (authToken) h['Authorization'] = `Bearer ${authToken}`
+    return h
+  },
+  me: async () => {
+    try {
+      const res = await fetch(`${CLOUD}/auth/me`, { headers: api._headers() })
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.user
+    } catch {
+      return null
+    }
+  },
   transcribe: async (audioBlob: Blob, engine: 'openai' | 'offline' = 'openai'): Promise<{ text: string }> => {
     const fd = new FormData()
     fd.append('audio', audioBlob, 'audio.webm')
     fd.append('engine', engine)
+    const headers: Record<string, string> = {}
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`
+    
     const res = await fetch(`${BASE}/ai/transcribe`, {
       method: 'POST',
+      headers,
       body: fd,
     })
     const json = await res.json()
@@ -15,7 +39,7 @@ export const api = {
   detectScripture: async (text: string, engine: 'openai' | 'offline' = 'openai') => {
     const res = await fetch(`${BASE}/ai/scripture/detect`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: api._headers(),
       body: JSON.stringify({ text, engine }),
     })
     const json = await res.json()
@@ -128,7 +152,7 @@ export const api = {
   translate: async (text: string, engine?: 'openai' | 'marian') => {
     const res = await fetch(`${BASE}/ai/translate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: api._headers(),
       body: JSON.stringify({ text, engine }),
     })
     const json = await res.json()
@@ -138,7 +162,7 @@ export const api = {
     try {
       const res = await fetch(`${BASE}/ai/lyrics/fetch`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: api._headers(),
         body: JSON.stringify({ title }),
       })
       if (!res.ok) {
@@ -203,6 +227,27 @@ export const api = {
     } catch {
       return { iceServers: [] as RTCIceServer[] }
     }
+  },
+  listPlans: async () => {
+    try {
+      const res = await fetch(`${CLOUD}/plans`, { headers: api._headers() })
+      if (!res.ok) return []
+      return await res.json() as Array<{ id: number; name: string; slug: string; price: number }>
+    } catch {
+      return []
+    }
+  },
+  initializeSubscription: async (planSlug: string) => {
+    const res = await fetch(`${CLOUD}/subscription/initialize`, {
+      method: 'POST',
+      headers: api._headers(),
+      body: JSON.stringify({ plan_slug: planSlug }),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.message || 'Failed to initialize subscription')
+    }
+    return await res.json()
   },
   setWebrtcConfig: async (iceServers: RTCIceServer[]) => {
     const res = await fetch(`${BASE.replace('/api','')}/api/webrtc/config`, {

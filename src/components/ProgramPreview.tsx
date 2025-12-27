@@ -5,7 +5,11 @@ import { connectToCamera } from '@/lib/webrtc'
 
 export default function ProgramPreview() {
   const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams, loadCameras } = useOperatorStore()
-  const cam = cameras.find((c) => c.id === primaryCameraId) || cameras[0]
+  const cam = primaryCameraId === 'none' ? null : (cameras.find((c) => c.id === primaryCameraId) || cameras[0])
+  
+  // Debug log
+  // console.log('ProgramPreview render:', { primaryCameraId, cam })
+
   const prevCamId = useRef<string | null>(primaryCameraId)
   const [crossfade, setCrossfade] = useState(false)
   const [, force] = useState(0)
@@ -16,7 +20,7 @@ export default function ProgramPreview() {
   }, [loadCameras])
 
   useEffect(() => {
-    if (window.location.pathname === '/program' && primaryCameraId && !liveStreams[primaryCameraId]) {
+    if (window.location.pathname === '/program' && primaryCameraId && primaryCameraId !== 'none' && !liveStreams[primaryCameraId]) {
       if (!connectingRef.current.has(primaryCameraId)) {
         connectingRef.current.add(primaryCameraId)
         void connectToCamera(primaryCameraId).finally(() => {
@@ -87,20 +91,32 @@ export default function ProgramPreview() {
             </button>
           )}
         </div>
-        <span className="opacity-75">{cam?.name}</span>
+        <span className="opacity-75">{cam?.name || 'No Camera'}</span>
       </div>
-      <div className="relative">
-        {liveStreams[cam.id] ? (
-          <VideoLive stream={liveStreams[cam.id]!} />
+      <div 
+        className="relative w-full aspect-video bg-black"
+        style={!cam ? {
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cg fill='%23444444' fill-opacity='1'%3E%3Crect x='0' y='0' width='10' height='10'/%3E%3Crect x='10' y='10' width='10' height='10'/%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundSize: '20px 20px'
+        } : {}}
+      >
+        {cam ? (
+          liveStreams[cam.id] ? (
+            <VideoLive stream={liveStreams[cam.id]!} />
+          ) : (
+            <img src={cam.previewUrl} alt={cam.name} className={`w-full aspect-video object-cover ${crossfade ? 'opacity-0 transition-opacity duration-300' : 'opacity-100 transition-opacity duration-300'}`} />
+          )
         ) : (
-          <img src={cam.previewUrl} alt={cam.name} className={`w-full aspect-video object-cover ${crossfade ? 'opacity-0 transition-opacity duration-300' : 'opacity-100 transition-opacity duration-300'}`} />
+          <div className="w-full aspect-video bg-transparent" />
         )}
-        {prevCamId.current && prevCamId.current !== primaryCameraId && (
+        {prevCamId.current && prevCamId.current !== primaryCameraId && prevCamId.current !== 'none' && (
           <img src={(cameras.find((c) => c.id === prevCamId.current) || cameras[0]).previewUrl} alt="prev" className={`w-full aspect-video object-cover absolute inset-0 ${crossfade ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`} />
         )}
-        <div className="absolute bottom-2 right-2 bg-gray-900/80 text-white text-xs px-2 py-1 rounded">
-          Signal {cam.signal}/4 • Battery {cam.battery}%
-        </div>
+        {cam && (
+          <div className="absolute bottom-2 right-2 bg-gray-900/80 text-white text-xs px-2 py-1 rounded">
+            Signal {cam.signal}/4 • Battery {cam.battery}%
+          </div>
+        )}
         {recordingEnabled && (
           <div className="absolute top-2 right-2 bg-red-600/80 text-white text-xs px-2 py-1 rounded">REC</div>
         )}

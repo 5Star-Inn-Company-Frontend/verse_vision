@@ -14,6 +14,15 @@ export default function CameraGrid() {
         <span className="text-xs text-gray-400">{cameras.length} connected</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
+        <div 
+          onClick={() => { setPrimaryCamera('none'); }} 
+          role="button" 
+          tabIndex={0} 
+          className="group relative bg-gray-800 rounded overflow-hidden border border-gray-700 cursor-pointer flex flex-col items-center justify-center aspect-video hover:bg-gray-700 transition-colors"
+        >
+          <div className="text-3xl mb-2">🚫</div>
+          <div className="text-xs text-gray-300">Turn Off Camera</div>
+        </div>
         {cameras.map((cam) => (
           <div key={cam.id} onClick={() => { setPrimaryCamera(cam.id); }} role="button" tabIndex={0} className="group relative bg-black rounded overflow-hidden border border-gray-700 cursor-pointer">
             <CamPreview stream={liveStreams[cam.id]} fallback={cam.previewUrl} name={cam.name} />

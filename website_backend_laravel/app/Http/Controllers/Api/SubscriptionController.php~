@@ -88,7 +88,7 @@ class SubscriptionController extends Controller
 
                     // Update user paystack codes if needed
                     $user->update([
-
+                        
                         'paystack_customer_code' => $data['customer']['customer_code'] ?? null,
                     ]);
 

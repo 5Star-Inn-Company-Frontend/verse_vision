@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import { api } from '@/lib/api'
 
 export default function SettingsPanel() {
   const { 
@@ -33,7 +34,7 @@ export default function SettingsPanel() {
     setLoginError(null)
     try {
       // Use Laravel backend URL
-      const res = await fetch('http://localhost:8000/api/auth/login', {
+      const res = await fetch(`http://localhost:8000/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -80,14 +81,55 @@ export default function SettingsPanel() {
           <div className="flex items-center justify-between">
             <div className="text-xs text-green-400 flex items-center">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Connected
+              Connected ({userPlan} Plan)
             </div>
-            <button 
-              onClick={handleLogout}
-              className="px-2 py-1 text-xs bg-red-900/30 text-red-200 border border-red-900/50 hover:bg-red-900/50 rounded transition-colors"
-            >
-              Disconnect
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={async () => {
+                  try {
+                    const plans = await api.listPlans()
+                    // Filter out current plan or lower (assuming price increases)
+                    // For now, just show prompt to upgrade to Professional if not already
+                    if (userPlan === 'professional') {
+                      alert('You are already on the Professional plan. To get on Enterprise, kindly contact support.')
+                      return
+                    }
+
+                    var target = plans.find(p => p.slug === 'professional') || plans.find(p => p.slug === 'standard')
+
+                    if(userPlan === 'starter') {
+                      target = plans.find(p => p.slug === 'standard')
+                    }
+                    
+                  
+                    if (!target) {
+                      alert('No upgrade plans available.')
+                      return
+                    }
+
+                    if (confirm(`Upgrade to ${target.name} for NGN ${target.price}?`)) {
+                      const res = await api.initializeSubscription(target.slug)
+                      if (res.authorization_url) {
+                        window.open(res.authorization_url, '_blank')
+                      } else if (res.message) {
+                        alert(res.message)
+                      }
+                    }
+                  } catch (e: any) {
+                    alert(e.message || 'Upgrade failed')
+                  }
+                }}
+                className="px-2 py-1 text-xs bg-blue-900/30 text-blue-200 border border-blue-900/50 hover:bg-blue-900/50 rounded transition-colors"
+              >
+                Upgrade
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="px-2 py-1 text-xs bg-red-900/30 text-red-200 border border-red-900/50 hover:bg-red-900/50 rounded transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
