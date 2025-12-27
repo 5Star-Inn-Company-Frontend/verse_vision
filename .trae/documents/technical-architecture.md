@@ -30,19 +30,19 @@ src/
 ### 2. AI/ML Services Layer
 
 #### Speech Recognition Service
-- **Engine**: OpenAI Whisper (local deployment for privacy)
+- **Engine**: OpenAI Whisper (Proxied via Cloud Backend for paid plans, local fallback if offline/allowed).
 - **Model**: whisper-large-v3 for high accuracy
 - **Processing**: Real-time audio streaming with chunk-based transcription
 - **Performance**: <500ms latency for scripture detection
 
 #### Scripture Detection Service
-- **NLP Framework**: Custom BERT-based model fine-tuned on biblical texts
+- **NLP Framework**: Custom BERT-based model or OpenAI GPT-4o (Proxied via Cloud).
 - **Pattern Matching**: Regex patterns for explicit references + ML for implicit
 - **Context Analysis**: Sentence-level classification for biblical vs casual speech
 - **Training Data**: Curated dataset of sermon transcripts with labeled references
 
 #### Translation Service
-- **Engine**: MarianMT models for offline translation
+- **Engine**: MarianMT models for offline translation or OpenAI (Proxied via Cloud).
 - **Languages**: Yoruba, Hausa, Igbo, French
 - **Specialization**: Fine-tuned on religious/biblical terminology
 - **Performance**: <1 second latency, 90%+ accuracy
@@ -88,6 +88,18 @@ src/
 - **REST API**: For scripture retrieval and configuration
 - **GraphQL**: For complex queries (optional)
 - **WebRTC Signaling**: For camera connection management
+
+### 6. Cloud Services Layer (New)
+
+#### Laravel Backend (`website_backend_laravel`)
+- **Role**: Central authentication, subscription management, and AI proxy.
+- **Database**: MySQL (Users, Subscriptions, AI Logs).
+- **Payment Gateway**: Paystack (via API).
+- **AI Proxy**: Intercepts OpenAI requests from desktop clients, logs them, and forwards to OpenAI.
+
+#### Cloud Sync
+- **Settings Sync**: JSON-based sync of user preferences.
+- **Auth Flow**: JWT-based authentication for desktop client access.
 
 ## Technology Stack Details
 

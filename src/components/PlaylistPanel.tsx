@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { useOperatorStore } from '@/store/useOperatorStore'
+import { useOperatorStore, type PlaylistItem } from '@/store/useOperatorStore'
 
 export default function PlaylistPanel() {
   const [playlists, setPlaylists] = useState<Array<{ id: string; name: string }>>([])
@@ -159,7 +159,7 @@ function ItemActions({ item, onChanged }: { item: { id: string; type: string; ti
   const { setActivePlaylistItem, nextActivePlaylistItemPage, prevActivePlaylistItemPage, activePlaylistItem } = useOperatorStore()
   return (
     <div className="flex gap-2">
-      <button className="px-2 py-1 text-[10px] bg-green-600 hover:bg-green-700 text-white rounded" onClick={() => setActivePlaylistItem({ id: item.id, type: item.type, title: item.title, url: item.path || null })}>Show</button>
+      <button className="px-2 py-1 text-[10px] bg-green-600 hover:bg-green-700 text-white rounded" onClick={() => setActivePlaylistItem({ id: item.id, type: item.type as PlaylistItem['type'], title: item.title, url: item.path || undefined })}>Show</button>
       <button className="px-2 py-1 text-[10px] bg-gray-700 hover:bg-gray-800 text-white rounded" onClick={() => setActivePlaylistItem(undefined)}>Hide</button>
       {(item.type === 'pdf' || item.type === 'ppt') && activePlaylistItem?.id === item.id && (
         <>

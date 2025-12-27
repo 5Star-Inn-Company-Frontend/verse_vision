@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Plan;
+use Illuminate\Support\Facades\Http;
+
+class SubscriptionController extends Controller
+{
+    public function plans()
+    {
+        return response()->json(Plan::all());
+    }
+
+    public function initialize(Request $request)
+    {
+        $request->validate(['plan_slug' => 'required|exists:plans,slug']);
+
+        $user = $request->user();
+        $plan = Plan::where('slug', $request->plan_slug)->first();
+
+        if ($plan->price <= 0) {
+            // Free plan switch
+            // Logic to cancel current and start new free plan
+            // For now, just create new subscription
+            $user->subscriptions()->create([
+                'plan_id' => $plan->id,
+                'status' => 'active',
+                'starts_at' => now(),
+            ]);
+            
+            return response()->json(['message' => 'Switched to ' . $plan->name, 'status' => 'active']);
+        }
+
+        // Initialize Paystack Transaction
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.paystack.co/transaction/initialize', [
+            'email' => $user->email,
+            'amount' => $plan->price * 100, // Kobo
+            'metadata' => [
+                'user_id' => $user->id,
+                'plan_id' => $plan->id,
+                'custom_fields' => [
+                    ['display_name' => "Plan", "variable_name" => "plan", "value" => $plan->name]
+                ]
+            ],
+            'callback_url' => 'http://localhost:3000/callback', // Should be env config
+        ]);
+
+        if ($response->successful()) {
+            return response()->json($response->json()['data']);
+        }
+
+        return response()->json(['message' => 'Payment initialization failed'], 400);
+    }
+
+    public function verify(Request $request)
+    {
+        $request->validate(['reference' => 'required']);
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+        ])->get('https://api.paystack.co/transaction/verify/' . $request->reference);
+
+        if ($response->successful()) {
+            $data = $response->json()['data'];
+            if ($data['status'] === 'success') {
+                $meta = $data['metadata'];
+                $planId = $meta['plan_id'] ?? null;
+                
+                if ($planId) {
+                    $request->user()->subscriptions()->create([
+                        'plan_id' => $planId,
+                        'status' => 'active',
+                        'paystack_subscription_code' => $data['id'], // Just using ID as ref
+                        'starts_at' => now(),
+                        // Add duration logic (e.g., +1 month)
+                        'ends_at' => now()->addMonth(),
+                    ]);
+                    
+                    // Update user paystack codes if needed
+                    $request->user()->update([
+                        'paystack_customer_code' => $data['customer']['customer_code'] ?? null,
+                    ]);
+                    
+                    return response()->json(['status' => 'active', 'plan_id' => $planId]);
+                }
+            }
+        }
+
+        return response()->json(['message' => 'Verification failed'], 400);
+    }
+}

@@ -21,9 +21,17 @@ export type ScriptureItem = {
   detectedAt: number
 }
 
+export type PlaylistItem = {
+  id: string
+  type: 'scripture' | 'lyric' | 'image' | 'video' | 'pdf' | 'ppt'
+  title?: string
+  url?: string
+}
+
 type OperatorState = {
   cameras: Camera[]
   primaryCameraId: string | null
+  activeAudioCameraId: string | null
   scriptureQueue: ScriptureItem[]
   currentScripture: ScriptureItem | null
   autoApproveEnabled: boolean
@@ -33,20 +41,28 @@ type OperatorState = {
   translationEnabledHausa: boolean
   translationEnabledIgbo: boolean
   translationEnabledFrench: boolean
+  translations: Record<string, string | undefined> | null
   translationEngine: 'openai' | 'marian'
   scriptureDetectionEngine: 'openai' | 'offline'
+  cloudApiToken: string | null
+  userPlan: string | null
+  setUserPlan: (plan: string | null) => void
   showScriptureOverlay: boolean
   recordingEnabled: boolean
   countdownEndAt: number | null
   approveScripture: (id: string) => void
   rejectScripture: (id: string) => void
   setPrimaryCamera: (id: string) => void
+  setActiveAudioCamera: (id: string | null) => void
   syncPrimaryCamera: (id: string) => void
+  setScriptureQueue: (items: ScriptureItem[]) => void
   loadQueue: () => Promise<void>
   loadCurrent: () => Promise<void>
   updateScripture: (id: string, patch: Partial<ScriptureItem>) => Promise<void>
+  syncScripture: (item: ScriptureItem | null) => void
   loadSettings: () => Promise<void>
   updateSettings: (patch: { autoApproveEnabled?: boolean; autoApproveDelayMs?: number }) => Promise<void>
+  syncSettings: (settings: any) => void
   updateTranslationSettings: (patch: {
     translationStyle?: 'subtitle' | 'split' | 'ticker'
     translationEnabledYoruba?: boolean
@@ -54,49 +70,58 @@ type OperatorState = {
     translationEnabledIgbo?: boolean
     translationEnabledFrench?: boolean
   }) => Promise<void>
+  syncTranslationSettings: (settings: any) => void
+  fetchTranslations: (text: string) => Promise<void>
   setTranslationEngine: (engine: 'openai' | 'marian') => Promise<void>
   setScriptureDetectionEngine: (engine: 'openai' | 'offline') => Promise<void>
-  activeAudioCameraId: string | null
-  setActiveAudioCamera: (id: string) => Promise<void>
-  translations: { Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }
-  fetchTranslations: (text: string) => Promise<void>
+  setCloudToken: (token: string | null) => Promise<void>
+  
+  // Lyrics
   showLyricsOverlay: boolean
   currentSongId: string | null
   currentLineIndex: number
   currentSongLines: string[]
-  loadCurrentLyric: () => Promise<void>
-  setCurrentLyric: (payload: { songId: string | null; lineIndex: number; show: boolean }) => Promise<void>
-  syncLyricState: (payload: { songId: string | null; lineIndex: number; show: boolean }) => Promise<void>
+  setLyricsOverlay: (show: boolean) => Promise<void>
   toggleScriptureOverlay: (show: boolean) => Promise<void>
+  setCurrentSong: (songId: string | null) => Promise<void>
+  setCurrentLineIndex: (index: number) => Promise<void>
+  setCurrentLyric: (payload: { show: boolean; songId: string | null; lineIndex: number }) => Promise<void>
+  loadCurrentLyric: () => Promise<void>
+  syncLyricState: (payload: { show: boolean; songId: string | null; lineIndex: number }) => Promise<void>
+  
+  // Recording
   setRecordingEnabled: (enabled: boolean) => Promise<void>
+  
+  // Countdown
   startCountdown: (ms: number) => Promise<void>
   stopCountdown: () => Promise<void>
-  activePlaylistItem?: { id: string; type: string; title: string; url?: string | null }
-  setActivePlaylistItem: (item?: { id: string; type: string; title: string; url?: string | null }) => void
-  syncPlaylistState: (item?: { id: string; type: string; title: string; url?: string | null }) => void
-  syncScripture: (item: ScriptureItem | null) => void
-  syncTranslationSettings: (patch: {
-    translationStyle?: 'subtitle' | 'split' | 'ticker'
-    translationEnabledYoruba?: boolean
-    translationEnabledHausa?: boolean
-    translationEnabledIgbo?: boolean
-    translationEnabledFrench?: boolean
-  }) => void
-  syncSettings: (patch: { showScriptureOverlay?: boolean; recordingEnabled?: boolean; countdownEndAt?: number | null }) => void
+
+  // Playlist
+  activePlaylistItem?: PlaylistItem
+  setActivePlaylistItem: (item?: PlaylistItem) => void
+  syncPlaylistState: (item?: PlaylistItem) => void
   activePlaylistItemPage: number
   nextActivePlaylistItemPage: () => void
   prevActivePlaylistItemPage: () => void
-  upsertCamera: (rec: { id: string; name?: string | null; previewPath?: string | null; battery?: number | null; signal?: number | null }) => void
+
+  // Camera Management
+  upsertCamera: (rec: Partial<Camera> & { id: string; previewPath?: string }) => void
   updateCameraPreview: (id: string, previewPath: string) => void
-  updateCameraHeartbeat: (id: string, battery?: number | null, signal?: number | null) => void
+  updateCameraHeartbeat: (id: string, battery?: number, signal?: number) => void
   removeCamera: (id: string) => void
-  liveStreams: Record<string, MediaStream | null>
-  setLiveStream: (id: string, stream: MediaStream | null) => void
+  loadCameras: () => Promise<void>
+  
+  // Live Streams
+  liveStreams: Record<string, MediaStream>
+  setLiveStream: (id: string, stream: MediaStream) => void
+  
+  // WebRTC Config
   iceServers: RTCIceServer[]
   loadIceServers: () => Promise<void>
-  updateIceServers: (iceServers: RTCIceServer[]) => Promise<void>
-  loadCameras: () => Promise<void>
-  setScriptureQueue: (queue: ScriptureItem[]) => void
+  updateIceServers: (servers: RTCIceServer[]) => Promise<void>
+  
+  // Primary Camera Publish (helper)
+  setPrimaryCameraPublish: (id: string) => void
 }
 
 export const useOperatorStore = create<OperatorState>((set, get) => ({
@@ -112,6 +137,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     }
   ],
   primaryCameraId: 'cam-default',
+  activeAudioCameraId: null,
   scriptureQueue: [],
   currentScripture: null,
   autoApproveEnabled: false,
@@ -121,8 +147,11 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   translationEnabledHausa: true,
   translationEnabledIgbo: true,
   translationEnabledFrench: true,
+  translations: null,
   translationEngine: 'marian',
   scriptureDetectionEngine: 'offline',
+  cloudApiToken: null,
+  userPlan: null,
   showScriptureOverlay: true,
   recordingEnabled: false,
   countdownEndAt: null,
@@ -144,6 +173,9 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     set({ primaryCameraId: id })
     publish('camera-primary', { id }) 
   },
+  setActiveAudioCamera: (id) => {
+    set({ activeAudioCameraId: id })
+  },
   syncPrimaryCamera: (id) => {
     set({ primaryCameraId: id })
   },
@@ -152,6 +184,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     set({ primaryCameraId: id })
     publish('camera-primary', { id })
   },
+  setScriptureQueue: (items) => set({ scriptureQueue: items }),
   loadQueue: async () => {
     const items = await api.getQueue()
     set({ scriptureQueue: items })
@@ -185,12 +218,24 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       countdownEndAt: s.countdownEndAt ?? get().countdownEndAt,
       scriptureDetectionEngine: s.scriptureDetectionEngine ?? get().scriptureDetectionEngine,
       translationEngine: s.translationEngine ?? get().translationEngine,
+      cloudApiToken: s.cloudApiToken ?? get().cloudApiToken,
+      showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay,
     })
   },
   updateSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({ autoApproveEnabled: s.autoApproveEnabled, autoApproveDelayMs: s.autoApproveDelayMs })
   },
+  syncSettings: (s) => set((prev) => ({
+    autoApproveEnabled: s.autoApproveEnabled ?? prev.autoApproveEnabled,
+    autoApproveDelayMs: s.autoApproveDelayMs ?? prev.autoApproveDelayMs,
+    recordingEnabled: s.recordingEnabled ?? prev.recordingEnabled,
+    countdownEndAt: s.countdownEndAt ?? prev.countdownEndAt,
+    scriptureDetectionEngine: s.scriptureDetectionEngine ?? prev.scriptureDetectionEngine,
+    translationEngine: s.translationEngine ?? prev.translationEngine,
+    cloudApiToken: s.cloudApiToken ?? prev.cloudApiToken,
+    showScriptureOverlay: s.showScriptureOverlay ?? prev.showScriptureOverlay,
+  })),
   updateTranslationSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({
@@ -200,63 +245,76 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEnabledIgbo: s.translationEnabledIgbo,
       translationEnabledFrench: s.translationEnabledFrench,
     })
-    publish('translation-settings', patch)
   },
-  syncTranslationSettings: (patch) => {
-    set((state) => ({
-      translationStyle: patch.translationStyle ?? state.translationStyle,
-      translationEnabledYoruba: patch.translationEnabledYoruba ?? state.translationEnabledYoruba,
-      translationEnabledHausa: patch.translationEnabledHausa ?? state.translationEnabledHausa,
-      translationEnabledIgbo: patch.translationEnabledIgbo ?? state.translationEnabledIgbo,
-      translationEnabledFrench: patch.translationEnabledFrench ?? state.translationEnabledFrench,
-    }))
-  },
-  syncSettings: (patch) => {
-    set((s) => ({
-      showScriptureOverlay: patch.showScriptureOverlay ?? s.showScriptureOverlay,
-      recordingEnabled: patch.recordingEnabled ?? s.recordingEnabled,
-      countdownEndAt: patch.countdownEndAt !== undefined ? patch.countdownEndAt : s.countdownEndAt
-    }))
-  },
-  toggleScriptureOverlay: async (show: boolean) => {
-    const s = await api.updateSettings({ showScriptureOverlay: show })
-    set({ showScriptureOverlay: s.showScriptureOverlay })
-    publish('settings', { showScriptureOverlay: s.showScriptureOverlay })
+  syncTranslationSettings: (s) => set((prev) => ({
+    translationStyle: s.translationStyle ?? prev.translationStyle,
+    translationEnabledYoruba: s.translationEnabledYoruba ?? prev.translationEnabledYoruba,
+    translationEnabledHausa: s.translationEnabledHausa ?? prev.translationEnabledHausa,
+    translationEnabledIgbo: s.translationEnabledIgbo ?? prev.translationEnabledIgbo,
+    translationEnabledFrench: s.translationEnabledFrench ?? prev.translationEnabledFrench,
+  })),
+  fetchTranslations: async (text) => {
+    if (!text) {
+      set({ translations: null })
+      return
+    }
+    const res = await api.translate(text, get().translationEngine)
+    set({ translations: res })
   },
   setTranslationEngine: async (engine) => {
     const s = await api.updateSettings({ translationEngine: engine })
-    set({ translationEngine: s.translationEngine as 'openai' | 'marian' })
+    set({ translationEngine: s.translationEngine })
   },
   setScriptureDetectionEngine: async (engine) => {
     const s = await api.updateSettings({ scriptureDetectionEngine: engine })
-    set({ scriptureDetectionEngine: s.scriptureDetectionEngine as 'openai' | 'offline' })
+    set({ scriptureDetectionEngine: s.scriptureDetectionEngine })
   },
-  activeAudioCameraId: null,
-  setActiveAudioCamera: async (id) => {
-    const s = await api.updateSettings({ activeAudioCameraId: id })
-    set({ activeAudioCameraId: s.activeAudioCameraId })
+  setCloudToken: async (token) => {
+    const s = await api.updateSettings({ cloudApiToken: token })
+    set({ cloudApiToken: s.cloudApiToken })
   },
-  translations: {},
-  fetchTranslations: async (text: string) => {
-    const data = await api.translate(text, get().translationEngine)
-    set({ translations: data || {} })
-  },
+  setUserPlan: (plan) => set({ userPlan: plan }),
+  
   showLyricsOverlay: false,
   currentSongId: null,
   currentLineIndex: 0,
   currentSongLines: [],
+  setLyricsOverlay: async (show) => {
+    const s = await api.updateSettings({ showLyricsOverlay: show })
+    set({ showLyricsOverlay: s.showLyricsOverlay ?? false })
+    publish('lyric-current', { show: s.showLyricsOverlay ?? false, songId: get().currentSongId, lineIndex: get().currentLineIndex })
+  },
+  toggleScriptureOverlay: async (show) => {
+    const s = await api.updateSettings({ showScriptureOverlay: show })
+    set({ showScriptureOverlay: s.showScriptureOverlay ?? show })
+  },
+  setCurrentSong: async (songId) => {
+    const s = await api.updateSettings({ currentSongId: songId, currentLineIndex: 0 })
+    set({ currentSongId: s.currentSongId ?? null, currentLineIndex: 0, currentSongLines: [] }) // Lines will be loaded by UI
+    publish('lyric-current', { show: get().showLyricsOverlay, songId: s.currentSongId ?? null, lineIndex: 0 })
+  },
+  setCurrentLineIndex: async (index) => {
+    const s = await api.updateSettings({ currentLineIndex: index })
+    set({ currentLineIndex: s.currentLineIndex ?? 0 })
+    publish('lyric-current', { show: get().showLyricsOverlay, songId: get().currentSongId, lineIndex: s.currentLineIndex ?? 0 })
+  },
   loadCurrentLyric: async () => {
     const cur = await api.getCurrentLyric()
     await get().syncLyricState(cur)
   },
   syncLyricState: async (cur) => {
-    const store = get()
-    let lines = store.currentSongLines
-    if (store.currentSongId !== cur.songId && cur.songId) {
+    let lines: string[] = []
+    if (cur.songId && cur.songId !== get().currentSongId) {
+      // We don't have song data in store, so we can't really set lines here easily without fetching
+      // But usually this sync comes from Program view which might not need lines, 
+      // or this store is used by Operator.
+      // For now, let's just fetch song details if we can, or just set ID.
       try {
-        const songs = await api.listSongs() as Array<{ id: string; lines: string[] }>
-        const song = songs.find((s) => s.id === cur.songId)
-        lines = song ? song.lines : []
+        const res = await fetch(`/api/lyrics/${cur.songId}`)
+        if (res.ok) {
+          const json = await res.json()
+          lines = json.data.lines || []
+        }
       } catch { lines = [] }
     } else if (!cur.songId) {
       lines = []
@@ -358,14 +416,13 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       map.set(rec.id, {
         id: rec.id,
         name: rec.name || prev?.name || rec.id,
-        battery: rec.battery ?? prev?.battery ?? 100,
-        signal: rec.signal ?? prev?.signal ?? 4,
+        battery: rec.battery ?? prev?.battery ?? 0,
+        signal: rec.signal ?? prev?.signal ?? 0,
         connected: true,
         previewUrl: nextUrl,
-        audioLevel: prev?.audioLevel ?? 0,
+        audioLevel: prev?.audioLevel ?? 0
       })
     }
     set({ cameras: Array.from(map.values()) })
-  },
-  setScriptureQueue: (queue) => set({ scriptureQueue: queue }),
+  }
 }))

@@ -7,7 +7,7 @@ import hymnsDefaultData from '../assets/hymns-default.json'
 type Song = { id: string; title: string; language?: string | null; lines: string[] }
 
 export default function LyricsPanel() {
-  const { showLyricsOverlay, currentSongId, currentLineIndex, setCurrentLyric } = useOperatorStore()
+  const { showLyricsOverlay, currentSongId, currentLineIndex, setCurrentLyric, cloudApiToken } = useOperatorStore()
   const [songs, setSongs] = useState<Song[]>([])
   const [search, setSearch] = useState('')
   const [fetching, setFetching] = useState(false)
@@ -70,19 +70,28 @@ export default function LyricsPanel() {
   }
 
   const fetchFromAI = async () => {
-    if (!search || search.length < 3) return
-    setFetching(true)
-    const data = await api.fetchLyrics(search)
-    setFetching(false)
-    if (!data) {
-      alert('Could not find lyrics for: ' + search)
+    if (!cloudApiToken) {
+      alert('Please connect to the cloud first to use AI lyrics search')
       return
     }
-    const created = await api.createSong({ title: data.title, lines: data.lines, language: 'English', source: 'ai' })
-    if (created) {
-      const refreshed = await api.listSongs()
-      setSongs(refreshed)
-      setSearch('') // clear search to show all or keep it to show the new one? Let's clear it so they see the list
+    if (!search || search.length < 3) return
+    setFetching(true)
+    try {
+      const data = await api.fetchLyrics(search)
+      setFetching(false)
+      if (!data) {
+        alert('Could not find lyrics for: ' + search)
+        return
+      }
+      const created = await api.createSong({ title: data.title, lines: data.lines, language: 'English', source: 'ai' })
+      if (created) {
+        const refreshed = await api.listSongs()
+        setSongs(refreshed)
+        setSearch('') 
+      }
+    } catch (e: any) {
+      setFetching(false)
+      alert(e.message || 'Failed to fetch lyrics')
     }
   }
 

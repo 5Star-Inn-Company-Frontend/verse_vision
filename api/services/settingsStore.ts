@@ -18,6 +18,7 @@ export type AppSettings = {
   iceServersJson?: string | null
   translationEngine?: 'openai' | 'marian'
   scriptureDetectionEngine?: 'openai' | 'offline'
+  cloudApiToken?: string | null // Added Cloud API Token
 }
 
 const defaults: AppSettings = {
@@ -38,6 +39,7 @@ const defaults: AppSettings = {
   iceServersJson: null,
   translationEngine: 'marian',
   scriptureDetectionEngine: 'offline',
+  cloudApiToken: null,
 }
 
 export const settingsStore = {
@@ -66,6 +68,7 @@ export const settingsStore = {
       iceServersJson: (map.get('iceServersJson') as string) ?? defaults.iceServersJson ?? null,
       translationEngine: (map.get('translationEngine') as AppSettings['translationEngine']) ?? defaults.translationEngine,
       scriptureDetectionEngine: (map.get('scriptureDetectionEngine') as AppSettings['scriptureDetectionEngine']) ?? defaults.scriptureDetectionEngine,
+      cloudApiToken: (map.get('cloudApiToken') as string) ?? defaults.cloudApiToken ?? null,
     }
   },
   set: async (partial: Partial<AppSettings>): Promise<AppSettings> => {
@@ -90,6 +93,7 @@ export const settingsStore = {
       ['iceServersJson', String(next.iceServersJson ?? '')],
       ['translationEngine', String(next.translationEngine ?? defaults.translationEngine)],
       ['scriptureDetectionEngine', String(next.scriptureDetectionEngine ?? defaults.scriptureDetectionEngine)],
+      ['cloudApiToken', String(next.cloudApiToken ?? '')],
     ]
     for (const [k, v] of entries) {
       if (partial[k as keyof AppSettings] !== undefined) {

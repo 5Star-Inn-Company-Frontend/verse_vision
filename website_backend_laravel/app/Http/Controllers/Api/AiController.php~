@@ -1,0 +1,227 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\AiLog;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class AiController extends Controller
+{
+    public function transcribe(Request $request)
+    {
+        // Validation and file handling
+        $request->validate([
+            'file' => 'required|file|mimes:mp3,wav,m4a,mp4',
+        ]);
+
+        $startTime = microtime(true);
+
+        // Proxy to OpenAI
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+        ])->attach(
+            'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
+        )->post('https://api.openai.com/v1/audio/transcriptions', [
+            'model' => 'whisper-1',
+            'response_format' => 'json',
+        ]);
+
+        $duration = (microtime(true) - $startTime) * 1000;
+
+        // Log request
+        AiLog::create([
+            'user_id' => $request->user()->id,
+            'request_type' => 'transcription',
+            'model' => 'whisper-1',
+            'duration_ms' => $duration,
+            'meta' => ['status' => $response->status()],
+        ]);
+
+        return $response->json();
+    }
+
+    public function detectScripture(Request $request)
+    {
+        $request->validate(['text' => 'required|string']);
+
+        $startTime = microtime(true);
+
+        // Proxy to OpenAI (Chat Completion)
+        // Original Prompt from Operator:
+        $prompt = 'Extract all explicit or implicit Bible references from the text.
+        Also identify the Bible version/translation if explicitly mentioned for a specific reference (e.g., "John 3:16 KJV").
+        Also identify if there is a general request to change the default version (e.g., "Give me KJV version", "Switch to NLT", "Use NKJV").
+        Return a JSON object with keys:
+        - "references": array of objects { "reference": "Book chapter:verse", "version": "KJV" | null }
+        - "defaultVersionChange": string | null (e.g. "KJV") if a general switch is requested.
+
+        Example: {"references": [{ "reference": "John 3:16", "version": "KJV" }, { "reference": "Psalm 23:1", "version": null }], "defaultVersionChange": "KJV"}';
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o',
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt . "\nText: " . $request->text],
+            ],
+            'response_format' => ['type' => 'json_object'],
+            'temperature' => 0,
+        ]);
+
+        $duration = (microtime(true) - $startTime) * 1000;
+
+        $data = $response->json();
+        $inputTokens = $data['usage']['prompt_tokens'] ?? 0;
+        $outputTokens = $data['usage']['completion_tokens'] ?? 0;
+
+        AiLog::create([
+            'user_id' => $request->user()->id,
+            'request_type' => 'scripture_detection',
+            'model' => 'gpt-4o',
+            'input_tokens' => $inputTokens,
+            'output_tokens' => $outputTokens,
+            'duration_ms' => $duration,
+            'prompt_snippet' => substr($request->text, 0, 100),
+        ]);
+
+        return $response->json();
+    }
+
+    public function translate(Request $request)
+    {
+        $request->validate(['text' => 'required|string', 'languages' => 'array']);
+
+        $startTime = microtime(true);
+
+        $prompt = "Translate the following worship sermon text into Yoruba, Hausa, Igbo, and French.
+        Return JSON with keys: Yoruba, Hausa, Igbo, French.
+        Text: " . $request->text;
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+            'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 2000,
+        ]);
+
+        $duration = (microtime(true) - $startTime) * 1000;
+
+        $data = $response->json();
+        $inputTokens = $data['usage']['prompt_tokens'] ?? 0;
+        $outputTokens = $data['usage']['completion_tokens'] ?? 0;
+
+        AiLog::create([
+            'user_id' => $request->user()->id,
+            'request_type' => 'translation',
+            'model' => 'gpt-4o-mini',
+            'input_tokens' => $inputTokens,
+            'output_tokens' => $outputTokens,
+            'duration_ms' => $duration,
+            'prompt_snippet' => substr($request->text, 0, 100),
+        ]);
+
+        // Return only the content JSON part as expected by frontend
+        $content = $data['choices'][0]['message']['content'] ?? '{}';
+        return response()->json(json_decode($content));
+    }
+
+    public function getScriptureText(Request $request)
+    {
+        $request->validate(['reference' => 'required|string', 'version' => 'nullable|string']);
+        $version = $request->version ?? 'NIV';
+
+        $startTime = microtime(true);
+
+        $prompt = "Provide the full text for the Bible reference: {$request->reference}.
+        Use the {$version} version. If {$version} is unavailable, fallback to NIV.
+        Return JSON with a single key 'text'.
+        Example: {'text': 'For God so loved the world...'}";
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+            'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 2000,
+        ]);
+
+        $duration = (microtime(true) - $startTime) * 1000;
+
+        $data = $response->json();
+        $inputTokens = $data['usage']['prompt_tokens'] ?? 0;
+        $outputTokens = $data['usage']['completion_tokens'] ?? 0;
+
+        AiLog::create([
+            'user_id' => $request->user()->id,
+            'request_type' => 'scripture_text',
+            'model' => 'gpt-4o-mini',
+            'input_tokens' => $inputTokens,
+            'output_tokens' => $outputTokens,
+            'duration_ms' => $duration,
+            'prompt_snippet' => substr($request->reference, 0, 100),
+        ]);
+
+        $content = $data['choices'][0]['message']['content'] ?? '{}';
+        return response()->json(json_decode($content));
+    }
+
+    public function fetchLyrics(Request $request)
+    {
+        $request->validate(['title' => 'required|string']);
+
+        $startTime = microtime(true);
+
+        $prompt = "Find the lyrics for the Christian hymn or song titled \"{$request->title}\".
+        Return a JSON object with keys:
+        - \"title\": The correct full title of the song.
+        - \"lines\": An array of strings, where each string is a full stanza (verse or chorus).
+          - Format each stanza with a header (e.g., \"Verse 1\", \"Verse 2\", \"Chorus\") followed by the lyrics.
+          - Use newline characters (\\n) to separate lines.
+          - Indent the 2nd and 4th lines of each verse with 2 spaces (\\u0020\\u0020) to match traditional hymn formatting.
+
+        Example: {\"title\": \"Amazing Grace\", \"lines\": [\"Verse 1\\nAmazing grace! how sweet the sound...\", ...]}
+        If the song is not found or known, return null (empty JSON or null).";
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->withoutVerifying()->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+            'response_format' => ['type' => 'json_object'],
+            'max_tokens' => 2000,
+        ]);
+
+        $duration = (microtime(true) - $startTime) * 1000;
+
+        $data = $response->json();
+
+        Log::info($request->title ."===Lyrics===".json_encode($data));
+
+        $inputTokens = $data['usage']['prompt_tokens'] ?? 0;
+        $outputTokens = $data['usage']['completion_tokens'] ?? 0;
+
+        AiLog::create([
+            'user_id' => $request->user()->id,
+            'request_type' => 'lyrics',
+            'model' => 'gpt-4o-mini',
+            'input_tokens' => $inputTokens,
+            'output_tokens' => $outputTokens,
+            'duration_ms' => $duration,
+            'prompt_snippet' => substr($request->title, 0, 100),
+            'meta' => $data,
+        ]);
+
+        $content = $data['choices'][0]['message']['content'] ?? '{}';
+        return response()->json(json_decode($content));
+    }
+}

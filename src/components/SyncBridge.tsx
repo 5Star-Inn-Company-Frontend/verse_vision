@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { subscribe } from '@/lib/bus'
-import { useOperatorStore } from '@/store/useOperatorStore'
+import { useOperatorStore, type PlaylistItem } from '@/store/useOperatorStore'
 import { connectToCamera } from '@/lib/webrtc'
 
 export default function SyncBridge() {
@@ -11,7 +11,7 @@ export default function SyncBridge() {
         const d = msg.data as { id?: string }
         if (typeof d.id === 'string') s.syncPrimaryCamera(d.id)
       } else if (msg.name === 'playlist-active') {
-        const d = msg.data as { id: string; type: string; title: string; url?: string | null } | undefined
+        const d = msg.data as PlaylistItem | undefined
         s.syncPlaylistState(d)
       } else if (msg.name === 'scripture-current') {
         const d = msg.data as { id?: string } & Partial<import('@/store/useOperatorStore').ScriptureItem>

@@ -12,6 +12,8 @@ export default function TranslationPanel() {
     loadSettings,
     updateTranslationSettings,
     setTranslationEngine,
+    cloudApiToken,
+    userPlan,
   } = useOperatorStore()
 
   useEffect(() => {
@@ -28,7 +30,13 @@ export default function TranslationPanel() {
             <button
               key={engine}
               className={`px-2 py-1 text-xs rounded ${translationEngine === engine ? 'bg-blue-600' : 'bg-gray-700'} text-white`}
-              onClick={() => setTranslationEngine(engine)}
+              onClick={() => {
+                if (engine === 'openai' && !cloudApiToken) {
+                  alert('Please connect to the cloud first to use OpenAI translation')
+                  return
+                }
+                setTranslationEngine(engine)
+              }}
             >
               {engine === 'openai' ? 'OpenAI' : 'Offline (MarianMT)'}
             </button>

@@ -98,6 +98,44 @@ VerseVision is an intelligent worship media management platform that combines pr
 - Independent output configurations
 - Preview vs Program output separation
 
+### 5. Cloud Integration & User Management
+
+#### Authentication & User Accounts
+- **Requirement**: Mandatory login/signup before accessing Operator UI.
+- **Backend**: Laravel-based cloud platform (`website_backend_laravel`).
+- **Data Sync**: Option to sync settings and presets to cloud.
+
+#### Subscription Plans & Feature Gating
+- **Starter (Free)**
+  - 1 Smartphone Camera
+  - Basic Scripture Detection
+  - Manual Approval Only
+  - 2 Translation Languages
+  - 720p Output
+- **Standard (₦45,000/mo)**
+  - Up to 5 Smartphone Cameras
+  - Full AI Scripture Detection
+  - Auto-Approve Enabled
+  - 4 Translation Languages
+  - 1080p Full HD Output
+  - Cloud Recording (50GB)
+- **Professional (₦122,450/mo)**
+  - Unlimited Cameras
+  - Advanced AI Features & Custom Vocabulary
+  - Unlimited Translations
+  - 4K Ultra HD Output
+  - Cloud Recording (500GB)
+  - Multi-campus Sync
+- **Enterprise (Custom)**
+  - Custom AI Training
+  - On-premise Options
+  - White-labeling
+
+#### Centralized AI Processing
+- **Architecture**: All desktop client requests to OpenAI (transcription, detection) must route through the Cloud Backend.
+- **Logging**: Cloud logs all AI requests for usage tracking and model improvement.
+- **Payment**: Paystack integration for subscription upgrades directly within the Operator UI.
+
 ## System Architecture
 
 ### Technology Stack Recommendations

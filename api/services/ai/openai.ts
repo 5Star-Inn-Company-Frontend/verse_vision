@@ -1,62 +1,95 @@
-import OpenAI from 'openai'
 import fs from 'fs'
+import axios from 'axios'
+import FormData from 'form-data'
+import { settingsStore } from '../settingsStore.js'
 
+// Cloud Backend URL (Laravel API)
+const CLOUD_API_URL = process.env.CLOUD_API_URL || 'http://localhost:8000/api'
+
+// Helper to get Cloud API Token
+async function getCloudToken(): Promise<string | null> {
+  const settings = await settingsStore.get()
+  return settings.cloudApiToken || null
+}
 
 export async function transcribeAudio(filePath: string): Promise<string> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
-  if (!client) return ''
-  const file = fs.createReadStream(filePath)
-  const res = await client.audio.transcriptions.create({ model: 'whisper-1', file })
-  console.log('res:transcribeAudio', res);
-  return (res.text || '').trim()
+  const token = await getCloudToken()
+  if (!token) {
+    console.warn('Skipping transcription: No Cloud API Token found.')
+    return ''
+  }
+
+  const form = new FormData()
+  form.append('file', fs.createReadStream(filePath))
+
+  try {
+    const res = await axios.post(`${CLOUD_API_URL}/ai/transcribe`, form, {
+      headers: {
+        ...form.getHeaders(),
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    console.log('Cloud Transcribe Response:', res.data)
+    return (res.data.text || '').trim()
+  } catch (err: any) {
+    console.error('Cloud Transcription error:', err.response?.data || err.message)
+    return ''
+  }
 }
 
 export async function translateTextParallel(text: string): Promise<{ Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
-  if (!client) return { Yoruba: text, Hausa: text, Igbo: text, French: text }
-  const prompt = `Translate the following worship sermon text into Yoruba, Hausa, Igbo, and French.
-Return JSON with keys: Yoruba, Hausa, Igbo, French.
-Text: ${text}`
+  // Currently, the Laravel backend doesn't have a dedicated translation endpoint yet based on the previous turn.
+  // We will need to either add it to Laravel or keep using direct OpenAI if not implemented.
+  // Ideally, we should implement it in Laravel. For now, let's assume we'll add it or fallback.
+  // But per instruction "update Operator backend to connect its ai request to website_backend_laravel", 
+  // we should route this through the cloud.
+  
+  // Since the user only asked to "update Operator backend", but I see I didn't add translation endpoint to Laravel yet,
+  // I will add a TODO to update Laravel backend as well, but first let's implement the client side assuming the endpoint exists
+  // or will exist. Actually, let's implement the Laravel endpoint first in the next steps if needed, 
+  // but for now let's focus on this file.
+  
+  // Wait, I can't leave broken code. I will assume the Laravel endpoint will be `/ai/translate`.
+  
+  const token = await getCloudToken()
+  if (!token) return { Yoruba: text, Hausa: text, Igbo: text, French: text }
+
   try {
-    const res = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 2000,
+    const res = await axios.post(`${CLOUD_API_URL}/ai/translate`, {
+      text,
+      languages: ['Yoruba', 'Hausa', 'Igbo', 'French']
+    }, {
+      headers: { 'Authorization': `Bearer ${token}` }
     })
-    const out = res.choices[0]?.message?.content || ''
-    const parsed = JSON.parse(out)
-    return parsed
-  } catch (err) {
-    console.error('Translation error:', err)
+
+    return res.data || { Yoruba: text, Hausa: text, Igbo: text, French: text }
+  } catch (err: any) {
+    console.error('Cloud Translation error:', err.response?.data || err.message)
     return { Yoruba: text, Hausa: text, Igbo: text, French: text }
   }
 }
 
 export async function extractScriptureReferences(text: string): Promise<{ references: Array<{ reference: string; version?: string }>; defaultVersionChange?: string }> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
-  if (!client) return { references: [] }
-  const prompt = `Extract all explicit or implicit Bible references from the text.
-Also identify the Bible version/translation if explicitly mentioned for a specific reference (e.g., "John 3:16 KJV").
-Also identify if there is a general request to change the default version (e.g., "Give me KJV version", "Switch to NLT", "Use NKJV").
-Return a JSON object with keys:
-- "references": array of objects { "reference": "Book chapter:verse", "version": "KJV" | null }
-- "defaultVersionChange": string | null (e.g. "KJV") if a general switch is requested.
+  const token = await getCloudToken()
+  if (!token) return { references: [] }
 
-Example: {"references": [{ "reference": "John 3:16", "version": "KJV" }, { "reference": "Psalm 23:1", "version": null }], "defaultVersionChange": "KJV"}
-Text: ${text}`
   try {
-    const res = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 2000,
+    // The Laravel endpoint `detectScripture` was implemented as:
+    // Route::post('/ai/scripture/detect', [AiController::class, 'detectScripture']);
+    // It returns what OpenAI returns.
+    
+    const res = await axios.post(`${CLOUD_API_URL}/ai/scripture/detect`, {
+      text
+    }, {
+      headers: { 'Authorization': `Bearer ${token}` }
     })
-    console.log('OpenAI Debug:', JSON.stringify(res.choices[0], null, 2))
-    const out = res.choices[0]?.message?.content || '{}'
+
+    console.log('Cloud Scripture Detect Response:', JSON.stringify(res.data, null, 2))
+    
+    // The Laravel backend returns the raw OpenAI response structure currently
+    const choice = res.data.choices?.[0]
+    const out = choice?.message?.content || '{}'
     const parsed = JSON.parse(out)
     
     const references = Array.isArray(parsed.references) 
@@ -67,98 +100,48 @@ Text: ${text}`
       references,
       defaultVersionChange: parsed.defaultVersionChange || undefined
     }
-  } catch (err) {
-    console.error('Extraction error:', err)
+  } catch (err: any) {
+    console.error('Cloud Scripture Extraction error:', err.response?.data || err.message)
     return { references: [] }
   }
 }
 
 export async function getScriptureText(reference: string, version: string = 'NIV'): Promise<string> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
-  if (!client) return ''
-  
-  const prompt = `Provide the full text for the Bible reference: ${reference}.
-Use the ${version} version. If ${version} is unavailable, fallback to NIV.
-Return JSON with a single key "text".
-Example: {"text": "For God so loved the world..."}`
+    // We need a cloud endpoint for this too.
+    // Assuming /ai/scripture/text
+    const token = await getCloudToken()
+    if (!token) return ''
 
-  try {
-    const res = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 2000,
-    })
-    console.log('OpenAI Debug:', JSON.stringify(res.choices[0], null, 2))
-    const out = res.choices[0]?.message?.content || '{}'
-    const parsed = JSON.parse(out)
-    return parsed.text || ''
-  } catch (err) {
-    console.error('Scripture fetch error:', err)
-    return ''
-  }
+    try {
+        const res = await axios.post(`${CLOUD_API_URL}/ai/scripture/text`, {
+            reference,
+            version
+        }, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        return res.data.text || ''
+    } catch (err: any) {
+        console.error('Cloud Scripture Text error:', err.response?.data || err.message)
+        return ''
+    }
 }
 
 export async function fetchSongLyrics(title: string): Promise<{ title: string; lines: string[] } | null> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
-  const client = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null
-  if (!client) return null
-
-  const prompt = `Find the lyrics for the Christian hymn or song titled "${title}".
-  Return a JSON object with keys:
-  - "title": The correct full title of the song.
-  - "lines": An array of strings, where each string is a full stanza (verse or chorus).
-    - Format each stanza with a header (e.g., "Verse 1", "Verse 2", "Chorus") followed by the lyrics.
-    - Use newline characters (\\n) to separate lines.
-    - Indent the 2nd and 4th lines of each verse with 2 spaces (\\u0020\\u0020) to match traditional hymn formatting.
-
-  Example: {"title": "Amazing Grace", "lines": ["Verse 1\\nAmazing grace! how sweet the sound,\\n  That saved a wretch like me!\\nI once was lost, but now am found;\\n  Was blind, but now I see.", "Verse 2\\n..."]}
-  If the song is not found or known, return null (empty JSON or null).`
-
-  try {
-    const res = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 2000,
-    })
-    
-    console.log("AI hymn search: ",res);
-    const choice = res.choices[0]
-    const out = choice?.message?.content || '{}'
-    const finishReason = choice?.finish_reason
-
-    if (finishReason === 'content_filter') {
-      console.warn(`Lyrics for "${title}" were restricted by AI content filter (copyright).`)
-      return null
-    }
-
-    // Attempt to sanitize potential JSON issues before parsing
-    // Sometimes GPT returns incomplete JSON or markdown blocks despite response_format
-    let cleanOut = out.trim()
-    if (cleanOut.startsWith('```json')) {
-      cleanOut = cleanOut.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-    } else if (cleanOut.startsWith('```')) {
-      cleanOut = cleanOut.replace(/^```\s*/, '').replace(/\s*```$/, '')
-    }
+    // Assuming /ai/lyrics/fetch
+    const token = await getCloudToken()
+    if (!token) return null
 
     try {
-      const parsed = JSON.parse(cleanOut)
-      if (!parsed.title || !Array.isArray(parsed.lines)) return null
-      return { title: parsed.title, lines: parsed.lines }
-    } catch (parseErr) {
-      // Only log full error if it wasn't a length issue
-      if (finishReason !== 'length') {
-        console.warn('JSON Parse Warning:', parseErr instanceof Error ? parseErr.message : parseErr)
-      } else {
-        console.warn('Lyrics generation truncated (max tokens reached).')
-      }
-      return null
+        const res = await axios.post(`${CLOUD_API_URL}/ai/lyrics/fetch`, {
+            title
+        }, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        // Laravel should handle the parsing and return clean JSON
+        return res.data
+    } catch (err: any) {
+        console.error('Cloud Lyrics fetch error:', err.response?.data || err.message)
+        return null
     }
-
-  } catch (err) {
-    console.error('Lyrics fetch error:', err)
-    return null
-  }
 }

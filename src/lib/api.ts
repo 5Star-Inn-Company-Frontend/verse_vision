@@ -141,11 +141,14 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       })
-      if (!res.ok) return null
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to fetch lyrics')
+      }
       const json = await res.json()
       return json.data as { title: string; lines: string[] }
-    } catch {
-      return null
+    } catch (e) {
+      throw e
     }
   },
   listSongs: async () => {
