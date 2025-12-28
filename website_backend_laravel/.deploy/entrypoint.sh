@@ -2,6 +2,11 @@
 
 echo "🎬 entrypoint.sh: [$(whoami)] [PHP $(php -r 'echo phpversion();')]"
 
+ls
+
+ls $LARAVEL_PATH
+
+cd $LARAVEL_PATH && composer dump-autoload --no-interaction --no-dev --optimize
 composer dump-autoload --no-interaction --no-dev --optimize
 
 echo "🎬 artisan commands"
