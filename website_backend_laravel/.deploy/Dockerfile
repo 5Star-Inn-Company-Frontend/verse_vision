@@ -30,6 +30,7 @@ ARG NON_ROOT_USER=${NON_ROOT_USER:-app}
 RUN addgroup -S $NON_ROOT_GROUP && adduser -S $NON_ROOT_USER -G $NON_ROOT_GROUP
 RUN addgroup $NON_ROOT_USER wheel
 
+RUN ls
 RUN rm -R ./mobile_camera_flutter
 RUN rm -R ./api
 RUN rm -R ./data
