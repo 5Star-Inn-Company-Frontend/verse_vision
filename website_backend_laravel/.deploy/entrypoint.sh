@@ -2,7 +2,6 @@
 
 echo "🎬 entrypoint.sh: [$(whoami)] [PHP $(php -r 'echo phpversion();')]"
 
-chmod -R 777 storage bootstrap/cache
 
 composer dump-autoload --no-interaction --no-dev --optimize
 

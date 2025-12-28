@@ -125,5 +125,6 @@ RUN rm -R ./python
 RUN rm -R ./src
 COPY ./website_backend_laravel/ $LARAVEL_PATH/
 RUN ls
+RUN chmod -R 777 storage bootstrap/cache
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
