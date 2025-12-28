@@ -12,6 +12,8 @@ export default function ProgramPreview() {
 
   const prevCamId = useRef<string | null>(primaryCameraId)
   const [crossfade, setCrossfade] = useState(false)
+  const [showObsModal, setShowObsModal] = useState(false)
+  const [obsTab, setObsTab] = useState<'window' | 'browser'>('window')
   const [, force] = useState(0)
   const connectingRef = useRef<Set<string>>(new Set())
 
@@ -82,13 +84,21 @@ export default function ProgramPreview() {
         <div className="flex items-center gap-4">
           <span>Program Preview</span>
           {window.location.pathname !== '/program' && (
-            <button
-              onClick={() => window.open('/program', '_blank', 'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no')}
-              className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
-            >
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              Go Live
-            </button>
+            <>
+              <button
+                onClick={() => window.open('/program', '_blank', 'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no')}
+                className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
+              >
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                Go Live
+              </button>
+              <button
+                onClick={() => setShowObsModal(true)}
+                className="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
+              >
+                Connect to OBS
+              </button>
+            </>
           )}
         </div>
         <span className="opacity-75">{cam?.name || 'No Camera'}</span>
@@ -203,6 +213,113 @@ export default function ProgramPreview() {
         )}
       </div>
       <div className="px-3 py-2 text-xs text-gray-300">Audio source: {cameras.find(c=>c.id===activeAudioCameraId)?.name || 'None'}</div>
+      {showObsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-lg w-full p-6 shadow-2xl relative">
+            <button 
+              onClick={() => setShowObsModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold text-white mb-4">Connect to OBS</h2>
+            
+            <div className="flex gap-4 border-b border-gray-700 mb-4">
+              <button 
+                onClick={() => setObsTab('window')}
+                className={`pb-2 text-sm font-medium ${obsTab === 'window' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'}`}
+              >
+                Window Capture
+              </button>
+              <button 
+                onClick={() => setObsTab('browser')}
+                className={`pb-2 text-sm font-medium ${obsTab === 'browser' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'}`}
+              >
+                Browser Source
+              </button>
+            </div>
+
+            {obsTab === 'window' ? (
+              <div className="space-y-4 text-gray-300 text-sm">
+                <p>Follow these steps to bring VerseVision into OBS Studio:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>
+                    Click the <span className="text-red-400 font-semibold">Go Live</span> button to open the Program Output window.
+                  </li>
+                  <li>
+                    In OBS Studio, click the <span className="text-blue-400 font-semibold">+</span> icon under <strong>Sources</strong>.
+                  </li>
+                  <li>
+                    Select <strong>Window Capture</strong>.
+                  </li>
+                  <li>
+                    Name it "VerseVision" and click OK.
+                  </li>
+                  <li>
+                    In the Window dropdown, select: <br/>
+                    <code className="bg-gray-800 px-1 py-0.5 rounded text-white">[chrome.exe]: VerseVision - Program Output</code>
+                  </li>
+                  <li>
+                    Click OK. You can now resize and position the layer as needed.
+                  </li>
+                </ol>
+                <div className="bg-gray-800 p-3 rounded border border-gray-700 mt-4">
+                  <p className="text-xs text-yellow-400 mb-1">💡 Pro Tip:</p>
+                  <p className="text-xs">
+                    If the window is black in OBS, try toggling "Capture Method" to "Windows 10 (1903 and up)" in the Window Capture properties.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 text-gray-300 text-sm">
+                <p>Use this method for the highest quality and transparency support:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>
+                    In OBS Studio, click the <span className="text-blue-400 font-semibold">+</span> icon under <strong>Sources</strong>.
+                  </li>
+                  <li>
+                    Select <strong>Browser</strong>.
+                  </li>
+                  <li>
+                    Name it "VerseVision Browser" and click OK.
+                  </li>
+                  <li>
+                    In the URL field, paste this address:
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="bg-gray-800 px-2 py-1 rounded text-white flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{window.location.origin}/program</code>
+                      <button 
+                        onClick={() => navigator.clipboard.writeText(window.location.origin + '/program')}
+                        className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-white"
+                        title="Copy to clipboard"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </li>
+                  <li>
+                    Set Width to <strong>1920</strong> and Height to <strong>1080</strong>.
+                  </li>
+                  <li>
+                    Check <strong>Control audio via OBS</strong> if you want to manage audio levels in OBS.
+                  </li>
+                  <li>
+                    Click OK.
+                  </li>
+                </ol>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowObsModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

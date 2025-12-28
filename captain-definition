@@ -1,4 +1,4 @@
  {
   "schemaVersion" :2 ,
-  "dockerfilePath" : "./.deploy/Dockerfile"
+  "dockerfilePath" : "./website_backend_laravel/.deploy/Dockerfile"
  }
