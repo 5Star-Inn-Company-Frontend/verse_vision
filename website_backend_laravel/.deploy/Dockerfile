@@ -1,6 +1,14 @@
 ARG PHP_VERSION=${PHP_VERSION:-7.4}
 FROM php:8.2-fpm-alpine AS php-system-setup
 
+RUN rm -R ./mobile_camera_flutter
+RUN rm -R ./api
+RUN rm -R ./data
+RUN rm -R ./electron
+RUN rm -R ./python
+RUN rm -R ./src
+COPY ./website_backend_laravel/* /
+
 # Install system dependencies
 RUN apk add --no-cache dcron busybox-suid libcap curl zip unzip git
 
@@ -31,12 +39,12 @@ RUN addgroup -S $NON_ROOT_GROUP && adduser -S $NON_ROOT_USER -G $NON_ROOT_GROUP
 RUN addgroup $NON_ROOT_USER wheel
 
 # Set cron job
-COPY ./website_backend_laravel/.deploy/config/crontab /etc/crontabs/$NON_ROOT_USER
+COPY ./.deploy/config/crontab /etc/crontabs/$NON_ROOT_USER
 RUN chmod 777 /usr/sbin/crond
 RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP /etc/crontabs/$NON_ROOT_USER && setcap cap_setgid=ep /usr/sbin/crond
 
 # Switch to non-root 'app' user & install app dependencies
-COPY ./website_backend_laravel/composer.json ./website_backend_laravel/composer.lock ./
+COPY composer.json composer.lock ./
 RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP $LARAVEL_PATH
 USER $NON_ROOT_USER
 RUN composer install --prefer-dist --no-scripts --no-dev --no-autoloader
@@ -44,7 +52,7 @@ RUN rm -rf /home/$NON_ROOT_USER/.composer
 
 # Copy app
 COPY --chown=$NON_ROOT_USER:$NON_ROOT_GROUP . $LARAVEL_PATH/
-COPY ./website_backend_laravel/.deploy/config/php/local.ini /usr/local/etc/php/conf.d/local.ini
+COPY ./.deploy/config/php/local.ini /usr/local/etc/php/conf.d/local.ini
 
 # Set any ENVs
 ARG APP_NAME=${APP_NAME}
@@ -114,13 +122,6 @@ ARG OPENAI_API_KEY=${OPENAI_API_KEY}
 
 # Start app
 EXPOSE 80
-COPY ./website_backend_laravel/.deploy/entrypoint.sh /
-COPY ./website_backend_laravel/* /
-RUN rm -R ./mobile_camera_flutter
-RUN rm -R ./api
-RUN rm -R ./data
-RUN rm -R ./electron
-RUN rm -R ./python
-RUN rm -R ./src
+COPY ./.deploy/entrypoint.sh /
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
