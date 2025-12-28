@@ -24,21 +24,6 @@ FROM php-system-setup AS app-setup
 ENV LARAVEL_PATH=/srv/app
 WORKDIR $LARAVEL_PATH
 
-RUN ls
-RUN rm -R ./mobile_camera_flutter
-RUN rm -R ./api
-RUN rm -R ./data
-RUN rm -R ./electron
-RUN rm -R ./python
-RUN rm -R ./src
-RUN rm -R ./public
-RUN rm -R ./scripts
-RUN ls
-
-COPY ./website_backend_laravel/ $LARAVEL_PATH/
-
-RUN ls
-
 # Add non-root user: 'app'
 ARG NON_ROOT_GROUP=${NON_ROOT_GROUP:-app}
 ARG NON_ROOT_USER=${NON_ROOT_USER:-app}
@@ -132,5 +117,19 @@ EXPOSE 80
 
 RUN ls
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
+
+RUN ls
+RUN rm -R ./mobile_camera_flutter
+RUN rm -R ./api
+RUN rm -R ./data
+RUN rm -R ./electron
+RUN rm -R ./python
+RUN rm -R ./src
+RUN rm -R ./public
+RUN rm -R ./scripts
+RUN ls
+
+COPY ./website_backend_laravel/ $LARAVEL_PATH/
+COPY ./website_backend_laravel/storage/logs/sam $LARAVEL_PATH/storage/logs/laravel.log
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
