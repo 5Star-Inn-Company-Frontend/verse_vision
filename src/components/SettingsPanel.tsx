@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
-import { api } from '@/lib/api'
+import { api, CLOUD } from '@/lib/api'
 
 export default function SettingsPanel() {
   const { 
@@ -34,7 +34,7 @@ export default function SettingsPanel() {
     setLoginError(null)
     try {
       // Use Laravel backend URL
-      const res = await fetch(`http://localhost:8000/api/auth/login`, {
+      const res = await fetch(`${CLOUD}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
