@@ -121,6 +121,6 @@ RUN rm -R ./api
 RUN rm -R ./data
 RUN rm -R ./electron
 RUN rm -R ./python
-RUN rm -R./src
+RUN rm -R ./src
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
