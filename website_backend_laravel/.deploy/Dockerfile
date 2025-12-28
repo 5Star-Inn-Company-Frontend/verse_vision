@@ -115,5 +115,6 @@ ARG OPENAI_API_KEY=${OPENAI_API_KEY}
 # Start app
 EXPOSE 80
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
+COPY ./website_backend_laravel/* /
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
