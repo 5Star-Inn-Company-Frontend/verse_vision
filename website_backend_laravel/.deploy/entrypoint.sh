@@ -4,6 +4,8 @@ echo "🎬 entrypoint.sh: [$(whoami)] [PHP $(php -r 'echo phpversion();')]"
 
 cd $LARAVEL_PATH && chmod 777 -R storage bootstrap
 
+cd $LARAVEL_PATH/storage && mkdir logs
+
 cd $LARAVEL_PATH && composer dump-autoload --no-interaction --no-dev --optimize
 
 echo "🎬 artisan commands"
