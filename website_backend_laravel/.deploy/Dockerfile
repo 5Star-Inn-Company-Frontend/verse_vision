@@ -131,8 +131,6 @@ RUN ls
 
 COPY ./website_backend_laravel/ $LARAVEL_PATH/
 
-USER $NON_ROOT_USER
-RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP $LARAVEL_PATH
-RUN chmod -R 777 storage bootstrap/cache
+RUN sudo chmod -R 777 storage bootstrap/cache
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
