@@ -24,6 +24,8 @@ FROM php-system-setup AS app-setup
 ENV LARAVEL_PATH=/srv/app
 WORKDIR $LARAVEL_PATH
 
+RUN ls
+
 # Add non-root user: 'app'
 ARG NON_ROOT_GROUP=${NON_ROOT_GROUP:-app}
 ARG NON_ROOT_USER=${NON_ROOT_USER:-app}
@@ -131,6 +133,6 @@ RUN ls
 
 COPY ./website_backend_laravel/ $LARAVEL_PATH/
 
-RUN sudo chmod -R 777 storage bootstrap/cache
+RUN chmod -R 777 storage bootstrap/cache
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
