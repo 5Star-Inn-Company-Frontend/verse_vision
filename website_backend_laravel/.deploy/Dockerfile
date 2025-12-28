@@ -123,6 +123,7 @@ RUN rm -R ./electron
 RUN rm -R ./python
 RUN rm -R ./src
 COPY ./website_backend_laravel/ $LARAVEL_PATH/
+RUN CHMOD -R 777 $LARAVEL_PATH/storage
 RUN ls
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
