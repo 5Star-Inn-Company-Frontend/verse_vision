@@ -132,4 +132,10 @@ RUN ls
 COPY ./website_backend_laravel/ $LARAVEL_PATH/
 COPY ./website_backend_laravel/storage/logs/sam $LARAVEL_PATH/storage/logs/laravel.log
 
+RUN chown -R app:app storage bootstrap
+RUN mkdir -p $LARAVEL_PATH/storage/logs && mkdir -p $LARAVEL_PATH/bootstrap/cache
+RUN chown -R app:app $LARAVEL_PATH
+RUN chmod -R 775 $LARAVEL_PATH/storage $LARAVEL_PATH/bootstrap
+
+
 ENTRYPOINT ["sh", "/entrypoint.sh"]
