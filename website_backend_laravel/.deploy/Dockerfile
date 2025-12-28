@@ -117,16 +117,22 @@ EXPOSE 80
 
 RUN ls
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
-COPY ./website_backend_laravel/ $LARAVEL_PATH/
 
 RUN ls
-
 RUN rm -R ./mobile_camera_flutter
 RUN rm -R ./api
 RUN rm -R ./data
 RUN rm -R ./electron
 RUN rm -R ./python
 RUN rm -R ./src
+RUN rm -R ./public
+RUN rm -R ./scripts
 RUN ls
+
+COPY ./website_backend_laravel/ $LARAVEL_PATH/
+
+RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP $LARAVEL_PATH
+USER $NON_ROOT_USER
+RUN chmod -R 777 storage bootstrap/cache
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
