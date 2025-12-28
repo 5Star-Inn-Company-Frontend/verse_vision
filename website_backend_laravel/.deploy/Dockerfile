@@ -119,6 +119,7 @@ RUN ls
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
 COPY ./website_backend_laravel/* $LARAVEL_PATH/
 
+RUN ls
 RUN cd $LARAVEL_PATH/storage/ && mkdir logs
 RUN rm -R ./mobile_camera_flutter
 RUN rm -R ./api
