@@ -118,7 +118,6 @@ EXPOSE 80
 RUN ls
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
 COPY ./website_backend_laravel/* $LARAVEL_PATH/
-RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP $LARAVEL_PATH
 
 RUN cd ./storage/ && mkdir logs
 RUN rm -R ./mobile_camera_flutter
