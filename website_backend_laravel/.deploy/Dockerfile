@@ -133,8 +133,7 @@ COPY ./website_backend_laravel/ $LARAVEL_PATH/
 COPY ./website_backend_laravel/storage/logs/sam $LARAVEL_PATH/storage/logs/laravel.log
 
 
-RUN mkdir -p $LARAVEL_PATH/storage/logs && mkdir -p $LARAVEL_PATH/bootstrap/cache
-RUN chmod -R 775 $LARAVEL_PATH/storage $LARAVEL_PATH/bootstrap
+COPY --chown=$NON_ROOT_USER:$NON_ROOT_GROUP . $LARAVEL_PATH/
 
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
