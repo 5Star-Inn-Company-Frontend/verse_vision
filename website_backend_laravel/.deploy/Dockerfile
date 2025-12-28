@@ -115,6 +115,7 @@ ARG OPENAI_API_KEY=${OPENAI_API_KEY}
 # Start app
 EXPOSE 80
 
+RUN ls
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
 RUN rm -R ./mobile_camera_flutter
 RUN rm -R ./api
