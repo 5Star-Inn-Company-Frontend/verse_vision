@@ -1,14 +1,6 @@
 ARG PHP_VERSION=${PHP_VERSION:-7.4}
 FROM php:8.2-fpm-alpine AS php-system-setup
 
-RUN rm -R ./mobile_camera_flutter
-RUN rm -R ./api
-RUN rm -R ./data
-RUN rm -R ./electron
-RUN rm -R ./python
-RUN rm -R ./src
-COPY ./website_backend_laravel/* /
-
 # Install system dependencies
 RUN apk add --no-cache dcron busybox-suid libcap curl zip unzip git
 
@@ -37,6 +29,14 @@ ARG NON_ROOT_GROUP=${NON_ROOT_GROUP:-app}
 ARG NON_ROOT_USER=${NON_ROOT_USER:-app}
 RUN addgroup -S $NON_ROOT_GROUP && adduser -S $NON_ROOT_USER -G $NON_ROOT_GROUP
 RUN addgroup $NON_ROOT_USER wheel
+
+RUN rm -R ./mobile_camera_flutter
+RUN rm -R ./api
+RUN rm -R ./data
+RUN rm -R ./electron
+RUN rm -R ./python
+RUN rm -R ./src
+COPY ./website_backend_laravel/* /
 
 # Set cron job
 COPY ./.deploy/config/crontab /etc/crontabs/$NON_ROOT_USER
