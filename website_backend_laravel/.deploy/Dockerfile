@@ -116,5 +116,11 @@ ARG OPENAI_API_KEY=${OPENAI_API_KEY}
 EXPOSE 80
 COPY ./website_backend_laravel/.deploy/entrypoint.sh /
 COPY ./website_backend_laravel/* /
+RUN rm ./mobile_camera_flutter
+RUN rm ./api
+RUN rm ./data
+RUN rm ./electron
+RUN rm ./python
+RUN rm ./src
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
