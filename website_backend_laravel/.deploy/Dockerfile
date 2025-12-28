@@ -30,22 +30,13 @@ ARG NON_ROOT_USER=${NON_ROOT_USER:-app}
 RUN addgroup -S $NON_ROOT_GROUP && adduser -S $NON_ROOT_USER -G $NON_ROOT_GROUP
 RUN addgroup $NON_ROOT_USER wheel
 
-RUN ls
-RUN rm -R ./mobile_camera_flutter
-RUN rm -R ./api
-RUN rm -R ./data
-RUN rm -R ./electron
-RUN rm -R ./python
-RUN rm -R ./src
-COPY ./website_backend_laravel/* /
-
 # Set cron job
-COPY ./.deploy/config/crontab /etc/crontabs/$NON_ROOT_USER
+COPY ./website_backend_laravel/.deploy/config/crontab /etc/crontabs/$NON_ROOT_USER
 RUN chmod 777 /usr/sbin/crond
 RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP /etc/crontabs/$NON_ROOT_USER && setcap cap_setgid=ep /usr/sbin/crond
 
 # Switch to non-root 'app' user & install app dependencies
-COPY composer.json composer.lock ./
+COPY ./website_backend_laravel/composer.json ./website_backend_laravel/composer.lock ./
 RUN chown -R $NON_ROOT_USER:$NON_ROOT_GROUP $LARAVEL_PATH
 USER $NON_ROOT_USER
 RUN composer install --prefer-dist --no-scripts --no-dev --no-autoloader
@@ -53,7 +44,7 @@ RUN rm -rf /home/$NON_ROOT_USER/.composer
 
 # Copy app
 COPY --chown=$NON_ROOT_USER:$NON_ROOT_GROUP . $LARAVEL_PATH/
-COPY ./.deploy/config/php/local.ini /usr/local/etc/php/conf.d/local.ini
+COPY ./website_backend_laravel/.deploy/config/php/local.ini /usr/local/etc/php/conf.d/local.ini
 
 # Set any ENVs
 ARG APP_NAME=${APP_NAME}
@@ -123,6 +114,15 @@ ARG OPENAI_API_KEY=${OPENAI_API_KEY}
 
 # Start app
 EXPOSE 80
-COPY ./.deploy/entrypoint.sh /
+
+COPY ./website_backend_laravel/.deploy/entrypoint.sh /
+RUN rm -R ./mobile_camera_flutter
+RUN rm -R ./api
+RUN rm -R ./data
+RUN rm -R ./electron
+RUN rm -R ./python
+RUN rm -R ./src
+COPY ./website_backend_laravel/* /
+RUN ls
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
