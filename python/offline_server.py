@@ -100,7 +100,9 @@ def transcribe(file_path):
             beam_size=5, 
             language="en",
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500)
+            vad_parameters=dict(min_silence_duration_ms=500),
+            initial_prompt="The following is a church service recording containing Bible verses, scripture readings, and sermons. Words like God, Jesus, Chapter, Verse, Genesis, Revelation, and other biblical terms are expected.",
+            condition_on_previous_text=False
         )
         
         print(f"Detected language '{info.language}' with probability {info.language_probability}", file=sys.stderr)
@@ -176,11 +178,13 @@ def extract_references(text):
     
     # Improved Regex:
     # Matches: "John 3:16", "1 John 3 16", "Song of Solomon 2 verse 4", "Genesis Chapter 1 v 1"
+    # Also matches: "Genesis 3, 16" (comma), "Genesis 3" (whole chapter/implicit)
+    # Also matches: "Songs of Solomon, Chapter 4, Verse 2" (comma separators)
     # Group 1: Book Name (allow spaces)
     # Group 2: Chapter
-    # Group 3: Verse Start
+    # Group 3: Verse Start (Optional)
     # Group 4: Verse End (Optional)
-    pattern = r'\b((?:[1-3]\s)?(?:[A-Za-z]+(?:\s[A-Za-z]+)*))\s+(?:chapter\s+)?(\d+)\s*(?:[:v]|\s+verse\s+|\s)\s*(\d+)(?:-(\d+))?\b'
+    pattern = r'\b((?:[1-3]\s)?(?:[A-Za-z]+(?:\s[A-Za-z]+)*))(?:\s*,\s*|\s+)(?:chapter\s+)?(\d+)(?:\s*(?:[:v,]|\s+(?:verse|v)\s+|,\s*(?:verse|v)\s+|\s)\s*(\d+)(?:-(\d+))?)?\b'
     
     matches = re.findall(pattern, text, re.IGNORECASE)
     
@@ -191,6 +195,15 @@ def extract_references(text):
         book_candidate, chapter_num, verse_start, verse_end = match
         book_candidate = book_candidate.strip()
         
+        # Cleanup book candidate
+        # 1. Strip "The book of" prefix
+        if book_candidate.lower().startswith("the book of "):
+            book_candidate = book_candidate[12:].strip()
+            
+        # 2. Strip "chapter" suffix if captured (e.g. "Genesis chapter")
+        if book_candidate.lower().endswith(" chapter"):
+            book_candidate = book_candidate[:-8].strip()
+
         # Heuristic to skip common non-book words that match the pattern (e.g. "Page 1 2")
         if book_candidate.lower() in ['page', 'chapter', 'verse', 'number', 'item', 'part', 'section']:
             continue
@@ -205,8 +218,13 @@ def extract_references(text):
             
         chapter = book['chapters'][chapter_idx]
         
-        start = int(verse_start) - 1
-        end = int(verse_end) if verse_end else start + 1
+        if verse_start:
+            start = int(verse_start) - 1
+            end = int(verse_end) if verse_end else start + 1
+        else:
+            # Whole chapter if no verse specified
+            start = 0
+            end = len(chapter)
         
         verses_text = []
         if start < 0: start = 0
@@ -221,9 +239,11 @@ def extract_references(text):
             continue
             
         if verses_text:
-            ref_string = f"{book['name']} {chapter_num}:{verse_start}"
-            if verse_end:
-                ref_string += f"-{verse_end}"
+            ref_string = f"{book['name']} {chapter_num}"
+            if verse_start:
+                ref_string += f":{verse_start}"
+                if verse_end:
+                    ref_string += f"-{verse_end}"
             
             results.append({
                 "reference": ref_string,
