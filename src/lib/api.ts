@@ -1,5 +1,5 @@
 const BASE = '/api'
-export const CLOUD = 'https://versevision.dev.5starcompany.com.ng/api'
+export const CLOUD = 'https://versevision.5starcompany.com.ng/api'
 let authToken: string | null = null
 
 export const api = {

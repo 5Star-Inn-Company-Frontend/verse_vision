@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <title>VerseVision - Revolutionize Your Worship</title>
     
     <!-- Fonts -->
@@ -80,7 +82,12 @@
             <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-400">
                 Seamlessly integrate lyrics, scripture, and live camera feeds with AI-powered translations and automation.
             </p>
-            <div class="mt-10 flex justify-center gap-4">
+            <div class="mt-10 flex flex-wrap justify-center gap-4">
+                <a href="https://versevision.5starcompany.com.ng/VerseVision_Setup.exe" 
+                   onclick="trackDownload()"
+                   class="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-full text-lg font-semibold transition-all shadow-lg shadow-green-500/25 transform hover:scale-105 flex items-center gap-2">
+                    <i class="fa-brands fa-windows"></i> Download App
+                </a>
                 <a href="#plans" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3 rounded-full text-lg font-semibold transition-all shadow-lg shadow-brand-500/25 transform hover:scale-105">
                     View Plans
                 </a>
@@ -294,5 +301,17 @@
         </div>
     </footer>
 
+    <script>
+        function trackDownload() {
+            fetch('/track-download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({})
+            }).catch(console.error);
+        }
+    </script>
 </body>
 </html>

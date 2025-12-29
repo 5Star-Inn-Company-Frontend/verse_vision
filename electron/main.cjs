@@ -165,9 +165,15 @@ async function waitReady() {
 }
 function createWindow() {
   console.log('Creating window...')
+  
+  const iconPath = app.isPackaged
+    ? path.join(__dirname, '../dist/icon.png')
+    : path.join(__dirname, '../public/icon.png')
+
   const win = new BrowserWindow({ 
     width: 1200, 
     height: 800,
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -180,11 +186,11 @@ app.whenReady().then(async () => {
   setupMenu()
   app.setAboutPanelOptions({
     applicationName: 'VerseVision',
-    applicationVersion: '0.0.0',
-    version: '0.0.0',
-    copyright: 'Copyright © 2024 Samji Diamond',
+    applicationVersion: '0.0.1',
+    version: '0.0.1',
+    copyright: 'Copyright © 2025 Samji Diamond',
     authors: ['Samji Diamond'],
-    website: 'https://versevision.com'
+    website: 'https://versevision.5starcompany.com.ng/'
   })
   startServer()
   await waitReady()
