@@ -9,7 +9,7 @@
   "author": "Samji Diamond",
   "license": "MIT",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "commonjs",
   "main": "electron/main.cjs",
   "scripts": {
@@ -100,7 +100,11 @@
     },
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.education"
+      "category": "public.app-category.education",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "linux": {
       "target": "AppImage",
