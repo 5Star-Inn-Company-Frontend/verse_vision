@@ -6,6 +6,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <title>VerseVision - Revolutionize Your Worship</title>
+    <meta name="description" content="Seamlessly integrate lyrics, scripture, and live camera feeds with AI-powered translations and automation.">
+    <link rel="canonical" href="{{ url('/') }}">
+
+    <meta property="og:title" content="VerseVision — Worship Technology, Reimagined">
+    <meta property="og:description" content="Seamlessly integrate lyrics, scripture, and live camera feeds with AI-powered translations and automation.">
+    <meta property="og:image" content="{{ url('share.png') }}">
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="VerseVision">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="VerseVision — Worship Technology, Reimagined">
+    <meta name="twitter:description" content="Seamlessly integrate lyrics, scripture, and live camera feeds with AI-powered translations and automation.">
+    <meta name="twitter:image" content="{{ url('share.png') }}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
