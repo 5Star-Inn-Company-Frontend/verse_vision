@@ -11,6 +11,7 @@ import UtilityPanel from '@/components/UtilityPanel'
 import KeyboardShortcuts from '@/components/KeyboardShortcuts'
 import SyncBridge from '@/components/SyncBridge'
 import AudioService from '@/components/AudioService'
+import MicrophoneSelector from '@/components/MicrophoneSelector'
 
 export default function Home() {
   return (
@@ -27,6 +28,7 @@ export default function Home() {
           <ProgramPreview />
         </section>
         <section className="lg:col-span-1 space-y-4">
+          <MicrophoneSelector />
           <div className="h-64">
             <ScriptureApprovalQueue />
           </div>

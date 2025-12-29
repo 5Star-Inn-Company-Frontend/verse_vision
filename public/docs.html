@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerseVision - User Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: #f9fafb;
+        }
+        h1 {
+            color: #111827;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+        h2 {
+            color: #1f2937;
+            margin-top: 2rem;
+        }
+        h3 {
+            color: #374151;
+            margin-top: 1.5rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        code {
+            background: #f3f4f6;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        .highlight {
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <h1>VerseVision User Guide</h1>
+    <p>Welcome to VerseVision, your AI-powered worship technology solution. This guide will help you understand how to use the platform effectively.</p>
+
+    <div class="card">
+        <h2>1. Getting Started</h2>
+        <p>When you launch VerseVision, you are presented with the Operator Dashboard. This is your command center for managing live lyrics, scripture, and camera feeds.</p>
+        <ul>
+            <li><strong>Operator View:</strong> The main interface where you control what is displayed.</li>
+            <li><strong>Program Output:</strong> The clean feed that goes to your projector or OBS.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>2. Scripture Detection</h2>
+        <h3>AI-Powered Detection</h3>
+        <p>VerseVision uses advanced AI to listen to your service audio and automatically detect scripture references.</p>
+        <ul>
+            <li>Ensure your microphone is selected in the settings.</li>
+            <li>The system listens for phrases like "John 3:16" or "Genesis Chapter 1 Verse 1".</li>
+            <li>Detected scriptures will appear in the <strong>Queue</strong>.</li>
+            <li>Click <strong>"Show"</strong> to display a scripture on the main screen.</li>
+        </ul>
+        <h3>Manual Search</h3>
+        <p>You can also manually search for scriptures using the search bar at the top right. Just type a reference (e.g., "Ps 23") and press Enter.</p>
+    </div>
+
+    <div class="card">
+        <h2>3. OBS & EasyWorship Integration</h2>
+        <p>To send VerseVision's output to external broadcasting software:</p>
+        
+        <h3>OBS Studio</h3>
+        <ol>
+            <li>Click the <strong>"Connect"</strong> button in the Program Preview toolbar.</li>
+            <li>Choose <strong>Window Capture</strong> (capture the popup window) or <strong>Browser Source</strong> (paste the provided URL).</li>
+            <li>Set dimensions to 1920x1080.</li>
+        </ol>
+
+        <h3>EasyWorship 7+</h3>
+        <p>You can integrate VerseVision into EasyWorship using one of two methods:</p>
+        <ul>
+            <li><strong>Web Method (Recommended):</strong> Add a new Web media item in EasyWorship with the URL <code>http://localhost:3000/program?bg=transparent</code>. This provides a clean overlay with no background.</li>
+            <li><strong>Green Screen (Chroma Key):</strong> Open the Program Window with a green background (available in the Connect modal). Capture this window in EasyWorship (via NDI or Feed) and enable Chroma Key to remove the green background.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>4. Live Camera & Lower Thirds</h2>
+        <p>VerseVision can overlay lyrics and scripture on top of a live camera feed.</p>
+        <ul>
+            <li>Select your camera source from the dropdown menu in the dashboard.</li>
+            <li>Use the <strong>"Overlay Mode"</strong> toggle to switch between full-screen backgrounds and transparent lower-thirds.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>5. Troubleshooting</h2>
+        <ul>
+            <li><strong>Audio not picking up?</strong> Check your system's default microphone settings and ensure VerseVision has permission to access it.</li>
+            <li><strong>Scripture not detecting?</strong> Try speaking clearer or closer to the microphone. Ensure the "Offline AI" or "Cloud AI" engine is selected correctly.</li>
+            <li><strong>Window not showing?</strong> Use <code>Ctrl+R</code> (Cmd+R on Mac) to reload the application.</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p style="text-align: center; color: #6b7280; margin-top: 2rem;">
+            &copy; 2025 Samji Diamond. VerseVision.
+        </p>
+    </footer>
+</body>
+</html>

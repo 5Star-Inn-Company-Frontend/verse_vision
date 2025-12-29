@@ -32,6 +32,9 @@ type OperatorState = {
   cameras: Camera[]
   primaryCameraId: string | null
   activeAudioCameraId: string | null
+  selectedMicrophoneId: string | null
+  setSelectedMicrophoneId: (id: string | null) => void
+
   scriptureQueue: ScriptureItem[]
   currentScripture: ScriptureItem | null
   autoApproveEnabled: boolean
@@ -138,6 +141,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   ],
   primaryCameraId: 'cam-default',
   activeAudioCameraId: null,
+  selectedMicrophoneId: null,
   scriptureQueue: [],
   currentScripture: null,
   autoApproveEnabled: false,
@@ -176,6 +180,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   setActiveAudioCamera: (id) => {
     set({ activeAudioCameraId: id })
   },
+  setSelectedMicrophoneId: (id) => set({ selectedMicrophoneId: id }),
   syncPrimaryCamera: (id) => {
     set({ primaryCameraId: id })
   },

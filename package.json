@@ -23,7 +23,9 @@
     "server:dev": "nodemon",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
     "electron:dev": "npm run app:build && electron .",
-    "electron:win": "npm run app:build && electron-builder --win"
+    "electron:win": "npm run app:build && electron-builder --win",
+    "electron:mac": "npm run app:build && electron-builder --mac",
+    "electron:linux": "npm run app:build && electron-builder --linux"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",
@@ -95,6 +97,14 @@
         "nsis"
       ],
       "publisherName": "Samji Diamond"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.education"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Education"
     },
     "nsis": {
       "oneClick": false,

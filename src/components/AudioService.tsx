@@ -3,10 +3,12 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { api } from '@/lib/api'
 
 export default function AudioService() {
-  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine } = useOperatorStore()
+  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId } = useOperatorStore()
   const processingRef = useRef(false)
   const sessionRef = useRef<string>('')
   const localStreamRef = useRef<MediaStream | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   // Derived stream for the selected camera (if any)
   const cameraStream = activeAudioCameraId ? liveStreams[activeAudioCameraId] : null
@@ -42,15 +44,21 @@ export default function AudioService() {
         // 2. Local PC Source Mode (Default)
         sourceId = 'local-pc'
         
-        // Ensure we have a local stream
-        if (!localStreamRef.current || !localStreamRef.current.active) {
-            try {
-                console.log('[AudioService] Requesting local mic access...')
-                localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
-            } catch (err) {
-                console.error('[AudioService] Failed to get local audio:', err)
-                return
-            }
+        // Ensure we have a local stream or re-acquire if device changed
+        // Force re-acquisition if we have a selectedMicrophoneId to ensure we match it
+        if (localStreamRef.current) {
+             localStreamRef.current.getTracks().forEach(t => t.stop())
+             localStreamRef.current = null
+        }
+
+        try {
+            console.log('[AudioService] Requesting local mic access...', selectedMicrophoneId ? `Device: ${selectedMicrophoneId}` : 'Default')
+            localStreamRef.current = await navigator.mediaDevices.getUserMedia({ 
+                audio: selectedMicrophoneId ? { deviceId: { exact: selectedMicrophoneId } } : true 
+            })
+        } catch (err) {
+            console.error('[AudioService] Failed to get local audio:', err)
+            return
         }
         stream = localStreamRef.current
       }
@@ -63,6 +71,9 @@ export default function AudioService() {
       // Double check session hasn't changed while we were awaiting (e.g. rapid switching)
       if (sessionRef.current !== sessionId) return
 
+      // Setup Audio Analysis
+      setupAnalysis(stream)
+
       console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
       void recordLoop(stream, sessionId)
     }
@@ -73,8 +84,15 @@ export default function AudioService() {
       // Cleanup of the effect simply invalidates the session.
       // We do NOT stop tracks here because we might be re-rendering with the same stream.
       // Specific track cleanup is handled logic inside start() or the unmount effect.
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+        audioContextRef.current = null
+      }
     }
-  }, [activeAudioCameraId, cameraStream])
+  }, [activeAudioCameraId, cameraStream, selectedMicrophoneId])
 
   // Cleanup local stream on component unmount
   useEffect(() => {
@@ -82,8 +100,52 @@ export default function AudioService() {
           if (localStreamRef.current) {
               localStreamRef.current.getTracks().forEach(t => t.stop())
           }
+          if (audioContextRef.current) {
+              audioContextRef.current.close()
+          }
+          if (animationFrameRef.current) {
+              cancelAnimationFrame(animationFrameRef.current)
+          }
       }
   }, [])
+
+  const setupAnalysis = (stream: MediaStream) => {
+    try {
+        if (audioContextRef.current) {
+            audioContextRef.current.close()
+        }
+        
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+        audioContextRef.current = ctx
+        const source = ctx.createMediaStreamSource(stream)
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 256
+        source.connect(analyser)
+        
+        const bufferLength = analyser.frequencyBinCount
+        const dataArray = new Uint8Array(bufferLength)
+        
+        const update = () => {
+            if (!audioContextRef.current || audioContextRef.current.state === 'closed') return
+            analyser.getByteFrequencyData(dataArray)
+            
+            // Calculate average volume (0-255)
+            let sum = 0
+            for(let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i]
+            }
+            const average = sum / bufferLength
+            
+            // Dispatch event for UI
+            window.dispatchEvent(new CustomEvent('audio-level', { detail: average }))
+            
+            animationFrameRef.current = requestAnimationFrame(update)
+        }
+        update()
+    } catch (err) {
+        console.error('[AudioService] Analysis setup failed:', err)
+    }
+  }
 
   const recordLoop = async (stream: MediaStream, sessionId: string) => {
     // Check if this loop belongs to the current active session

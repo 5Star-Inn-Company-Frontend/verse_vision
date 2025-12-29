@@ -99,6 +99,27 @@ function setupMenu() {
       role: 'help',
       submenu: [
         {
+          label: 'Documentation / How to Use',
+          click: async () => {
+            const docsPath = app.isPackaged
+              ? path.join(__dirname, '../dist/docs.html')
+              : path.join(__dirname, '../public/docs.html')
+            
+            const docsWin = new BrowserWindow({
+              width: 1000,
+              height: 800,
+              title: 'VerseVision Documentation',
+              autoHideMenuBar: true,
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+              }
+            })
+            docsWin.loadFile(docsPath)
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'About VerseVision',
           click: async () => {
             app.showAboutPanel()
