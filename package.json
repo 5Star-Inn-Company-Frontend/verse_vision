@@ -76,6 +76,7 @@
   "build": {
     "appId": "com.versevision.app",
     "productName": "VerseVision",
+    "publish": "always",
     "directories": {
       "output": "release"
     },

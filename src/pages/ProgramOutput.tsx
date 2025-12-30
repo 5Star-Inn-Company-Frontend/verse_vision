@@ -29,13 +29,15 @@ export default function ProgramOutput() {
                 bg === 'blue' ? { background: '#0000FF' } : undefined
 
   return (
-    <div className={`min-h-screen text-white overflow-hidden ${bgClass}`}>
+    <div className={`min-h-screen flex items-center justify-center text-white overflow-hidden ${bgClass}`} style={style}>
       <SyncBridge />
-      <ProgramPreview 
-        hideHeader={true} 
-        className={bgClass}
-        style={style}
-      />
+      <div className="w-full h-full flex items-center justify-center">
+        <ProgramPreview 
+          hideHeader={true} 
+          className={`${bgClass} max-w-[100vw] max-h-[100vh] aspect-video w-auto h-auto shadow-2xl`}
+          style={style}
+        />
+      </div>
     </div>
   )
 }

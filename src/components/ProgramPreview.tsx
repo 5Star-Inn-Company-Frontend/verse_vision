@@ -79,37 +79,33 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
   }, [translations, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench])
 
   return (
-    <div className="h-full w-full bg-black rounded-lg overflow-hidden border border-gray-700">
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-900 text-gray-100 text-sm">
-        <div className="flex items-center gap-4">
-          <span>Program Preview</span>
-          {window.location.pathname !== '/program' && (
-            <>
-              <button
-                onClick={() => window.open('/program', '_blank', 'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no')}
-                className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
-              >
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                Go Live
-              </button>
-              <button
-                onClick={() => setShowObsModal(true)}
-                className="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
-              >
-                Connect to OBS
-              </button>
-            </>
-          )}
+    <div className={`w-full bg-black rounded-lg overflow-hidden border border-gray-700 ${className || ''}`} style={{ ...style, height: style?.height || '100%' }}>
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-900 text-gray-100 text-sm">
+          <div className="flex items-center gap-4">
+            <span>Program Preview</span>
+            {window.location.pathname !== '/program' && (
+              <>
+                <button
+                  onClick={() => window.open('/program', '_blank', 'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no')}
+                  className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  Go Live
+                </button>
+                <button
+                  onClick={() => setShowObsModal(true)}
+                  className="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-medium flex items-center gap-1 transition-colors"
+                >
+                  Connect to OBS
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <span className="opacity-75">{cam?.name || 'No Camera'}</span>
-      </div>
-      <div 
-        className="relative w-full aspect-video bg-black"
-        style={!cam ? {
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cg fill='%23444444' fill-opacity='1'%3E%3Crect x='0' y='0' width='10' height='10'/%3E%3Crect x='10' y='10' width='10' height='10'/%3E%3C/g%3E%3C/svg%3E")`,
-          backgroundSize: '20px 20px'
-        } : {}}
-      >
+      )}
+      
+      <div className="relative w-full aspect-video bg-black flex items-center justify-center">
         {cam ? (
           liveStreams[cam.id] ? (
             <VideoLive stream={liveStreams[cam.id]!} />
