@@ -6,11 +6,17 @@ import QRCode from 'qrcode'
 export default function PairingPanel() {
   const [qr, setQr] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [serverIp, setServerIp] = useState<string>('')
   const [busy, setBusy] = useState(false)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
   const [playStoreQr, setPlayStoreQr] = useState<string>('')
   const [appStoreQr, setAppStoreQr] = useState<string>('')
   const { loadCameras } = useOperatorStore()
+
+  useEffect(() => {
+    // Fetch initial IP
+    api.getLocalIp().then(setServerIp)
+  }, [])
 
   useEffect(() => {
     if (showDownloadModal) {
@@ -37,7 +43,7 @@ export default function PairingPanel() {
           className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
           onClick={async () => {
             setBusy(true)
-            const res = await api.pairCamera()
+            const res = await api.pairCamera(serverIp)
             setQr(res.qr)
             setToken(res.token)
             setBusy(false)
@@ -53,6 +59,15 @@ export default function PairingPanel() {
             Refresh List
           </button>
         </div>
+      </div>
+      <div className='flex items-center gap-2 mb-4'>
+            Pc IP: <input 
+            type="text" 
+            value={serverIp}
+            onChange={e => setServerIp(e.target.value)}
+            placeholder="Server IP"
+            className="px-2 py-1 text-xs bg-gray-800 border border-gray-700 rounded text-gray-200 w-28"
+          />
       </div>
       {qr ? (
         <div className="flex flex-col items-center">

@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import { cameraStore } from '../services/cameraStore.js'
 import { broadcast } from '../services/wsBus.js'
+import { getLocalIpAddress } from '../utils/network.js'
 
 const router = Router()
 const cameraDir = process.env.VV_DATA_DIR
@@ -17,11 +18,21 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
+router.get('/ip', (_req: Request, res: Response) => {
+  res.json({ success: true, data: getLocalIpAddress() })
+})
+
 router.post('/pair', async (req: Request, res: Response) => {
+  const { customIp } = req.body
   const token = 'cam-' + Math.random().toString(36).slice(2, 10)
+  const port = process.env.PORT || 3001
+  
+  const ip = customIp || getLocalIpAddress()
+  const host = `http://${ip}:${port}`
+  
   const payload = {
     token,
-    server: process.env.PUBLIC_SERVER_URL || 'http://localhost:3001',
+    server: host,
     createdAt: Date.now(),
   }
   const dataUrl = await QRCode.toDataURL(JSON.stringify(payload))

@@ -99,7 +99,10 @@
       "publisherName": "Samji Diamond"
     },
     "mac": {
-      "target": "dmg",
+      "target": {
+        "target": "zip",
+        "arch": "universal"
+      },
       "category": "public.app-category.education",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

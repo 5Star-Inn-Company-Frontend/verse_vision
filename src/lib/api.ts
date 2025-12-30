@@ -119,10 +119,23 @@ export const api = {
     const json = await res.json()
     return json.data
   },
-  pairCamera: async () => {
-    const res = await fetch(`${BASE}/camera/pair`, { method: 'POST' })
+  pairCamera: async (customIp?: string) => {
+    const res = await fetch(`${BASE}/camera/pair`, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customIp })
+    })
     const json = await res.json()
     return json.data
+  },
+  getLocalIp: async () => {
+    try {
+      const res = await fetch(`${BASE}/camera/ip`)
+      const json = await res.json()
+      return json.data as string
+    } catch {
+      return ''
+    }
   },
   listCameras: async () => {
     try {
