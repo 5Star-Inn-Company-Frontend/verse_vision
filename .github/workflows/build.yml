@@ -35,14 +35,14 @@ jobs:
 
       - name: Build Electron App
         uses: samuelmeuli/action-electron-builder@v1
-        env:
-          # macOS Code Signing
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          # macOS Notarization
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # env:
+        #   # macOS Code Signing
+        #   CSC_LINK: ${{ secrets.CSC_LINK }}
+        #   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        #   # macOS Notarization
+        #   APPLE_ID: ${{ secrets.APPLE_ID }}
+        #   APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+        #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           # GitHub token, automatically provided to the action
           # (No need to define this secret in the repo settings)
