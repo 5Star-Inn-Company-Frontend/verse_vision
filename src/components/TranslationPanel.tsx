@@ -38,7 +38,7 @@ export default function TranslationPanel() {
                 setTranslationEngine(engine)
               }}
             >
-              {engine === 'openai' ? 'OpenAI' : 'Offline (MarianMT)'}
+              {engine === 'openai' ? 'Online (AI)' : 'Offline (Local)'}
             </button>
           ))}
         </div>

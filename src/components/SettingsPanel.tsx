@@ -176,7 +176,7 @@ export default function SettingsPanel() {
                setScriptureDetectionEngine('openai')
              }}
           >
-            Online (OpenAI)
+            Online (AI)
           </button>
           <button
             className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'offline' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}

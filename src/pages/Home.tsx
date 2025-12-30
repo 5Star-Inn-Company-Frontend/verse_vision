@@ -15,21 +15,21 @@ import MicrophoneSelector from '@/components/MicrophoneSelector'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-neutral-900 text-gray-100">
+    <div className="h-screen bg-neutral-900 text-gray-100 flex flex-col overflow-hidden">
       <KeyboardShortcuts />
       <SyncBridge />
       <AudioService />
-      <header className="px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
+      <header className="flex-none px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
         <h1 className="text-lg font-semibold">VerseVision</h1>
         <div className="text-xs text-gray-400">Preview • Program • Status OK</div>
       </header>
-      <main className="container mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <section className="lg:col-span-2">
-          <ProgramPreview />
+      <main className="flex-1 container mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        <section className="lg:col-span-2 flex flex-col h-full overflow-hidden">
+          <ProgramPreview className="h-full w-full" />
         </section>
-        <section className="lg:col-span-1 space-y-4">
+        <section className="lg:col-span-1 h-full overflow-y-auto space-y-4 pr-2">
           <MicrophoneSelector />
-          <div className="h-64">
+          <div className="h-64 shrink-0">
             <ScriptureApprovalQueue />
           </div>
           <SettingsPanel />
@@ -39,7 +39,7 @@ export default function Home() {
           <LyricsPanel />
           <PlaylistPanel />
           <UtilityPanel />
-          <div className="h-[calc(100vh-18rem-7.5rem)]">
+          <div className="h-96 shrink-0">
             <CameraGrid />
           </div>
         </section>
