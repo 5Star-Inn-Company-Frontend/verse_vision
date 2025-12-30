@@ -45,6 +45,16 @@ export const api = {
     const json = await res.json()
     return json.data // returns { references, queue }
   },
+  getOfflineStatus: async () => {
+    try {
+      const res = await fetch(`${BASE}/ai/offline/status`)
+      if (!res.ok) return { status: 'stopped', details: '' }
+      const json = await res.json()
+      return json.data
+    } catch {
+      return { status: 'stopped', details: 'Network Error' }
+    }
+  },
   getQueue: async () => {
     try {
       const res = await fetch(`${BASE}/scripture/queue`)

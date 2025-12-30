@@ -8,11 +8,16 @@ class OfflineService {
   private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void }> = []
   private buffer: string = ''
   
+  public status: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' = 'stopped'
+  public details: string = ''
+
   constructor() {
     this.start()
   }
 
   private start() {
+    this.status = 'starting'
+    this.details = 'Initializing process...'
     let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
     
     if (process.env.RESOURCES_PATH) {
@@ -47,11 +52,32 @@ class OfflineService {
     })
 
     this.process.stderr?.on('data', (data) => {
-      console.log('[OfflineAI]:', data.toString().trim())
+      const msg = data.toString().trim()
+      console.log('[OfflineAI]:', msg)
+      
+      if (msg.includes('Downloading')) {
+        this.status = 'downloading'
+        this.details = msg
+      } else if (msg.includes('Loading Whisper model')) {
+        this.status = 'loading'
+        this.details = 'Loading AI Model...'
+      } else if (msg.includes('Whisper model loaded')) {
+        this.status = 'ready'
+        this.details = 'AI Model Ready'
+      } else if (msg.includes('Error')) {
+         // Keep last status but update details unless it's a fatal error?
+         // If it's a download error, maybe set to error.
+         if (msg.includes('downloading') || msg.includes('loading')) {
+             this.status = 'error'
+         }
+         this.details = msg
+      }
     })
 
     this.process.on('close', (code) => {
       console.log(`Offline AI process exited with code ${code}`)
+      this.status = 'stopped'
+      this.details = `Process exited (code ${code})`
       this.process = null
       // Reject all pending
       while(this.queue.length) {

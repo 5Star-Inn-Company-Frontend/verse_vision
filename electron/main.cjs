@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu } = require('electron')
+const { app, BrowserWindow, Menu, shell } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
 let serverProc = null
@@ -118,6 +118,12 @@ function setupMenu() {
             docsWin.loadFile(docsPath)
           }
         },
+        {
+          label: 'Submit Feedback / Bug Report',
+          click: async () => {
+            await shell.openExternal('https://docs.google.com/forms/d/e/1FAIpQLSd3a0sQ7WPcdlDGcqI-TVn5ToMbuhfsxvFq2IAEQL8OMtkgjw/viewform')
+          }
+        },
         { type: 'separator' },
         {
           label: 'About VerseVision',
@@ -207,8 +213,8 @@ app.whenReady().then(async () => {
   setupMenu()
   app.setAboutPanelOptions({
     applicationName: 'VerseVision',
-    applicationVersion: '0.0.1',
-    version: '0.0.1',
+    applicationVersion: '1.0.0',
+    version: '1.0.0',
     copyright: 'Copyright © 2025 Samji Diamond',
     authors: ['Samji Diamond'],
     website: 'https://versevision.5starcompany.com.ng/'

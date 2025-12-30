@@ -47,6 +47,8 @@ type OperatorState = {
   translations: Record<string, string | undefined> | null
   translationEngine: 'openai' | 'marian'
   scriptureDetectionEngine: 'openai' | 'offline'
+  offlineStatus: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error'
+  offlineDetails: string
   cloudApiToken: string | null
   userPlan: string | null
   setUserPlan: (plan: string | null) => void
@@ -77,6 +79,7 @@ type OperatorState = {
   fetchTranslations: (text: string) => Promise<void>
   setTranslationEngine: (engine: 'openai' | 'marian') => Promise<void>
   setScriptureDetectionEngine: (engine: 'openai' | 'offline') => Promise<void>
+  checkOfflineStatus: () => Promise<void>
   setCloudToken: (token: string | null) => Promise<void>
   
   // Lyrics
@@ -154,6 +157,8 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   translations: null,
   translationEngine: 'marian',
   scriptureDetectionEngine: 'offline',
+  offlineStatus: 'stopped',
+  offlineDetails: '',
   cloudApiToken: null,
   userPlan: null,
   showScriptureOverlay: true,
@@ -282,6 +287,10 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   setScriptureDetectionEngine: async (engine) => {
     const s = await api.updateSettings({ scriptureDetectionEngine: engine })
     set({ scriptureDetectionEngine: s.scriptureDetectionEngine })
+  },
+  checkOfflineStatus: async () => {
+    const data = await api.getOfflineStatus()
+    set({ offlineStatus: data.status, offlineDetails: data.details })
   },
   setCloudToken: async (token) => {
     api.setToken(token)

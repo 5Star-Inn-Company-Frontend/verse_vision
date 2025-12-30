@@ -69,6 +69,7 @@
                         <a href="#preview" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Preview</a>
                         <a href="#why" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Why</a>
                         <a href="#plans" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Plans</a>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSd3a0sQ7WPcdlDGcqI-TVn5ToMbuhfsxvFq2IAEQL8OMtkgjw/viewform" target="_blank" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Feedback</a>
                         <a href="#contact" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Contact</a>
                     </div>
                 </div>
@@ -201,6 +202,39 @@
                     <h3 class="text-xl font-semibold mb-3">Professional Output</h3>
                     <p class="text-gray-400 text-sm leading-relaxed">
                         Generate clean, broadcast-ready lower thirds, subtitles, and overlays for your live stream or projector.
+                    </p>
+                </div>
+
+                <!-- Feature 7 -->
+                <div class="bg-gray-950 p-8 rounded-2xl border border-gray-800 hover:border-brand-500/50 transition-colors group">
+                    <div class="w-12 h-12 bg-brand-900/30 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-wifi text-brand-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Offline Ready</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Works seamlessly with or without an Internet connection. Perform AI tasks locally without relying on the cloud, but cloud have the highest accuracy.
+                    </p>
+                </div>
+
+                <!-- Feature 8 -->
+                <div class="bg-gray-950 p-8 rounded-2xl border border-gray-800 hover:border-brand-500/50 transition-colors group">
+                    <div class="w-12 h-12 bg-brand-900/30 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-list-check text-brand-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Dynamic Service Playlists</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Plan your entire service with drag-and-drop playlists. Seamlessly mix presentation slides, videos, and live feeds into a cohesive program.
+                    </p>
+                </div>
+
+                <!-- Feature 9 -->
+                <div class="bg-gray-950 p-8 rounded-2xl border border-gray-800 hover:border-brand-500/50 transition-colors group">
+                    <div class="w-12 h-12 bg-brand-900/30 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-sliders text-brand-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Smart Scene Presets</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Save and recall complex scene configurations instantly. Switch between camera angles, translation styles, and overlay layouts with a single click.
                     </p>
                 </div>
             </div>
@@ -458,6 +492,17 @@
                     </div>
                     <h3 class="text-lg font-semibold mb-2">WhatsApp</h3>
                     <a href="https://wa.me/2348085640505" class="text-green-400 hover:text-green-300 transition-colors">+234 808 564 0505</a>
+                </div>
+
+                <div class="w-px h-24 bg-gray-800 hidden md:block"></div>
+                <div class="w-full h-px bg-gray-800 md:hidden"></div>
+
+                <div class="text-center group">
+                    <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-900/30 transition-colors">
+                        <i class="fa-solid fa-comment-dots text-2xl text-gray-400 group-hover:text-purple-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Feedback</h3>
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSd3a0sQ7WPcdlDGcqI-TVn5ToMbuhfsxvFq2IAEQL8OMtkgjw/viewform" target="_blank" class="text-purple-400 hover:text-purple-300 transition-colors">Submit Request</a>
                 </div>
             </div>
         </div>

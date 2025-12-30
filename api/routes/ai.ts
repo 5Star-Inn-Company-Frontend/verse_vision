@@ -18,6 +18,16 @@ const upload = multer({ dest: tmpDir })
 
 let globalDefaultVersion = 'NIV'
 
+router.get('/offline/status', (req: Request, res: Response) => {
+  res.json({ 
+    success: true, 
+    data: { 
+      status: offlineService.status, 
+      details: offlineService.details 
+    } 
+  })
+})
+
 router.post('/transcribe', upload.single('audio'), async (req: Request & { file?: { path: string } }, res: Response) => {
   if (!req.file) {
     res.status(400).json({ success: false, error: 'audio required' })

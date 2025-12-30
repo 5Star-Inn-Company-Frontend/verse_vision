@@ -7,6 +7,7 @@ export default function SettingsPanel() {
     autoApproveEnabled, autoApproveDelayMs, loadSettings, updateSettings, 
     iceServers, loadIceServers, updateIceServers, 
     scriptureDetectionEngine, setScriptureDetectionEngine,
+    offlineStatus, offlineDetails, checkOfflineStatus,
     cloudApiToken, setCloudToken, userPlan, setUserPlan
   } = useOperatorStore()
   
@@ -24,6 +25,14 @@ export default function SettingsPanel() {
     void loadSettings()
     void loadIceServers()
   }, [loadSettings, loadIceServers])
+
+  useEffect(() => {
+    if (scriptureDetectionEngine === 'offline') {
+      void checkOfflineStatus()
+      const interval = setInterval(() => void checkOfflineStatus(), 2000)
+      return () => clearInterval(interval)
+    }
+  }, [scriptureDetectionEngine, checkOfflineStatus])
 
   useEffect(() => {
     try { setIceText(JSON.stringify(iceServers, null, 2)) } catch { setIceText('[]') }
@@ -186,6 +195,38 @@ export default function SettingsPanel() {
           </button>
         </div>
       </div>
+
+      {scriptureDetectionEngine === 'offline' && (
+        <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] uppercase font-bold text-gray-400">Offline Status</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+              offlineStatus === 'ready' ? 'bg-green-900/50 text-green-400 border border-green-900' :
+              offlineStatus === 'error' ? 'bg-red-900/50 text-red-400 border border-red-900' :
+              offlineStatus === 'stopped' ? 'bg-gray-700 text-gray-400' :
+              'bg-blue-900/50 text-blue-400 border border-blue-900 animate-pulse'
+            }`}>
+              {offlineStatus}
+            </span>
+          </div>
+          {offlineDetails && (
+            <div className="text-[10px] text-gray-300 font-mono bg-black/30 p-1.5 rounded break-all">
+              {offlineDetails}
+            </div>
+          )}
+          {(offlineStatus === 'downloading' || offlineStatus === 'loading' || offlineStatus === 'starting') && (
+            <div className="mt-1.5 flex gap-1.5 items-start">
+              <span className="text-yellow-500 text-xs">⚠️</span>
+              <p className="text-[10px] text-yellow-500/90 leading-tight">
+                Internet connection is required for the first-time setup to download AI models (~500MB). 
+                Once downloaded, the software works fully offline without Internet.
+                Please do not close the app.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-3">
         <label className="text-xs text-gray-300">Auto-Approve</label>
         <button

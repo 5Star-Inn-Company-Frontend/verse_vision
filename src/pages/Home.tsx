@@ -12,6 +12,7 @@ import KeyboardShortcuts from '@/components/KeyboardShortcuts'
 import SyncBridge from '@/components/SyncBridge'
 import AudioService from '@/components/AudioService'
 import MicrophoneSelector from '@/components/MicrophoneSelector'
+import OfflineIndicator from '@/components/OfflineIndicator'
 
 export default function Home() {
   return (
@@ -20,7 +21,10 @@ export default function Home() {
       <SyncBridge />
       <AudioService />
       <header className="flex-none px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">VerseVision</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold">VerseVision</h1>
+          <OfflineIndicator />
+        </div>
         <div className="text-xs text-gray-400">Preview • Program • Status OK</div>
       </header>
       <main className="flex-1 container mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">

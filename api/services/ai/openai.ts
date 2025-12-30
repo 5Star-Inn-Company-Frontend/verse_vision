@@ -1,4 +1,5 @@
 import fs from 'fs'
+import path from 'path'
 import axios from 'axios'
 import FormData from 'form-data'
 import { settingsStore } from '../settingsStore.js'
@@ -19,10 +20,27 @@ export async function transcribeAudio(filePath: string): Promise<string> {
     return ''
   }
 
+  const ext = path.extname(filePath).toLowerCase()
+  const filename = path.basename(filePath)
+  
+  // Map extension to mime type
+  const mimeTypes: Record<string, string> = {
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.webm': 'audio/webm',
+    '.m4a': 'audio/mp4',
+    '.mp4': 'audio/mp4',
+    '.mpeg': 'audio/mpeg',
+    '.mpga': 'audio/mpeg',
+    '.ogg': 'audio/ogg',
+  }
+  
+  const contentType = mimeTypes[ext] || 'audio/mpeg'
+
   const form = new FormData()
   form.append('file', fs.createReadStream(filePath), {
-    filename: 'audio.mp3',
-    contentType: 'audio/mpeg',
+    filename: filename,
+    contentType: contentType,
   })
 
   console.log(`${CLOUD_API_URL}/ai/transcribe`);
