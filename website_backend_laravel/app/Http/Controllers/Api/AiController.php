@@ -14,7 +14,7 @@ class AiController extends Controller
     {
         // Validation and file handling
         $request->validate([
-            'file' => 'required|file|mimes:mp3,wav,m4a,mp4',
+            'file' => 'required|file|mimes:mp3,wav,m4a,mp4,webm',
         ]);
 
         $startTime = microtime(true);
