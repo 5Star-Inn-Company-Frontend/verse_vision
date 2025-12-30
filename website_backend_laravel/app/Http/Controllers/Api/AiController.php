@@ -90,7 +90,7 @@ class AiController extends Controller
             'input_tokens' => $inputTokens,
             'output_tokens' => $outputTokens,
             'duration_ms' => $duration,
-            'prompt_snippet' => substr($request->text, 0, 100),
+            'prompt_snippet' => mb_substr($request->text, 0, 100, 'UTF-8'),
             'meta' => $data,
         ]);
 
@@ -136,7 +136,7 @@ class AiController extends Controller
             'input_tokens' => $inputTokens,
             'output_tokens' => $outputTokens,
             'duration_ms' => $duration,
-            'prompt_snippet' => substr($request->text, 0, 100),
+            'prompt_snippet' => mb_substr($request->text, 0, 100, 'UTF-8'),
             'meta' => $data,
         ]);
 
@@ -182,7 +182,7 @@ class AiController extends Controller
             'input_tokens' => $inputTokens,
             'output_tokens' => $outputTokens,
             'duration_ms' => $duration,
-            'prompt_snippet' => substr($request->reference, 0, 100),
+            'prompt_snippet' => mb_substr($request->reference, 0, 100, 'UTF-8'),
             'meta' => $data,
         ]);
 
@@ -232,7 +232,7 @@ class AiController extends Controller
             'input_tokens' => $inputTokens,
             'output_tokens' => $outputTokens,
             'duration_ms' => $duration,
-            'prompt_snippet' => substr($request->title, 0, 100),
+            'prompt_snippet' => mb_substr($request->title, 0, 100, 'UTF-8'),
             'meta' => $data,
         ]);
 

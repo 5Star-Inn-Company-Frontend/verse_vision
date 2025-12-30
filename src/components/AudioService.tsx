@@ -9,6 +9,7 @@ export default function AudioService() {
   const localStreamRef = useRef<MediaStream | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const transcriptionBufferRef = useRef<string>('')
 
   // Derived stream for the selected camera (if any)
   const cameraStream = activeAudioCameraId ? liveStreams[activeAudioCameraId] : null
@@ -198,15 +199,34 @@ export default function AudioService() {
       // 1. Transcribe
       const { text } = await api.transcribe(blob, engine)
       if (!text || text.trim().length < 5) {
+        // If silence/noise, we don't clear buffer yet, we just wait for more meaningful text
         processingRef.current = false
         return
       }
       console.log('[AudioService] Transcribed:', text)
 
-      // 2. Detect
-      const { queue } = await api.detectScripture(text, engine)
+      // 2. Combine with buffer for context (handling split references like "John" ... "3:16")
+      const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()
       
-      // 3. Update Store
+      // 3. Detect
+      const { queue, references } = await api.detectScripture(combinedText, engine)
+      
+      // 4. Update Buffer Strategy
+      if (references && references.length > 0) {
+        // Scripture found! Clear buffer as we successfully used the context
+        transcriptionBufferRef.current = ''
+        console.log('[AudioService] Scripture detected, clearing buffer')
+      } else {
+        // No scripture found yet. Keep this text in buffer for next turn to provide context.
+        // If buffer gets too large (e.g. > 500 chars), we drop the old part to avoid carrying stale context forever.
+        if (combinedText.length > 500) {
+             transcriptionBufferRef.current = text
+        } else {
+             transcriptionBufferRef.current = combinedText
+        }
+      }
+
+      // 5. Update Store
       if (queue) setScriptureQueue(queue)
       
     } catch (err) {

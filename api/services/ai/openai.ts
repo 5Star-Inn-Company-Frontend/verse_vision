@@ -4,7 +4,7 @@ import FormData from 'form-data'
 import { settingsStore } from '../settingsStore.js'
 
 // Cloud Backend URL (Laravel API)
-const CLOUD_API_URL = process.env.CLOUD_API_URL || 'http://localhost:8000/api'
+const CLOUD_API_URL = process.env.CLOUD_API_URL || 'https://versevision.5starcompany.com.ng/api'
 
 // Helper to get Cloud API Token
 async function getCloudToken(): Promise<string | null> {
@@ -20,8 +20,12 @@ export async function transcribeAudio(filePath: string): Promise<string> {
   }
 
   const form = new FormData()
-  form.append('file', fs.createReadStream(filePath))
+  form.append('file', fs.createReadStream(filePath), {
+    filename: 'audio.mp3',
+    contentType: 'audio/mpeg',
+  })
 
+  console.log(`${CLOUD_API_URL}/ai/transcribe`);
   try {
     const res = await axios.post(`${CLOUD_API_URL}/ai/transcribe`, form, {
       headers: {
