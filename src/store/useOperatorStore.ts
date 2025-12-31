@@ -68,6 +68,14 @@ type OperatorState = {
   loadSettings: () => Promise<void>
   updateSettings: (patch: { autoApproveEnabled?: boolean; autoApproveDelayMs?: number }) => Promise<void>
   syncSettings: (settings: any) => void
+  updateOverlaySettings: (patch: {
+    overlayBackgroundColor?: string
+    overlayTextScale?: number
+    overlayFontFamily?: string
+  }) => Promise<void>
+  overlayBackgroundColor: string
+  overlayTextScale: number
+  overlayFontFamily: string
   updateTranslationSettings: (patch: {
     translationStyle?: 'subtitle' | 'split' | 'ticker'
     translationEnabledYoruba?: boolean
@@ -128,6 +136,15 @@ type OperatorState = {
   
   // Primary Camera Publish (helper)
   setPrimaryCameraPublish: (id: string) => void
+
+  // Panel Visibility
+  panelTranslationVisible: boolean
+  panelPairingVisible: boolean
+  panelCameraGridVisible: boolean
+  panelLyricsVisible: boolean
+  panelPlaylistVisible: boolean
+  panelSceneVisible: boolean
+  togglePanel: (panel: 'translation' | 'pairing' | 'cameraGrid' | 'lyrics' | 'playlist' | 'scene') => void
 }
 
 export const useOperatorStore = create<OperatorState>((set, get) => ({
@@ -161,6 +178,9 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   offlineDetails: '',
   cloudApiToken: null,
   userPlan: null,
+  overlayBackgroundColor: 'rgba(0,0,0,0.7)',
+  overlayTextScale: 1,
+  overlayFontFamily: 'sans-serif',
   showScriptureOverlay: true,
   recordingEnabled: false,
   countdownEndAt: null,
@@ -239,11 +259,22 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEngine: s.translationEngine ?? get().translationEngine,
       cloudApiToken: s.cloudApiToken ?? get().cloudApiToken,
       showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay,
+      overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
+      overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
+      overlayFontFamily: s.overlayFontFamily ?? get().overlayFontFamily,
     })
   },
   updateSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({ autoApproveEnabled: s.autoApproveEnabled, autoApproveDelayMs: s.autoApproveDelayMs })
+  },
+  updateOverlaySettings: async (patch) => {
+    const s = await api.updateSettings(patch)
+    set({
+      overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
+      overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
+      overlayFontFamily: s.overlayFontFamily ?? get().overlayFontFamily,
+    })
   },
   syncSettings: (s) => set((prev) => ({
     autoApproveEnabled: s.autoApproveEnabled ?? prev.autoApproveEnabled,
@@ -254,6 +285,9 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     translationEngine: s.translationEngine ?? prev.translationEngine,
     cloudApiToken: s.cloudApiToken ?? prev.cloudApiToken,
     showScriptureOverlay: s.showScriptureOverlay ?? prev.showScriptureOverlay,
+    overlayBackgroundColor: s.overlayBackgroundColor ?? prev.overlayBackgroundColor,
+    overlayTextScale: s.overlayTextScale ?? prev.overlayTextScale,
+    overlayFontFamily: s.overlayFontFamily ?? prev.overlayFontFamily,
   })),
   updateTranslationSettings: async (patch) => {
     const s = await api.updateSettings(patch)
@@ -445,5 +479,21 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       })
     }
     set({ cameras: Array.from(map.values()) })
+  },
+  
+  // Panel Visibility
+  panelTranslationVisible: false,
+  panelPairingVisible: false,
+  panelCameraGridVisible: false,
+  panelLyricsVisible: false,
+  panelPlaylistVisible: false,
+  panelSceneVisible: false,
+  togglePanel: (panel) => {
+    if (panel === 'translation') set((s) => ({ panelTranslationVisible: !s.panelTranslationVisible }))
+    if (panel === 'pairing') set((s) => ({ panelPairingVisible: !s.panelPairingVisible }))
+    if (panel === 'cameraGrid') set((s) => ({ panelCameraGridVisible: !s.panelCameraGridVisible }))
+    if (panel === 'lyrics') set((s) => ({ panelLyricsVisible: !s.panelLyricsVisible }))
+    if (panel === 'playlist') set((s) => ({ panelPlaylistVisible: !s.panelPlaylistVisible }))
+    if (panel === 'scene') set((s) => ({ panelSceneVisible: !s.panelSceneVisible }))
   }
 }))

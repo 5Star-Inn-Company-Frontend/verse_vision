@@ -13,8 +13,18 @@ import SyncBridge from '@/components/SyncBridge'
 import AudioService from '@/components/AudioService'
 import MicrophoneSelector from '@/components/MicrophoneSelector'
 import OfflineIndicator from '@/components/OfflineIndicator'
+import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function Home() {
+  const {
+    panelTranslationVisible,
+    panelPairingVisible,
+    panelCameraGridVisible,
+    panelLyricsVisible,
+    panelPlaylistVisible,
+    panelSceneVisible
+  } = useOperatorStore()
+
   return (
     <div className="h-screen bg-neutral-900 text-gray-100 flex flex-col overflow-hidden">
       <KeyboardShortcuts />
@@ -37,15 +47,17 @@ export default function Home() {
             <ScriptureApprovalQueue />
           </div>
           <SettingsPanel />
-          <TranslationPanel />
-          <PairingPanel />
-          <ScenePanel />
-          <LyricsPanel />
-          <PlaylistPanel />
+          {panelTranslationVisible && <TranslationPanel />}
+          {panelSceneVisible && <ScenePanel />}
+          {panelLyricsVisible && <LyricsPanel />}
+          {panelPlaylistVisible && <PlaylistPanel />}
+          {panelPairingVisible && <PairingPanel />}
+          {panelCameraGridVisible && (
+            <div className="h-96 shrink-0">
+              <CameraGrid />
+            </div>
+          )}
           <UtilityPanel />
-          <div className="h-96 shrink-0">
-            <CameraGrid />
-          </div>
         </section>
       </main>
     </div>

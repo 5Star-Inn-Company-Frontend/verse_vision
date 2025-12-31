@@ -177,12 +177,15 @@ class OfflineService {
       const msg = data.toString().trim()
       console.log('[OfflineAI]:', msg)
       
-      if (msg.includes('Downloading')) {
+      if (msg.includes('Downloading') || msg.includes('Checking/Downloading')) {
         this.status = 'downloading'
-        this.details = msg
+        this.details = 'Downloading AI Model (may take a few minutes)...'
       } else if (msg.includes('Loading Whisper model')) {
         this.status = 'loading'
         this.details = 'Loading AI Model...'
+      } else if (msg.includes('Initializing Whisper engine')) {
+        this.status = 'loading'
+        this.details = 'Initializing AI Engine...'
       } else if (msg.includes('Whisper model loaded')) {
         this.status = 'ready'
         this.details = 'AI Model Ready'

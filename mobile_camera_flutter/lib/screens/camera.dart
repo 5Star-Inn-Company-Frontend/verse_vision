@@ -13,6 +13,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   bool gridOverlay = true;
   bool adaptiveBitrate = true;
+  double _baseZoom = 1.0;
   
   @override
   Widget build(BuildContext context) {
@@ -20,12 +21,21 @@ class _CameraScreenState extends State<CameraScreen> {
       children: [
         // Camera Feed
         Positioned.fill(
-          child: widget.service.renderer.textureId != null 
-              ? RTCVideoView(
-                  widget.service.renderer,
-                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                ) 
-              : const Center(child: CircularProgressIndicator()),
+          child: GestureDetector(
+            onScaleStart: (details) {
+              _baseZoom = widget.service.currentZoom;
+            },
+            onScaleUpdate: (details) {
+              final newZoom = (_baseZoom * details.scale).clamp(1.0, widget.service.maxZoom);
+              widget.service.setZoom(newZoom);
+            },
+            child: widget.service.renderer.textureId != null 
+                ? RTCVideoView(
+                    widget.service.renderer,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                  ) 
+                : const Center(child: CircularProgressIndicator()),
+          ),
         ),
         
         // Grid Overlay
@@ -128,6 +138,40 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+
+        // Zoom Slider
+        Positioned(
+          right: 4,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: ListenableBuilder(
+              listenable: widget.service,
+              builder: (context, _) {
+                if (widget.service.maxZoom <= 1.0) return const SizedBox.shrink();
+                return RotatedBox(
+                  quarterTurns: 3,
+                  child: Container(
+                    height: 40,
+                    width: 250,
+                    decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Slider(
+                      value: widget.service.currentZoom,
+                      min: 1.0,
+                      max: widget.service.maxZoom,
+                      activeColor: Colors.white,
+                      inactiveColor: Colors.white30,
+                      onChanged: (val) => widget.service.setZoom(val),
+                    ),
+                  ),
+                );
+              }
             ),
           ),
         ),

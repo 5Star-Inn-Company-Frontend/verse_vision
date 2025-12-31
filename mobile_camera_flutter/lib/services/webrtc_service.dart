@@ -37,6 +37,8 @@ class WebRTCService extends ChangeNotifier {
   String? lastError;
   String? _connectedUrl;
   String connectionState = 'Offline';
+  double currentZoom = 1.0;
+  double maxZoom = 4.0;
 
   bool _hasSaved = false;
   bool get hasSaved => _hasSaved;
@@ -256,6 +258,33 @@ class WebRTCService extends ChangeNotifier {
     } catch (_) {}
     localStream = null;
     await initWebRTC();
+  }
+
+  Future<void> setZoom(double zoom) async {
+    if (localStream == null) return;
+    final track = localStream!.getVideoTracks().isEmpty ? null : localStream!.getVideoTracks().first;
+    if (track == null) return;
+    
+    // Try native helper first (most reliable for Flutter WebRTC on mobile)
+    try {
+      await Helper.setZoom(track, zoom);
+      currentZoom = zoom;
+      notifyListeners();
+      return;
+    } catch (e) {
+      print("Helper.setZoom error: $e");
+    }
+
+    // Fallback to standard constraints
+    try {
+      await track.applyConstraints({
+        'advanced': [{'zoom': zoom}]
+      });
+      currentZoom = zoom;
+      notifyListeners();
+    } catch (e) {
+      print("Zoom constraints error: $e");
+    }
   }
 
   Future<Map<String, dynamic>> _loadRtcConfig() async {

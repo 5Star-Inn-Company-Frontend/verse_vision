@@ -44,13 +44,28 @@ default_version = 'kjv'
 def load_whisper():
     global model
     print(f"Loading Whisper model ({MODEL_SIZE})...", file=sys.stderr)
+    sys.stderr.flush()
     try:
-        from faster_whisper import WhisperModel
+        from faster_whisper import WhisperModel, download_model
+        
+        print("Checking/Downloading Whisper model...", file=sys.stderr)
+        sys.stderr.flush()
+        
+        # Download explicitly to ensure we have the path and can debug
+        model_path = download_model(MODEL_SIZE)
+        print(f"Model path: {model_path}", file=sys.stderr)
+        sys.stderr.flush()
+        
+        print("Initializing Whisper engine...", file=sys.stderr)
+        sys.stderr.flush()
+        
         # Run on CPU with INT8 for compatibility/speed on average hardware
-        model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+        model = WhisperModel(model_path, device="cpu", compute_type="int8")
         print("Whisper model loaded.", file=sys.stderr)
+        sys.stderr.flush()
     except Exception as e:
         print(f"Error loading Whisper: {e}", file=sys.stderr)
+        sys.stderr.flush()
 
 def load_bible():
     global bible_versions
@@ -204,9 +219,26 @@ def extract_references(text):
         book_candidate = book_candidate.strip()
         
         # Cleanup book candidate
-        # 1. Strip "The book of" prefix
-        if book_candidate.lower().startswith("the book of "):
-            book_candidate = book_candidate[12:].strip()
+        # 1. Strip common prefixes
+        prefixes = [
+            "the book of ", 
+            "to the book of ", 
+            "open the book of ", 
+            "open to ", 
+            "turn to ", 
+            "go to ",
+            "reading from ",
+            "read from ",
+            "in the book of ",
+            "let's open to ",
+            "let us open to "
+        ]
+        
+        lower_cand = book_candidate.lower()
+        for prefix in prefixes:
+            if lower_cand.startswith(prefix):
+                book_candidate = book_candidate[len(prefix):].strip()
+                break # Only strip one prefix
             
         # 2. Strip "chapter" suffix if captured (e.g. "Genesis chapter")
         if book_candidate.lower().endswith(" chapter"):

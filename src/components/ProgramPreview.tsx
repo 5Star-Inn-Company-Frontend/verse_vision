@@ -4,7 +4,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { connectToCamera } from '@/lib/webrtc'
 
 export default function ProgramPreview({ className, style, hideHeader }: { className?: string; style?: React.CSSProperties; hideHeader?: boolean }) {
-  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams, loadCameras } = useOperatorStore()
+  const { cameras, primaryCameraId, currentScripture, loadCurrent, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translations, fetchTranslations, translationEngine, activeAudioCameraId, showScriptureOverlay, showLyricsOverlay, currentSongId, currentLineIndex, loadCurrentLyric, recordingEnabled, countdownEndAt, activePlaylistItem, activePlaylistItemPage, liveStreams, loadCameras, overlayBackgroundColor, overlayTextScale, overlayFontFamily } = useOperatorStore()
   const cam = primaryCameraId === 'none' ? null : (cameras.find((c) => c.id === primaryCameraId) || cameras[0])
   
   // Debug log
@@ -132,42 +132,42 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
           </div>
         )}
         {currentScripture && showScriptureOverlay && translationStyle === 'subtitle' && (
-          <div className="absolute bottom-0 left-0 w-full px-6 py-4 space-y-2">
-            <div className="bg-black/70 text-white rounded-md p-3">
-              <div className="text-xs opacity-80 mb-1">
+          <div className="absolute bottom-0 left-0 w-full px-6 py-4 space-y-2" style={{ fontFamily: overlayFontFamily }}>
+            <div className="text-white rounded-md p-3" style={{ backgroundColor: overlayBackgroundColor }}>
+              <div className="opacity-80 mb-1" style={{ fontSize: `${12 * overlayTextScale}px` }}>
                 {currentScripture.reference} • {currentScripture.translation}
               </div>
-              <div className="text-sm leading-relaxed">
+              <div className="leading-relaxed" style={{ fontSize: `${14 * overlayTextScale}px` }}>
                 {currentScripture.text}
               </div>
             </div>
             {activeTranslations.map((t) => (
-              <div key={t.label} className="bg-black/60 text-white rounded-md p-2">
-                <div className={`text-[11px] opacity-80 mb-1 ${t.color}`}>{t.label}</div>
-                <div className="text-xs leading-relaxed">{t.text}</div>
+              <div key={t.label} className="text-white rounded-md p-2" style={{ backgroundColor: overlayBackgroundColor }}>
+                <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${11 * overlayTextScale}px` }}>{t.label}</div>
+                <div className="leading-relaxed" style={{ fontSize: `${12 * overlayTextScale}px` }}>{t.text}</div>
               </div>
             ))}
           </div>
         )}
         {currentScripture && showScriptureOverlay && translationStyle === 'split' && (
-          <div className="absolute bottom-0 left-0 w-full px-6 py-4 grid grid-cols-2 gap-3">
-            <div className={`bg-black/70 text-white rounded-md p-3 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
-              <div className="text-xs opacity-80 mb-1">
+          <div className="absolute bottom-0 left-0 w-full px-6 py-4 grid grid-cols-2 gap-3" style={{ fontFamily: overlayFontFamily }}>
+            <div className={`text-white rounded-md p-3 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`} style={{ backgroundColor: overlayBackgroundColor }}>
+              <div className="opacity-80 mb-1" style={{ fontSize: `${12 * overlayTextScale}px` }}>
                 {currentScripture.reference} • {currentScripture.translation}
               </div>
-              <div className="text-sm leading-relaxed">{currentScripture.text}</div>
+              <div className="leading-relaxed" style={{ fontSize: `${14 * overlayTextScale}px` }}>{currentScripture.text}</div>
             </div>
             {activeTranslations.map((t) => (
-              <div className="bg-black/60 text-white rounded-md p-3" key={t.label}>
-                <div className={`text-[11px] opacity-80 mb-1 ${t.color}`}>{t.label}</div>
-                <div className="text-sm leading-relaxed">{t.text}</div>
+              <div className="text-white rounded-md p-3" key={t.label} style={{ backgroundColor: overlayBackgroundColor }}>
+                <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${11 * overlayTextScale}px` }}>{t.label}</div>
+                <div className="leading-relaxed" style={{ fontSize: `${14 * overlayTextScale}px` }}>{t.text}</div>
               </div>
             ))}
           </div>
         )}
         {currentScripture && showScriptureOverlay && translationStyle === 'ticker' && (
-          <div className="absolute bottom-0 left-0 w-full">
-            <div className="bg-black/70 text-white text-xs whitespace-nowrap overflow-hidden">
+          <div className="absolute bottom-0 left-0 w-full" style={{ fontFamily: overlayFontFamily }}>
+            <div className="text-white whitespace-nowrap overflow-hidden" style={{ backgroundColor: overlayBackgroundColor, fontSize: `${12 * overlayTextScale}px` }}>
               <div className="animate-[ticker_15s_linear_infinite] inline-block px-4">
                 {[{ label: 'English', text: currentScripture.text, color: 'text-white' }, ...activeTranslations].map((t) => (
                   <span key={t.label} className="px-6">
@@ -181,7 +181,7 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
         )}
         {showLyricsOverlay && (
           <div className="absolute bottom-16 left-0 w-full px-6">
-            <div className="bg-black/70 text-white rounded-md p-3 text-center">
+            <div className="text-white rounded-md p-3 text-center" style={{ backgroundColor: overlayBackgroundColor }}>
               <LyricsText />
             </div>
           </div>
@@ -479,9 +479,9 @@ function PdfOverlay({ url, title, page }: { url: string; title: string; page: nu
 }
 
 function LyricsText() {
-  const { currentSongLines, currentLineIndex } = useOperatorStore()
+  const { currentSongLines, currentLineIndex, overlayTextScale, overlayFontFamily } = useOperatorStore()
   const text = currentSongLines[currentLineIndex] || ''
-  return <div className="text-sm whitespace-pre-wrap leading-relaxed">{text}</div>
+  return <div className="whitespace-pre-wrap leading-relaxed" style={{ fontSize: `${14 * overlayTextScale}px`, fontFamily: overlayFontFamily }}>{text}</div>
 }
 const VideoLive = memo(function VideoLive({ stream }: { stream: MediaStream }) {
   const ref = useRef<HTMLVideoElement | null>(null)

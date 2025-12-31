@@ -100,7 +100,7 @@ export default function LyricsPanel() {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-100">Lyrics</h3>
+        <h3 className="text-sm font-semibold text-gray-100">Hymns</h3>
         <div className="flex gap-2 items-center">
           <button onClick={downloadSample} className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-0.5 rounded">Download Sample</button>
           <label className="text-[10px] bg-indigo-700 hover:bg-indigo-600 text-white px-2 py-0.5 rounded cursor-pointer">
@@ -117,7 +117,7 @@ export default function LyricsPanel() {
           <div className="text-[10px] text-gray-400">Overlay: {showLyricsOverlay ? 'on' : 'off'}</div>
         </div>
       </div>
-      <input className="w-full bg-gray-800 text-xs text-white rounded px-2 py-1 mb-2" placeholder="Search songs" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <input className="w-full bg-gray-800 text-xs text-white rounded px-2 py-1 mb-2" placeholder="Search for Hymns or songs" value={search} onChange={(e) => setSearch(e.target.value)} />
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {search.length > 2 && filtered.length === 0 && (
           <div className="mb-2">

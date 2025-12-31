@@ -18,7 +18,10 @@ export type AppSettings = {
   iceServersJson?: string | null
   translationEngine?: 'openai' | 'marian'
   scriptureDetectionEngine?: 'openai' | 'offline'
-  cloudApiToken?: string | null // Added Cloud API Token
+  cloudApiToken?: string | null
+  overlayBackgroundColor?: string
+  overlayTextScale?: number
+  overlayFontFamily?: string
 }
 
 const defaults: AppSettings = {
@@ -40,6 +43,9 @@ const defaults: AppSettings = {
   translationEngine: 'marian',
   scriptureDetectionEngine: 'offline',
   cloudApiToken: null,
+  overlayBackgroundColor: 'rgba(0,0,0,0.7)',
+  overlayTextScale: 1.0,
+  overlayFontFamily: 'sans',
 }
 
 export const settingsStore = {
@@ -69,12 +75,21 @@ export const settingsStore = {
       translationEngine: (map.get('translationEngine') as AppSettings['translationEngine']) ?? defaults.translationEngine,
       scriptureDetectionEngine: (map.get('scriptureDetectionEngine') as AppSettings['scriptureDetectionEngine']) ?? defaults.scriptureDetectionEngine,
       cloudApiToken: (map.get('cloudApiToken') as string) ?? defaults.cloudApiToken ?? null,
+      overlayBackgroundColor: (map.get('overlayBackgroundColor') as string) ?? defaults.overlayBackgroundColor,
+      overlayTextScale: Number(map.get('overlayTextScale') ?? defaults.overlayTextScale),
+      overlayFontFamily: (map.get('overlayFontFamily') as string) ?? defaults.overlayFontFamily,
     }
   },
   set: async (partial: Partial<AppSettings>): Promise<AppSettings> => {
     const db = await getDb()
     const current = await settingsStore.get()
-    const next = { ...current, ...partial }
+    
+    // Filter out undefined values from partial so they don't overwrite current values
+    const cleanPartial = Object.fromEntries(
+      Object.entries(partial).filter(([_, v]) => v !== undefined)
+    ) as Partial<AppSettings>
+    
+    const next = { ...current, ...cleanPartial }
     const entries: [string, string][] = [
       ['autoApproveEnabled', String(next.autoApproveEnabled)],
       ['autoApproveDelayMs', String(next.autoApproveDelayMs)],
@@ -94,6 +109,9 @@ export const settingsStore = {
       ['translationEngine', String(next.translationEngine ?? defaults.translationEngine)],
       ['scriptureDetectionEngine', String(next.scriptureDetectionEngine ?? defaults.scriptureDetectionEngine)],
       ['cloudApiToken', String(next.cloudApiToken ?? '')],
+      ['overlayBackgroundColor', String(next.overlayBackgroundColor ?? defaults.overlayBackgroundColor)],
+      ['overlayTextScale', String(next.overlayTextScale ?? defaults.overlayTextScale)],
+      ['overlayFontFamily', String(next.overlayFontFamily ?? defaults.overlayFontFamily)],
     ]
     for (const [k, v] of entries) {
       if (partial[k as keyof AppSettings] !== undefined) {
