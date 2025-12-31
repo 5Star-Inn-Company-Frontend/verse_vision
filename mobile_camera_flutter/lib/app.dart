@@ -66,7 +66,16 @@ class _PairAndPreviewPageState extends State<PairAndPreviewPage> {
   void initState() {
     super.initState();
     svc = WebRTCService();
-    svc.addListener(() => setState(() {}));
+    svc.addListener(() {
+      if (svc.lastError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(svc.lastError!),
+          action: SnackBarAction(label: 'Settings', onPressed: () => svc.setScreen(AppScreen.settings)),
+        ));
+        svc.clearError();
+      }
+      setState(() {});
+    });
   }
 
   @override

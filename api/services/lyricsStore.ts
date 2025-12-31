@@ -30,6 +30,13 @@ export const lyricsStore = {
     await saveDb(db)
     return { id, title: payload.title, language: payload.language ?? null, lines: payload.lines, createdAt, source: payload.source ?? 'uploaded' }
   },
+  get: async (id: string): Promise<Song | null> => {
+    const db = await getDb()
+    const res = db.exec('SELECT id, title, language, lines, created_at, source FROM songs WHERE id = ?', [id])
+    const row = res[0]?.values?.[0]
+    if (!row) return null
+    return { id: row[0] as string, title: row[1] as string, language: (row[2] as string) || null, lines: JSON.parse(row[3] as string), createdAt: (row[4] as number), source: (row[5] as string) as Song['source'] }
+  },
   update: async (id: string, patch: Partial<{ title: string; language: string | null; lines: string[]; source: Song['source'] }>): Promise<Song | null> => {
     const db = await getDb()
     const fields: string[] = []

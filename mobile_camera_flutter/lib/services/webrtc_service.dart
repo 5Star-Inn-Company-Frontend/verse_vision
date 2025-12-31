@@ -25,6 +25,7 @@ class WebRTCService extends ChangeNotifier {
   WebSocket? ws;
   String remoteId = '';
   Timer? heartbeatTimer;
+  Timer? _durationTimer;
   DateTime? streamStart;
   bool audioStreaming = false;
   String resolution = '1080p';
@@ -33,6 +34,9 @@ class WebRTCService extends ChangeNotifier {
   int batteryLevel = 0;
   String connectionType = 'Unknown';
   Timer? statusTimer;
+  String? lastError;
+  String? _connectedUrl;
+  String connectionState = 'Offline';
 
   bool _hasSaved = false;
   bool get hasSaved => _hasSaved;
@@ -40,6 +44,10 @@ class WebRTCService extends ChangeNotifier {
   WebRTCService() {
     renderer.initialize();
     _loadSaved();
+  }
+  
+  void clearError() {
+    lastError = null;
   }
 
   Future<void> _loadSaved() async {
@@ -90,6 +98,7 @@ class WebRTCService extends ChangeNotifier {
   void dispose() {
     heartbeatTimer?.cancel();
     statusTimer?.cancel();
+    _durationTimer?.cancel();
     WakelockPlus.disable();
     try { renderer.dispose(); } catch (_) {}
     try { pc?.close(); } catch (_) {}
@@ -125,6 +134,8 @@ class WebRTCService extends ChangeNotifier {
       }
     } catch (_) {
       print("samji Pairing failed");
+      lastError = "Connection failed. Please check Server IP.";
+      notifyListeners();
     }
   }
 
@@ -213,7 +224,38 @@ class WebRTCService extends ChangeNotifier {
         _sendSig({'type': 'candidate', 'to': remoteId, 'from': _peerId(), 'candidate': {'candidate': c.candidate, 'sdpMid': c.sdpMid, 'sdpMLineIndex': c.sdpMLineIndex}});
       }
     };
+    pc!.onIceConnectionState = (state) {
+      print("samji ICE state: $state");
+      if (state == RTCIceConnectionState.RTCIceConnectionStateConnected || state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        connectionState = 'Online';
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateChecking) {
+        connectionState = 'Connecting';
+      } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed || state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+         connectionState = 'Offline';
+         lastError = "WebRTC Connection Failed";
+      }
+      notifyListeners();
+    };
     streamStart = DateTime.now();
+    _durationTimer?.cancel();
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) => notifyListeners());
+    connectionState = 'Connecting';
+    notifyListeners();
+  }
+
+  Future<void> reconnect() async {
+    print("samji Force Reconnecting");
+    _durationTimer?.cancel();
+    try { pc?.close(); } catch (_) {}
+    pc = null;
+    try { ws?.close(); } catch (_) {}
+    ws = null;
+    _connectedUrl = null;
+    try {
+      localStream?.getTracks().forEach((track) => track.stop());
+    } catch (_) {}
+    localStream = null;
+    await initWebRTC();
   }
 
   Future<Map<String, dynamic>> _loadRtcConfig() async {
@@ -244,9 +286,13 @@ class WebRTCService extends ChangeNotifier {
   }
 
   Future<void> _ensureWs() async {
-    if (ws != null) return;
+    if (ws != null && ws!.readyState == WebSocket.open) return;
+    try { ws?.close(); } catch (_) {}
+    ws = null;
+
     try {
       ws = await WebSocket.connect(_sigUrl());
+      print("samji WS connected to ${_sigUrl()}");
       _sendSig({'type': 'register', 'id': _peerId()});
       ws!.listen((data) async {
         try {
@@ -276,8 +322,16 @@ class WebRTCService extends ChangeNotifier {
             await pc!.addCandidate(RTCIceCandidate(c['candidate'] as String?, c['sdpMid'] as String?, c['sdpMLineIndex'] as int?));
           }
         } catch (_) {}
+      }, onDone: () {
+        print("samji WS closed");
+        ws = null;
+      }, onError: (e) {
+        print("samji WS error: $e");
+        ws = null;
       });
-    } catch (_) {}
+    } catch (e) {
+      print("samji WS connection failed: $e");
+    }
   }
 
   void _sendSig(Map<String, dynamic> payload) {
@@ -326,6 +380,10 @@ class WebRTCService extends ChangeNotifier {
       }
     }
     if (scannedToken == null && text.isNotEmpty) scannedToken = text.trim();
+    if (scannedServer != null && scannedServer != server) {
+      try { ws?.close(); } catch (_) {}
+      ws = null;
+    }
     if (scannedServer != null) server = scannedServer;
     if (scannedToken != null) token = scannedToken;
     if (scannedDeviceId != null) deviceId = scannedDeviceId;
@@ -373,6 +431,7 @@ class WebRTCService extends ChangeNotifier {
   void disconnect() {
     print("samji Disconnecting");
     heartbeatTimer?.cancel();
+    _durationTimer?.cancel();
     try { pc?.close(); } catch (_) {}
     pc = null;
     try { renderer.srcObject = null; } catch (_) {}

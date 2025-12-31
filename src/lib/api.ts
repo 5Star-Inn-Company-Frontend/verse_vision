@@ -222,6 +222,16 @@ export const api = {
       return null
     }
   },
+  getSong: async (id: string) => {
+    try {
+      const res = await fetch(`${BASE}/lyrics/${id}`)
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.data as { id: string; title: string; language?: string | null; lines: string[]; source?: string }
+    } catch {
+      return null
+    }
+  },
   getCurrentLyric: async () => {
     try {
       const res = await fetch(`${BASE}/lyrics/current`)

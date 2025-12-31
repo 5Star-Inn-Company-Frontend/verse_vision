@@ -138,7 +138,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       battery: 0,
       signal: 4,
       connected: true,
-      previewUrl: 'https://trae-api-sg.mchost.guru/api/ide/v1/text_to_image?prompt=A%20smartphone%20camera%20preview%20frame%20of%20a%20church%20pulpit%20with%20a%20speaker%20in%20soft%20studio%20lighting%2C%20bokeh%20background%2C%20broadcast%20look%20%2D%20clean%20composition%20and%20subtle%20grid%20overlays%2C%20photorealistic%20style%2C%20SDXL&image_size=landscape_16_9',
+      previewUrl: '/f8c992521ace21d14c000c81e44fd203.jpeg',
       audioLevel: 0,
     }
   ],
@@ -333,13 +333,10 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       // But usually this sync comes from Program view which might not need lines, 
       // or this store is used by Operator.
       // For now, let's just fetch song details if we can, or just set ID.
-      try {
-        const res = await fetch(`/api/lyrics/${cur.songId}`)
-        if (res.ok) {
-          const json = await res.json()
-          lines = json.data.lines || []
-        }
-      } catch { lines = [] }
+      const song = await api.getSong(cur.songId)
+      if (song) {
+        lines = song.lines || []
+      }
     } else if (!cur.songId) {
       lines = []
     }
