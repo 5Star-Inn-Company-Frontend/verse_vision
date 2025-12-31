@@ -47,7 +47,7 @@ class OfflineService {
 
   private async installDependencies(): Promise<void> {
     this.status = 'installing_deps'
-    this.details = 'Installing dependencies (this may take a few minutes)...'
+    this.details = 'Preparing to install dependencies...'
     
     // Find requirements.txt
     let reqPath = path.resolve(process.cwd(), 'python/requirements.txt')
@@ -62,53 +62,61 @@ class OfflineService {
         throw new Error('requirements.txt not found at ' + reqPath)
     }
 
-    return new Promise((resolve, reject) => {
-        const cmd = this.pythonCmd
-        const usePyLauncher = process.platform === 'win32' && cmd === 'py'
-        // Use -m pip to ensure we use the same python interpreter
-        const args = usePyLauncher ? ['-3', '-m', 'pip', 'install', '-r', reqPath] : ['-m', 'pip', 'install', '-r', reqPath]
-        
-        console.log('Installing dependencies from:', reqPath)
-        const proc = spawn(cmd, args)
-        
-        const updateDetails = (data: Buffer) => {
-            const output = data.toString();
-            console.log('Pip:', output);
-            
-            // Extract relevant status messages
-            const lines = output.split(/[\r\n]+/);
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed) continue;
+    const cmd = this.pythonCmd
+    const usePyLauncher = process.platform === 'win32' && cmd === 'py'
 
-                // Match common pip progress indicators
-                if (trimmed.startsWith('Collecting') || 
-                    trimmed.startsWith('Downloading') || 
-                    trimmed.startsWith('Installing') ||
-                    trimmed.startsWith('Unpacking')) {
-                    
-                    // Update details with the specific action, truncated if too long
-                    this.details = `Installing: ${trimmed.slice(0, 60)}${trimmed.length > 60 ? '...' : ''}`;
-                } else if (trimmed.includes('%')) {
-                    // Try to catch progress bars: " 50% |█████     | 10MB"
-                    const match = trimmed.match(/(\d+%)/);
-                    if (match) {
-                        this.details = `Downloading dependencies: ${match[1]}...`;
+    const runPip = (args: string[], label: string) => {
+        return new Promise<void>((resolve, reject) => {
+            console.log(`[OfflineAI] ${label}...`)
+            this.details = label
+            
+            const finalArgs = usePyLauncher 
+                ? ['-3', '-m', 'pip', ...args] 
+                : ['-m', 'pip', ...args]
+            
+            const proc = spawn(cmd, finalArgs)
+            
+            const updateDetails = (data: Buffer) => {
+                const output = data.toString();
+                console.log('Pip:', output);
+                
+                const lines = output.split(/[\r\n]+/);
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+    
+                    if (trimmed.startsWith('Collecting') || 
+                        trimmed.startsWith('Downloading') || 
+                        trimmed.startsWith('Installing') ||
+                        trimmed.startsWith('Unpacking')) {
+                        this.details = `${label}: ${trimmed.slice(0, 50)}...`;
+                    } else if (trimmed.includes('%')) {
+                        const match = trimmed.match(/(\d+%)/);
+                        if (match) {
+                            this.details = `${label}: ${match[1]}...`;
+                        }
                     }
                 }
-            }
-        };
-
-        proc.stdout.on('data', updateDetails);
-        proc.stderr.on('data', updateDetails);
-        
-        proc.on('close', (code) => {
-            if (code === 0) resolve()
-            else reject(new Error(`Pip exited with code ${code}`))
+            };
+    
+            proc.stdout.on('data', updateDetails);
+            proc.stderr.on('data', updateDetails);
+            
+            proc.on('close', (code) => {
+                if (code === 0) resolve()
+                else reject(new Error(`Pip failed with code ${code}`))
+            })
+            
+            proc.on('error', (err) => reject(err))
         })
-        
-        proc.on('error', (err) => reject(err))
-    })
+    }
+
+    try {
+        await runPip(['install', '--upgrade', 'pip'], 'Upgrading pip')
+        await runPip(['install', '-r', reqPath, '--prefer-binary'], 'Installing AI dependencies')
+    } catch (err) {
+        throw err
+    }
   }
 
   private async start() {

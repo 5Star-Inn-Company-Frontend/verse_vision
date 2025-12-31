@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SubscriptionSuccessful;
 
 class SubscriptionController extends Controller
 {
@@ -91,6 +93,16 @@ class SubscriptionController extends Controller
 
                         'paystack_customer_code' => $data['customer']['customer_code'] ?? null,
                     ]);
+
+                    // Send subscription email via queue
+                    $plan = Plan::find($planId);
+                    if ($plan) {
+                        try {
+                            Mail::to($user->email)->queue(new SubscriptionSuccessful($user, $plan->name));
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to queue subscription email: ' . $e->getMessage());
+                        }
+                    }
 
                     return response('<!DOCTYPE html><html><head><title>Payment Successful</title><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-900 flex items-center justify-center h-screen text-white"><div class="bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-md border border-gray-700"><div class="mb-6 text-green-500"><svg class="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div><h1 class="text-3xl font-bold mb-3">Payment Successful!</h1><p class="text-gray-400 mb-8 text-lg">Plan subscribed successfully.</p><p class="text-sm text-gray-500">You can now close this window.Please close the software and re-open it.</p></div></body></html>');
                 }

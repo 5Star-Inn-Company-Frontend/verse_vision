@@ -156,6 +156,9 @@ export default function SettingsPanel() {
               onChange={e => setPassword(e.target.value)}
               className="w-full text-xs bg-gray-900 border border-gray-700 rounded p-1.5 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
             />
+            <div className="text-[10px] text-gray-400 italic">
+              New user? An account will be automatically created. Please remember your password.
+            </div>
             {loginError && <div className="text-xs text-red-400">{loginError}</div>}
             <button
               onClick={handleLogin}

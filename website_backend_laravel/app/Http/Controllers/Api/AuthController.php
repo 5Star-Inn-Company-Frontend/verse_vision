@@ -9,9 +9,39 @@ use App\Models\Plan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewLoginNotification;
+use App\Mail\WelcomeNotification;
 
 class AuthController extends Controller
 {
+    private function sendWelcomeNotification($user)
+    {
+        try {
+            Mail::to($user->email)->send(new WelcomeNotification($user));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send welcome email: ' . $e->getMessage());
+        }
+    }
+
+    private function sendLoginNotification($user, Request $request)
+    {
+        try {
+            $details = [
+                'name' => $user->name,
+                'device' => $request->header('User-Agent'),
+                'ip' => $request->ip(),
+                'time' => now()->toDateTimeString(),
+                'version' => $request->header('X-App-Version') ?? 'Unknown',
+            ];
+    
+            Mail::to($user->email)->send(new NewLoginNotification($details));
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Failed to send login email: ' . $e->getMessage());
+        }
+    }
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -40,6 +70,8 @@ class AuthController extends Controller
                 'starts_at' => now(),
             ]);
         }
+
+        $this->sendWelcomeNotification($user);
 
         return response()->json([
             'token' => $user->api_token,
@@ -75,6 +107,8 @@ class AuthController extends Controller
                 ]);
             }
 
+            $this->sendWelcomeNotification($user);
+
             return response()->json([
                 'token' => $user->api_token,
                 'user' => $user->load('activeSubscription.plan'),
@@ -91,6 +125,8 @@ class AuthController extends Controller
         // Refresh token on login
         $user->api_token = Str::random(60);
         $user->save();
+
+        $this->sendLoginNotification($user, $request);
 
         return response()->json([
             'token' => $user->api_token,

@@ -106,7 +106,7 @@
     },
     "mac": {
       "target": {
-        "target": "zip",
+        "target": "dmg",
         "arch": "universal"
       },
       "category": "public.app-category.education",
