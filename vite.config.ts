@@ -17,7 +17,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3332',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
@@ -33,12 +33,12 @@ export default defineConfig({
         },
       },
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3332',
         changeOrigin: true,
         secure: false,
       },
       '/ws': {
-        target: 'ws://localhost:3001',
+        target: 'ws://localhost:3332',
         ws: true,
       },
     },

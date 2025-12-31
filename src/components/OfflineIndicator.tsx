@@ -23,18 +23,25 @@ export default function OfflineIndicator() {
   return (
     <div className="flex items-center gap-2 text-xs bg-neutral-800/50 px-3 py-1.5 rounded-full border border-neutral-800 transition-all hover:bg-neutral-800">
       {offlineStatus === 'ready' && <CheckCircle className="w-3 h-3 text-emerald-500" />}
-      {(offlineStatus === 'loading' || offlineStatus === 'starting') && <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />}
+      {(offlineStatus === 'loading' || offlineStatus === 'starting' || offlineStatus === 'installing_deps') && <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />}
       {offlineStatus === 'downloading' && <CloudDownload className="w-3 h-3 text-blue-500 animate-bounce" />}
       {offlineStatus === 'error' && <AlertCircle className="w-3 h-3 text-red-500" />}
+      {offlineStatus === 'python_missing' && <AlertCircle className="w-3 h-3 text-red-500" />}
       
       <span className={
         offlineStatus === 'ready' ? 'text-emerald-500 font-medium' :
-        offlineStatus === 'error' ? 'text-red-500 font-medium' :
+        offlineStatus === 'error' || offlineStatus === 'python_missing' ? 'text-red-500 font-medium' :
         offlineStatus === 'downloading' ? 'text-blue-500 font-medium' :
+        offlineStatus === 'installing_deps' ? 'text-amber-500 font-medium' :
         'text-amber-500'
       }>
         {offlineStatus === 'ready' ? 'Offline AI Ready' : 
          offlineStatus === 'downloading' ? 'Downloading Models (Internet Required)' :
+         offlineStatus === 'python_missing' ? (
+             <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer" className="underline hover:text-red-400">
+                 Python Missing (Click to Install)
+             </a>
+         ) :
          offlineDetails || 'Initializing...'}
       </span>
       

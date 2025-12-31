@@ -5,11 +5,18 @@ import os
 import re
 import requests
 import difflib
-from faster_whisper import WhisperModel
 
 # Configuration
 MODEL_SIZE = "base" # Reverted to base as small requires download and we are offline
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+
+if getattr(sys, 'frozen', False):
+    # If frozen with PyInstaller, use the executable's directory
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    # Otherwise use the script's directory
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 
 BIBLE_CONFIG = {
     'kjv': {
@@ -38,6 +45,7 @@ def load_whisper():
     global model
     print(f"Loading Whisper model ({MODEL_SIZE})...", file=sys.stderr)
     try:
+        from faster_whisper import WhisperModel
         # Run on CPU with INT8 for compatibility/speed on average hardware
         model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
         print("Whisper model loaded.", file=sys.stderr)

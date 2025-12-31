@@ -25,7 +25,7 @@ router.get('/ip', (_req: Request, res: Response) => {
 router.post('/pair', async (req: Request, res: Response) => {
   const { customIp } = req.body
   const token = 'cam-' + Math.random().toString(36).slice(2, 10)
-  const port = process.env.PORT || 3001
+  const port = process.env.PORT || 3332
   
   const ip = customIp || getLocalIpAddress()
   const host = `http://${ip}:${port}`

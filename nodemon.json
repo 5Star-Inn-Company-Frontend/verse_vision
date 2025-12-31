@@ -5,7 +5,7 @@
   "exec": "tsx api/server.ts",
   "env": {
     "NODE_ENV": "development",
-    "PORT": "3001"
+    "PORT": "3332"
   },
   "delay": 1000
 }

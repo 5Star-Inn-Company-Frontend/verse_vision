@@ -83,9 +83,15 @@
       "dist/**",
       "api/dist/**",
       "electron/**",
-      "python/**",
+      "python/**/*.py",
+      "python/requirements.txt",
       "data/**",
-      "package.json"
+      "package.json",
+      "!python/build/**",
+      "!python/dist/**",
+      "!python/__pycache__/**",
+      "!python/*.exe",
+      "!python/*.spec"
     ],
     "asar": true,
     "asarUnpack": [

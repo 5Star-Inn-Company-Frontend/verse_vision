@@ -8,28 +8,113 @@ class OfflineService {
   private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void }> = []
   private buffer: string = ''
   
-  public status: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' = 'stopped'
+  public status: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' | 'installing_deps' | 'python_missing' = 'stopped'
   public details: string = ''
+
+  private mode: 'script' = 'script'
+  private hasTriedInstall = false
+  private retryCount = 0
+  private pythonCmd: string = 'python'
 
   constructor() {
     this.start()
   }
 
-  private start() {
-    this.status = 'starting'
-    this.details = 'Initializing process...'
-    let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
-    
-    if (process.env.RESOURCES_PATH) {
-      const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'offline_server.py')
-      if (fs.existsSync(prodPath)) {
-        scriptPath = prodPath
+  private async checkPython(): Promise<boolean> {
+      const commands = process.platform === 'win32' 
+          ? ['python', 'py', 'python3'] 
+          : ['python3', 'python']
+      
+      for (const cmd of commands) {
+          try {
+              const works = await new Promise<boolean>((resolve) => {
+                  const proc = spawn(cmd, ['--version'])
+                  proc.on('error', () => resolve(false))
+                  proc.on('close', (code) => resolve(code === 0))
+              })
+              
+              if (works) {
+                  this.pythonCmd = cmd
+                  console.log(`Found Python: ${cmd}`)
+                  return true
+              }
+          } catch (e) {
+              continue
+          }
       }
+      return false
+  }
+
+  private async installDependencies(): Promise<void> {
+    this.status = 'installing_deps'
+    this.details = 'Installing dependencies (this may take a few minutes)...'
+    
+    // Find requirements.txt
+    let reqPath = path.resolve(process.cwd(), 'python/requirements.txt')
+    if (process.env.RESOURCES_PATH) {
+       const prodReq = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'requirements.txt')
+       if (fs.existsSync(prodReq)) {
+         reqPath = prodReq
+       }
     }
     
-    console.log('Starting Offline AI service:', scriptPath)
+    if (!fs.existsSync(reqPath)) {
+        throw new Error('requirements.txt not found at ' + reqPath)
+    }
+
+    return new Promise((resolve, reject) => {
+        const cmd = this.pythonCmd
+        const usePyLauncher = process.platform === 'win32' && cmd === 'py'
+        // Use -m pip to ensure we use the same python interpreter
+        const args = usePyLauncher ? ['-3', '-m', 'pip', 'install', '-r', reqPath] : ['-m', 'pip', 'install', '-r', reqPath]
+        
+        console.log('Installing dependencies from:', reqPath)
+        const proc = spawn(cmd, args)
+        
+        proc.stderr.on('data', d => console.log('Pip Err:', d.toString()))
+        
+        proc.on('close', (code) => {
+            if (code === 0) resolve()
+            else reject(new Error(`Pip exited with code ${code}`))
+        })
+        
+        proc.on('error', (err) => reject(err))
+    })
+  }
+
+  private async start() {
+    this.status = 'starting'
+    this.details = 'Checking Python installation...'
     
-    this.process = spawn('python', [scriptPath])
+    console.log("samji Starting checkPython")
+    const hasPython = await this.checkPython()
+    console.log("samji checkPython",hasPython)
+    if (!hasPython) {
+        this.status = 'python_missing'
+        this.details = 'Python 3.10+ is required. Please install it to use Offline AI.'
+        return
+    }
+
+    this.details = 'Initializing process...'
+    
+    let cmd: string
+    let args: string[]
+    
+    // Always use script mode now
+    let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
+    if (process.env.RESOURCES_PATH) {
+        const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'offline_server.py')
+        if (fs.existsSync(prodPath)) {
+        scriptPath = prodPath
+        }
+    }
+    
+    console.log('Starting Offline AI service (script):', scriptPath)
+    cmd = this.pythonCmd
+    const usePyLauncher = process.platform === 'win32' && cmd === 'py'
+    args = usePyLauncher ? ['-3', scriptPath] : [scriptPath]
+    
+    this.process = spawn(cmd, args)
 
     this.process.stdout?.on('data', (data) => {
       this.buffer += data.toString()
@@ -76,8 +161,31 @@ class OfflineService {
 
     this.process.on('close', (code) => {
       console.log(`Offline AI process exited with code ${code}`)
-      this.status = 'stopped'
-      this.details = `Process exited (code ${code})`
+      if (code && code !== 0) {
+        // Recovery Logic
+        if (this.mode === 'script' && !this.hasTriedInstall) {
+             console.log('Script failed, attempting to install dependencies...')
+             this.installDependencies()
+                 .then(() => {
+                     console.log('Dependencies installed, retrying script...')
+                     this.hasTriedInstall = true
+                     this.start()
+                 })
+                 .catch(err => {
+                     console.error('Dependency install failed:', err)
+                     this.status = 'error'
+                     this.details = `Dependency install failed: ${err.message}`
+                 })
+             return
+        }
+
+        this.status = 'error'
+        // Common cause: Python not found or dependencies missing
+        this.details = `Process exited (code ${code}). Ensure Python 3 and required packages are installed.`
+      } else {
+        this.status = 'stopped'
+        this.details = `Process exited (code ${code})`
+      }
       this.process = null
       // Reject all pending
       while(this.queue.length) {
@@ -87,7 +195,18 @@ class OfflineService {
     
     this.process.on('error', (err) => {
         console.error('Failed to start Offline AI process:', err)
+        this.status = 'error'
+        this.details = `Failed to start: ${err.message}`
     })
+  }
+
+  public stop() {
+    if (this.process) {
+      console.log('Stopping Offline AI service...')
+      this.process.kill()
+      this.process = null
+      this.status = 'stopped'
+    }
   }
 
   private async sendCommand(command: string, payload: any): Promise<any> {

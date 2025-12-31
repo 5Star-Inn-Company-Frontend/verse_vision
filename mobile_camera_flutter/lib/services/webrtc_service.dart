@@ -12,7 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 enum AppScreen { welcome, qr, connecting, connected, camera, lock, settings }
 
 class WebRTCService extends ChangeNotifier {
-  String server = 'http://192.168.1.184:3001';
+  String server = 'http://192.168.1.184:3332';
   String token = '';
   String deviceId = '';
   String name = 'Mobile Camera';

@@ -64,6 +64,14 @@ class MarianService {
     })
   }
 
+  public stop() {
+    if (this.process) {
+      console.log('Stopping MarianMT service...')
+      this.process.kill()
+      this.process = null
+    }
+  }
+
   public async translate(text: string): Promise<{ Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }> {
     if (!this.process) {
         this.start()

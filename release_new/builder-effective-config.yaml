@@ -1,0 +1,45 @@
+directories:
+  output: release_new
+  buildResources: build
+appId: com.versevision.app
+productName: VerseVision
+files:
+  - filter:
+      - dist/**
+      - api/dist/**
+      - electron/**
+      - python/**/*.py
+      - python/requirements.txt
+      - data/**
+      - package.json
+      - '!python/build/**'
+      - '!python/dist/**'
+      - '!python/__pycache__/**'
+      - '!python/*.exe'
+      - '!python/*.spec'
+asar: true
+asarUnpack:
+  - python/**
+  - data/**
+win:
+  target:
+    - nsis
+  publisherName: Samji Diamond
+mac:
+  target:
+    target: zip
+    arch: universal
+  category: public.app-category.education
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+linux:
+  target: AppImage
+  category: Education
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: VerseVision
+electronVersion: 33.4.11

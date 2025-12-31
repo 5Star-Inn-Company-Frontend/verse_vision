@@ -5,11 +5,13 @@ import app from './app.js';
 import { WebSocketServer } from 'ws'
 import { setWss } from './services/wsBus.js'
 import { registerPeer, removePeer, sendTo, startSession, endSession } from './services/signaling.js'
+import { offlineService } from './services/ai/offline.js'
+import { marianService } from './services/ai/marian.js'
 
 /**
  * start server with port
  */
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3332;
 
 const server = app.listen(PORT, () => {
   console.log(`Server ready on port ${PORT}`);
@@ -54,20 +56,24 @@ setWss(wss)
 /**
  * close server
  */
+const gracefulShutdown = () => {
+  console.log('Shutting down server...')
+  offlineService.stop()
+  marianService.stop()
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
+}
+
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  gracefulShutdown()
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT signal received');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  gracefulShutdown()
 });
 
 export default app;

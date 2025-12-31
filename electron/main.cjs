@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, shell } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
 let serverProc = null
-const serverPort = process.env.PORT || '3001'
+const serverPort = process.env.PORT || '3332'
 
 function setupMenu() {
   const isMac = process.platform === 'darwin'
@@ -225,4 +225,18 @@ app.whenReady().then(async () => {
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
-app.on('quit', () => { if (serverProc) serverProc.kill() })
+app.on('before-quit', () => {
+  if (serverProc) {
+    console.log('Killing server process:', serverProc.pid)
+    if (process.platform === 'win32') {
+      try {
+        require('child_process').execSync(`taskkill /F /T /PID ${serverProc.pid}`)
+      } catch (e) {
+        console.error('Failed to kill server process tree:', e.message)
+      }
+    } else {
+      serverProc.kill()
+    }
+    serverProc = null
+  }
+})
