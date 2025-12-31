@@ -71,7 +71,36 @@ class OfflineService {
         console.log('Installing dependencies from:', reqPath)
         const proc = spawn(cmd, args)
         
-        proc.stderr.on('data', d => console.log('Pip Err:', d.toString()))
+        const updateDetails = (data: Buffer) => {
+            const output = data.toString();
+            console.log('Pip:', output);
+            
+            // Extract relevant status messages
+            const lines = output.split(/[\r\n]+/);
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                // Match common pip progress indicators
+                if (trimmed.startsWith('Collecting') || 
+                    trimmed.startsWith('Downloading') || 
+                    trimmed.startsWith('Installing') ||
+                    trimmed.startsWith('Unpacking')) {
+                    
+                    // Update details with the specific action, truncated if too long
+                    this.details = `Installing: ${trimmed.slice(0, 60)}${trimmed.length > 60 ? '...' : ''}`;
+                } else if (trimmed.includes('%')) {
+                    // Try to catch progress bars: " 50% |█████     | 10MB"
+                    const match = trimmed.match(/(\d+%)/);
+                    if (match) {
+                        this.details = `Downloading dependencies: ${match[1]}...`;
+                    }
+                }
+            }
+        };
+
+        proc.stdout.on('data', updateDetails);
+        proc.stderr.on('data', updateDetails);
         
         proc.on('close', (code) => {
             if (code === 0) resolve()
