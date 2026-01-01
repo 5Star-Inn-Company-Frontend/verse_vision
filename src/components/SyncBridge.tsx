@@ -30,6 +30,9 @@ export default function SyncBridge() {
           translationEnabledIgbo?: boolean
           translationEnabledFrench?: boolean
         })
+      } else if (msg.name === 'settings') {
+        const d = msg.data as { showScriptureOverlay?: boolean }
+        s.syncSettings({ showScriptureOverlay: d.showScriptureOverlay ?? false })
       } else if (msg.name === 'cameraRegistered') {
         const d = msg.data as { camera?: { id: string; name?: string; previewPath?: string | null } }
         const cam = d.camera

@@ -181,7 +181,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   overlayBackgroundColor: 'rgba(0,0,0,0.7)',
   overlayTextScale: 1,
   overlayFontFamily: 'sans-serif',
-  showScriptureOverlay: true,
+  showScriptureOverlay: false,
   recordingEnabled: false,
   countdownEndAt: null,
   approveScripture: async (id) => {
@@ -258,6 +258,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       scriptureDetectionEngine: s.scriptureDetectionEngine ?? get().scriptureDetectionEngine,
       translationEngine: s.translationEngine ?? get().translationEngine,
       cloudApiToken: s.cloudApiToken ?? get().cloudApiToken,
+      showScriptureOverlay: s.showScriptureOverlay ?? get().showScriptureOverlay,
       showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay,
       overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
       overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
@@ -274,6 +275,11 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
       overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
       overlayFontFamily: s.overlayFontFamily ?? get().overlayFontFamily,
+    })
+    publish('settings', {
+      overlayBackgroundColor: s.overlayBackgroundColor,
+      overlayTextScale: s.overlayTextScale,
+      overlayFontFamily: s.overlayFontFamily,
     })
   },
   syncSettings: (s) => set((prev) => ({
@@ -292,6 +298,13 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   updateTranslationSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({
+      translationStyle: s.translationStyle,
+      translationEnabledYoruba: s.translationEnabledYoruba,
+      translationEnabledHausa: s.translationEnabledHausa,
+      translationEnabledIgbo: s.translationEnabledIgbo,
+      translationEnabledFrench: s.translationEnabledFrench,
+    })
+      publish('translation-settings', {
       translationStyle: s.translationStyle,
       translationEnabledYoruba: s.translationEnabledYoruba,
       translationEnabledHausa: s.translationEnabledHausa,
@@ -317,10 +330,12 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   setTranslationEngine: async (engine) => {
     const s = await api.updateSettings({ translationEngine: engine })
     set({ translationEngine: s.translationEngine })
+    publish('settings', { translationEngine: s.translationEngine })
   },
   setScriptureDetectionEngine: async (engine) => {
     const s = await api.updateSettings({ scriptureDetectionEngine: engine })
     set({ scriptureDetectionEngine: s.scriptureDetectionEngine })
+    publish('settings', { scriptureDetectionEngine: s.scriptureDetectionEngine })
   },
   checkOfflineStatus: async () => {
     const data = await api.getOfflineStatus()
@@ -345,6 +360,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   toggleScriptureOverlay: async (show) => {
     const s = await api.updateSettings({ showScriptureOverlay: show })
     set({ showScriptureOverlay: s.showScriptureOverlay ?? show })
+    publish('settings', { showScriptureOverlay: s.showScriptureOverlay ?? show })
   },
   setCurrentSong: async (songId) => {
     const s = await api.updateSettings({ currentSongId: songId, currentLineIndex: 0 })
@@ -361,7 +377,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     await get().syncLyricState(cur)
   },
   syncLyricState: async (cur) => {
-    let lines: string[] = []
+    let lines: string[] = get().currentSongLines
     if (cur.songId && cur.songId !== get().currentSongId) {
       // We don't have song data in store, so we can't really set lines here easily without fetching
       // But usually this sync comes from Program view which might not need lines, 

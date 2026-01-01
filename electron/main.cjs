@@ -1,8 +1,55 @@
-const { app, BrowserWindow, Menu, shell } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, screen } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
 let serverProc = null
 const serverPort = process.env.PORT || '3332'
+
+// Track the program window to prevent duplicates
+let programWin = null
+
+ipcMain.handle('go-live', async () => {
+  const displays = screen.getAllDisplays()
+  // Use the second display if available, otherwise the primary one (but typically this is for dual monitor)
+  // If we only have one display, we might want to just open a window on it (maybe not fullscreen if debugging?)
+  // But user request implies "like EasyWorship" -> secondary screen.
+  
+  const externalDisplay = displays.find((display) => {
+    return display.bounds.x !== 0 || display.bounds.y !== 0
+  })
+
+  // If no external display, maybe we shouldn't fail, but just open on primary? 
+  // Let's default to the last display in the list if no "external" found by coordinates
+  const targetDisplay = externalDisplay || displays[displays.length - 1]
+
+  if (programWin && !programWin.isDestroyed()) {
+    programWin.focus()
+    return
+  }
+
+  programWin = new BrowserWindow({
+    x: targetDisplay.bounds.x,
+    y: targetDisplay.bounds.y,
+    width: targetDisplay.bounds.width,
+    height: targetDisplay.bounds.height,
+    frame: false, // No borders
+    fullscreen: true, // Fullscreen
+    kiosk: true, // Kiosk mode (optional, but good for "native" feel)
+    alwaysOnTop: false, // Optional: set true if you want it to force over everything
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    }
+  })
+
+  // Determine the base URL from the serverPort
+  const baseUrl = `http://localhost:${serverPort}`
+  programWin.loadURL(`${baseUrl}/program`)
+  
+  // Cleanup when closed
+  programWin.on('closed', () => {
+    programWin = null
+  })
+})
 
 function setupMenu() {
   const isMac = process.platform === 'darwin'
