@@ -3,7 +3,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { api } from '@/lib/api'
 
 export default function AudioService() {
-  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId } = useOperatorStore()
+  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId, showScriptureOverlay } = useOperatorStore()
   const processingRef = useRef(false)
   const sessionRef = useRef<string>('')
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -75,8 +75,12 @@ export default function AudioService() {
       // Setup Audio Analysis
       setupAnalysis(stream)
 
-      console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
-      void recordLoop(stream, sessionId)
+      if (showScriptureOverlay) {
+        console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
+        void recordLoop(stream, sessionId)
+      } else {
+        console.log(`[AudioService] Scripture Overlay OFF - Transcription Paused`)
+      }
     }
 
     void start()
@@ -93,7 +97,7 @@ export default function AudioService() {
         audioContextRef.current = null
       }
     }
-  }, [activeAudioCameraId, cameraStream, selectedMicrophoneId])
+  }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay])
 
   // Cleanup local stream on component unmount
   useEffect(() => {

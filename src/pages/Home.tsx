@@ -47,6 +47,7 @@ export default function Home() {
             <ScriptureApprovalQueue />
           </div>
           <SettingsPanel />
+          <UtilityPanel />
           {panelTranslationVisible && <TranslationPanel />}
           {panelSceneVisible && <ScenePanel />}
           {panelLyricsVisible && <LyricsPanel />}
@@ -57,7 +58,6 @@ export default function Home() {
               <CameraGrid />
             </div>
           )}
-          <UtilityPanel />
         </section>
       </main>
     </div>

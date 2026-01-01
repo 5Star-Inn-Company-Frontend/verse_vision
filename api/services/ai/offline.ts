@@ -65,50 +65,67 @@ class OfflineService {
     const cmd = this.pythonCmd
     const usePyLauncher = process.platform === 'win32' && cmd === 'py'
 
-    const runPip = (args: string[], label: string) => {
-        return new Promise<void>((resolve, reject) => {
-            console.log(`[OfflineAI] ${label}...`)
-            this.details = label
+    const runPip = async (args: string[], label: string) => {
+        const maxRetries = 3
+        let lastError: any
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    console.log(`[OfflineAI] ${label} (Attempt ${attempt}/${maxRetries})...`)
+                    if (attempt > 1) this.details = `${label} (Attempt ${attempt}/${maxRetries})...`
+                    else this.details = label
+                    
+                    const finalArgs = usePyLauncher 
+                        ? ['-3', '-m', 'pip', ...args] 
+                        : ['-m', 'pip', ...args]
+                    
+                    const proc = spawn(cmd, finalArgs)
+                    
+                    const updateDetails = (data: Buffer) => {
+                        const output = data.toString();
+                        console.log('Pip:', output);
+                        
+                        const lines = output.split(/[\r\n]+/);
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            if (!trimmed) continue;
             
-            const finalArgs = usePyLauncher 
-                ? ['-3', '-m', 'pip', ...args] 
-                : ['-m', 'pip', ...args]
-            
-            const proc = spawn(cmd, finalArgs)
-            
-            const updateDetails = (data: Buffer) => {
-                const output = data.toString();
-                console.log('Pip:', output);
-                
-                const lines = output.split(/[\r\n]+/);
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed) continue;
-    
-                    if (trimmed.startsWith('Collecting') || 
-                        trimmed.startsWith('Downloading') || 
-                        trimmed.startsWith('Installing') ||
-                        trimmed.startsWith('Unpacking')) {
-                        this.details = `${label}: ${trimmed.slice(0, 50)}...`;
-                    } else if (trimmed.includes('%')) {
-                        const match = trimmed.match(/(\d+%)/);
-                        if (match) {
-                            this.details = `${label}: ${match[1]}...`;
+                            if (trimmed.startsWith('Collecting') || 
+                                trimmed.startsWith('Downloading') || 
+                                trimmed.startsWith('Installing') ||
+                                trimmed.startsWith('Unpacking')) {
+                                this.details = `${label}: ${trimmed.slice(0, 50)}...`;
+                            } else if (trimmed.includes('%')) {
+                                const match = trimmed.match(/(\d+%)/);
+                                if (match) {
+                                    this.details = `${label}: ${match[1]}...`;
+                                }
+                            }
                         }
-                    }
+                    };
+            
+                    proc.stdout.on('data', updateDetails);
+                    proc.stderr.on('data', updateDetails);
+                    
+                    proc.on('close', (code) => {
+                        if (code === 0) resolve()
+                        else reject(new Error(`Pip failed with code ${code}`))
+                    })
+                    
+                    proc.on('error', (err) => reject(err))
+                })
+                return // Success
+            } catch (err) {
+                console.error(`[OfflineAI] ${label} failed attempt ${attempt}:`, err)
+                lastError = err
+                if (attempt < maxRetries) {
+                    this.details = `${label} failed. Retrying in 3s...`
+                    await new Promise(r => setTimeout(r, 3000))
                 }
-            };
-    
-            proc.stdout.on('data', updateDetails);
-            proc.stderr.on('data', updateDetails);
-            
-            proc.on('close', (code) => {
-                if (code === 0) resolve()
-                else reject(new Error(`Pip failed with code ${code}`))
-            })
-            
-            proc.on('error', (err) => reject(err))
-        })
+            }
+        }
+        throw lastError
     }
 
     try {
