@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import QRCode from 'qrcode'
+import HelpModal from './HelpModal'
 
 export default function PairingPanel() {
   const [qr, setQr] = useState<string | null>(null)
@@ -11,6 +12,7 @@ export default function PairingPanel() {
   const [showDownloadModal, setShowDownloadModal] = useState(false)
   const [playStoreQr, setPlayStoreQr] = useState<string>('')
   const [appStoreQr, setAppStoreQr] = useState<string>('')
+  const [showHelp, setShowHelp] = useState(false)
   const { loadCameras } = useOperatorStore()
 
   useEffect(() => {
@@ -31,7 +33,20 @@ export default function PairingPanel() {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-100">Camera Pairing</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-100">Camera Pairing</h3>
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Help"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button
             className="px-2 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded"
@@ -60,6 +75,36 @@ export default function PairingPanel() {
           </button>
         </div>
       </div>
+
+      <HelpModal 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Camera Pairing Help"
+        content={
+          <div className="space-y-4">
+            <p>Connect your mobile phone camera to VerseVision to use it as a video source.</p>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-1">How to Connect</h4>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Download the <strong>VerseVision App</strong> on your phone (click "Download App" for links).</li>
+                <li>Ensure your phone and this computer are on the same Wi-Fi network.</li>
+                <li>Click <strong>Generate QR</strong> on this panel.</li>
+                <li>Open the app on your phone and scan the QR code displayed here.</li>
+              </ol>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">Troubleshooting</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>If scanning fails, you can enter the <strong>IP Address</strong> manually in the mobile app.</li>
+                <li>Use <strong>Refresh List</strong> if a connected camera doesn't appear immediately.</li>
+              </ul>
+            </div>
+          </div>
+        }
+      />
+
       <div className='flex items-center gap-2 mb-4'>
             Pc IP: <input 
             type="text" 

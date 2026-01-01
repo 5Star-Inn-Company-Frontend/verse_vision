@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Radio, PowerOff } from 'lucide-react'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import { connectToCamera, disconnectCamera } from '@/lib/webrtc'
+import HelpModal from './HelpModal'
 
 export default function CameraGrid() {
   const { cameras, setPrimaryCamera, activeAudioCameraId, setActiveAudioCamera, liveStreams, loadCameras } = useOperatorStore()
   const popouts = useRef<Record<string, Window>>({})
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     void loadCameras()
@@ -62,9 +64,51 @@ export default function CameraGrid() {
   return (
     <div className="h-full w-full bg-gray-900 rounded-lg border border-gray-700 p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-100">Camera Grid</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-100">Camera Grid</h3>
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Help"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        </div>
         <span className="text-xs text-gray-400">{cameras.length} connected</span>
       </div>
+
+      <HelpModal 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Camera Grid Help"
+        content={
+          <div className="space-y-4">
+            <p>Monitor and control all your connected video sources in real-time.</p>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-1">Live Switching</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Select Source:</strong> Click any camera preview to make it the active primary source for the program output.</li>
+                <li><strong>Turn Off:</strong> Click the "Turn Off Camera" box to stop showing video on the output.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">Advanced Controls</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Pop Out:</strong> Click the arrow icon to open a camera feed in a separate window (great for multi-monitor setups).</li>
+                <li><strong>Audio:</strong> Use the "Set Audio" button to choose which camera's microphone is used for detection (if not using a separate USB mic).</li>
+                <li><strong>Connect/Disconnect:</strong> Manually restart connections if a camera freezes.</li>
+              </ul>
+            </div>
+          </div>
+        }
+      />
+
       <div className="grid grid-cols-2 gap-2">
         <div 
           onClick={() => { setPrimaryCamera('none'); }} 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import { api, CLOUD } from '@/lib/api'
+import HelpModal from './HelpModal'
 
 export default function SettingsPanel() {
   const { 
@@ -14,6 +15,7 @@ export default function SettingsPanel() {
   const [peers, setPeers] = useState<string[]>([])
   const [sessions, setSessions] = useState<Array<{ from: string; to: string; startedAt: number }>>([])
   const [iceText, setIceText] = useState('')
+  const [showHelp, setShowHelp] = useState(false)
   
   // Login State
   const [email, setEmail] = useState('')
@@ -81,7 +83,52 @@ export default function SettingsPanel() {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-      <h3 className="text-sm font-semibold text-gray-100 mb-2">Settings</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-100">Settings</h3>
+        <button 
+          onClick={() => setShowHelp(true)}
+          className="text-gray-400 hover:text-white transition-colors"
+          title="Help"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+      </div>
+
+      <HelpModal 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Settings Panel Help"
+        content={
+          <div className="space-y-4">
+            <p>Configure the core behavior of VerseVision.</p>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-1">Accounts & Engines</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Cloud Account:</strong> Connect to your VerseVision cloud account to enable online AI features like high-accuracy detection and translation.</li>
+                <li><strong>Detection Engine:</strong> Choose between 'Online (AI)' for highest accuracy (requires internet) or 'Offline (Local)' for reliable performance without internet.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">Automation</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Auto-Approve:</strong> Automatically show detected scriptures after a set delay, without needing manual approval.</li>
+                <li><strong>Delay Slider:</strong> Adjust how long the system waits before auto-approving (useful for giving you time to cancel if detection is wrong).</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">System Status</h4>
+              <p>The <strong>Offline Status</strong> indicator shows the health of the local AI engine. Yellow warnings indicate initial model downloads are in progress.</p>
+            </div>
+          </div>
+        }
+      />
 
       {/* Cloud Account Section */}
       <div className="mb-4 p-3 bg-gray-800/50 rounded border border-gray-700">

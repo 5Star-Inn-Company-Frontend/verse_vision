@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import HelpModal from './HelpModal'
 
 export default function ScriptureApprovalQueue() {
   const { scriptureQueue, approveScripture, rejectScripture, loadQueue, updateScripture, autoApproveEnabled, autoApproveDelayMs } = useOperatorStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<{ reference: string; translation: string }>({ reference: '', translation: '' })
+  const [showHelp, setShowHelp] = useState(false)
   const timers = useRef<Record<string, number>>({})
   const deadlines = useRef<Record<string, number>>({})
   const [, force] = useState(0)
@@ -47,9 +49,49 @@ export default function ScriptureApprovalQueue() {
   return (
     <div className="h-full w-full bg-gray-900 rounded-lg border border-gray-700 p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-100">Scripture Approval Queue</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-100">Scripture Approval Queue</h3>
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Help"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        </div>
         <span className="text-xs text-gray-400">{scriptureQueue.length} pending</span>
       </div>
+
+      <HelpModal 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Scripture Approval Queue Help"
+        content={
+          <div className="space-y-4">
+            <p>This is where detected scriptures appear before they go live. It acts as a staging area to ensure accuracy.</p>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-1">Queue Management</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Pending Items:</strong> Scriptures detected by the AI or sent from the mobile app appear here first.</li>
+                <li><strong>Approve:</strong> Click to immediately show the scripture on the live output.</li>
+                <li><strong>Reject:</strong> Discard incorrect detections or duplicates.</li>
+                <li><strong>Edit:</strong> Fix typos, change the reference, or switch translations before approving.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">Automation</h4>
+              <p>When <strong>Auto-Approve</strong> is enabled in Settings, items here will be automatically approved and displayed after a short countdown.</p>
+            </div>
+          </div>
+        }
+      />
+
       <div className="space-y-2 overflow-y-auto max-h-[calc(100%-2rem)]">
         {scriptureQueue.map((item) => (
           <div key={item.id} className="bg-gray-800 rounded p-2">

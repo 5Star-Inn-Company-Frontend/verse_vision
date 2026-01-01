@@ -3,6 +3,7 @@ import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import hymnsData from '../assets/hymns.json'
 import hymnsDefaultData from '../assets/hymns-default.json'
+import HelpModal from './HelpModal'
 
 type Song = { id: string; title: string; language?: string | null; lines: string[] }
 
@@ -11,6 +12,7 @@ export default function LyricsPanel() {
   const [songs, setSongs] = useState<Song[]>([])
   const [search, setSearch] = useState('')
   const [fetching, setFetching] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -100,7 +102,20 @@ export default function LyricsPanel() {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-100">Hymns</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-100">Hymns</h3>
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Help"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        </div>
         <div className="flex gap-2 items-center">
           <button onClick={downloadSample} className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-0.5 rounded">Download Sample</button>
           <label className="text-[10px] bg-indigo-700 hover:bg-indigo-600 text-white px-2 py-0.5 rounded cursor-pointer">
@@ -117,6 +132,34 @@ export default function LyricsPanel() {
           <div className="text-[10px] text-gray-400">Overlay: {showLyricsOverlay ? 'on' : 'off'}</div>
         </div>
       </div>
+
+      <HelpModal 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Lyrics & Hymns Help"
+        content={
+          <div className="space-y-4">
+            <p>Display song lyrics and hymns on the live program output.</p>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-1">Finding Songs</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Search:</strong> Type in the search box to find songs by title or lyrics.</li>
+                <li><strong>AI Search:</strong> If you can't find a song, use the 'Ask AI' button (requires cloud account) to fetch lyrics from the internet.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-1">Live Control</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Projecting:</strong> Click any line of a song to project it immediately. The active line is highlighted in blue.</li>
+                <li><strong>Hide/Show:</strong> Use the button in the header to toggle the entire lyrics overlay on or off.</li>
+              </ul>
+            </div>
+          </div>
+        }
+      />
+
       <input className="w-full bg-gray-800 text-xs text-white rounded px-2 py-1 mb-2" placeholder="Search for Hymns or songs" value={search} onChange={(e) => setSearch(e.target.value)} />
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {search.length > 2 && filtered.length === 0 && (
