@@ -1,7 +1,13 @@
 import sys
 import json
-import torch
-from transformers import MarianMTModel, MarianTokenizer
+
+try:
+    import torch
+    from transformers import MarianMTModel, MarianTokenizer
+    HAS_DEPS = True
+except ImportError:
+    HAS_DEPS = False
+    print("MarianMT dependencies (torch/transformers) not found. Translation will be disabled.", file=sys.stderr)
 
 # Configuration for models
 MODEL_CONFIG = {
@@ -21,6 +27,8 @@ loaded_models = {}
 loaded_tokenizers = {}
 
 def load_model(key, model_name):
+    if not HAS_DEPS:
+        return
     print(f"Loading model {key}: {model_name}...", file=sys.stderr)
     try:
         tokenizer = MarianTokenizer.from_pretrained(model_name)
@@ -32,6 +40,9 @@ def load_model(key, model_name):
         print(f"Error loading model {key}: {e}", file=sys.stderr)
 
 def translate(text, lang_code):
+    if not HAS_DEPS:
+        return text
+        
     config = LANG_MAP.get(lang_code)
     if not config:
         return text # Unknown language

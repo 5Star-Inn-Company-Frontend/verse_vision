@@ -137,11 +137,18 @@ def load_whisper():
     try:
         from faster_whisper import WhisperModel, download_model
         
-        print("Checking/Downloading Whisper model...", file=sys.stderr)
-        sys.stderr.flush()
+        # Check for bundled model
+        bundled_model_path = os.path.join(BASE_DIR, "models", f"whisper-{MODEL_SIZE}")
         
-        # Download explicitly to ensure we have the path and can debug
-        model_path = download_model(MODEL_SIZE)
+        if os.path.exists(bundled_model_path):
+             print(f"Found bundled model at: {bundled_model_path}", file=sys.stderr)
+             model_path = bundled_model_path
+        else:
+            print("Checking/Downloading Whisper model...", file=sys.stderr)
+            sys.stderr.flush()
+            # Download explicitly to ensure we have the path and can debug
+            model_path = download_model(MODEL_SIZE)
+            
         print(f"Model path: {model_path}", file=sys.stderr)
         sys.stderr.flush()
         

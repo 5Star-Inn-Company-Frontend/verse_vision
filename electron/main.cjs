@@ -1,6 +1,6 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, screen } = require('electron')
 const path = require('path')
-const { fork } = require('child_process')
+const { fork, spawn } = require('child_process')
 let serverProc = null
 const serverPort = process.env.PORT || '3332'
 
@@ -48,6 +48,28 @@ ipcMain.handle('go-live', async () => {
   // Cleanup when closed
   programWin.on('closed', () => {
     programWin = null
+  })
+})
+
+ipcMain.handle('install-python', async () => {
+  return new Promise((resolve, reject) => {
+    // Attempt to use winget to install Python 3.11
+    console.log('Attempting to install Python via winget...')
+    const child = spawn('winget', ['install', '-e', '--id', 'Python.Python.3.11'], {
+      shell: true,
+      windowsHide: false 
+    })
+    
+    child.on('close', (code) => {
+      console.log('Winget finished with code:', code)
+      if (code === 0) resolve(true)
+      else reject(new Error('Winget exited with code ' + code))
+    })
+    
+    child.on('error', (err) => {
+      console.error('Winget spawn error:', err)
+      reject(err)
+    })
   })
 })
 

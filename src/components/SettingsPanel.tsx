@@ -189,6 +189,14 @@ export default function SettingsPanel() {
           </div>
         ) : (
           <div className="space-y-2">
+            <div className="mb-2 p-2 bg-blue-950/40 border border-blue-900/50 rounded">
+                <h4 className="text-[11px] font-semibold text-blue-200 mb-1">Why connect to the Cloud?</h4>
+                <ul className="text-[10px] text-gray-300 list-disc pl-3 space-y-0.5">
+                    <li><span className="text-blue-100 font-medium">Higher Accuracy:</span> Unlock advanced OpenAI models for precise scripture detection.</li>
+                    <li><span className="text-blue-100 font-medium">Real-time Translation:</span> Translate sermons into multiple languages instantly.</li>
+                    <li><span className="text-blue-100 font-medium">Cloud Sync:</span> Backup settings and access features across devices.</li>
+                </ul>
+            </div>
             <input
               type="email"
               placeholder="Email"
