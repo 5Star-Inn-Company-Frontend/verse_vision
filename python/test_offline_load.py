@@ -57,6 +57,33 @@ def run_test():
         output = process.stdout.readline()
         print(f"OUTPUT: {output.strip()}")
 
+        # Test 4: Range Detection
+        print("\n--- Test 4: Range Detection (John 3:16 to 17) ---")
+        payload = {"command": "detect", "text": "John 3:16 to 17 NIV"}
+        process.stdin.write(json.dumps(payload) + "\n")
+        process.stdin.flush()
+        
+        output = process.stdout.readline()
+        print(f"OUTPUT: {output.strip()}")
+
+        # Test 5: Space Separation
+        print("\n--- Test 5: Space Separation (John 5: 2) ---")
+        payload = {"command": "detect", "text": "John 5: 2 NIV"}
+        process.stdin.write(json.dumps(payload) + "\n")
+        process.stdin.flush()
+        
+        output = process.stdout.readline()
+        print(f"OUTPUT: {output.strip()}")
+
+        # Test 6: Space Separation with Range
+        print("\n--- Test 6: Space Separation with Range (Genesis 1: 1 - 2) ---")
+        payload = {"command": "detect", "text": "Genesis 1: 1 - 2 NIV"}
+        process.stdin.write(json.dumps(payload) + "\n")
+        process.stdin.flush()
+        
+        output = process.stdout.readline()
+        print(f"OUTPUT: {output.strip()}")
+
     except Exception as e:
         print(f"Error: {e}")
     finally:

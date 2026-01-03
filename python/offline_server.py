@@ -476,8 +476,9 @@ def extract_references(text):
     # Tolerates: "Open to John 3 16", "John Chapter 3 Verse 16", "John 3"
     # Added support for dot notation: "John 3.16"
     # Added support for "vs" separator: "John 3 vs 16"
+    # Added support for ranges: "John 3:16-20", "John 3:16 to 20", "John 3:16–20", "John 3 verses 16-20"
     
-    pattern = r'\b((?:[1-3]\s)?[A-Za-z]+(?:\s[A-Za-z]+)*?)(?:\s+(?:chapter|chap|ch)\.?)?\s+(\d+)(?:\s*(?:[:v,.]|\s+(?:verse|v|vs|ver)\.?\s*|\s+)(\d+)(?:-(\d+))?)?\b'
+    pattern = r'\b((?:[1-3]\s)?[A-Za-z]+(?:\s[A-Za-z]+)*?)(?:\s+(?:chapter|chap|ch)\.?)?\s+(\d+)(?:\s*(?:[:v,.]|\s+(?:verses|verse|v|vs|ver)\.?\s*|\s+)\s*(\d+)(?:\s*(?:-|–|to)\s*(\d+))?)?\b'
     
     matches = re.findall(pattern, processed_text, re.IGNORECASE)
     
