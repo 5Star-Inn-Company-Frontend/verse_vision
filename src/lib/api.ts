@@ -55,6 +55,16 @@ export const api = {
     if (!json.success) throw new Error(json.error)
     return json.data
   },
+  addManualText: async (data: { title?: string; text: string }) => {
+    const res = await fetch(`${BASE}/scripture/manual-text`, {
+      method: 'POST',
+      headers: api._headers(),
+      body: JSON.stringify(data),
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error(json.error)
+    return json.data
+  },
   getAvailableTranslations: async () => {
     const res = await fetch(`${BASE}/scripture/translations`)
     const json = await res.json()

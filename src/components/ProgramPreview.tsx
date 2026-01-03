@@ -147,7 +147,21 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
             {new Date(Math.max(0, countdownEndAt - Date.now())).toISOString().substring(14, 19)}
           </div>
         )}
-        {currentScripture && showScriptureOverlay && translationStyle === 'subtitle' && (
+        {currentScripture && showScriptureOverlay && currentScripture.translation === 'RAW' && (
+          <div className="absolute inset-0 flex items-center justify-center p-12 text-center" style={{ fontFamily: overlayFontFamily }}>
+            <div className="text-white rounded-lg p-8 max-w-4xl shadow-2xl backdrop-blur-sm" style={{ backgroundColor: overlayBackgroundColor }}>
+              {currentScripture.reference !== 'Announcement' && (
+                <div className="opacity-90 mb-4 font-bold uppercase tracking-wider" style={{ fontSize: `${16 * overlayTextScale}px`, color: '#fbbf24' }}>
+                  {currentScripture.reference}
+                </div>
+              )}
+              <div className="leading-relaxed whitespace-pre-wrap font-medium" style={{ fontSize: `${24 * overlayTextScale}px` }}>
+                {currentScripture.text}
+              </div>
+            </div>
+          </div>
+        )}
+        {currentScripture && showScriptureOverlay && currentScripture.translation !== 'RAW' && translationStyle === 'subtitle' && (
           <div className="absolute bottom-0 left-0 w-full px-6 py-4 space-y-2" style={{ fontFamily: overlayFontFamily }}>
             <div className="text-white rounded-md p-3" style={{ backgroundColor: overlayBackgroundColor }}>
               <div className="opacity-80 mb-1" style={{ fontSize: `${12 * overlayTextScale}px` }}>
@@ -165,7 +179,7 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
             ))}
           </div>
         )}
-        {currentScripture && showScriptureOverlay && translationStyle === 'split' && (
+        {currentScripture && showScriptureOverlay && currentScripture.translation !== 'RAW' && translationStyle === 'split' && (
           <div className="absolute bottom-0 left-0 w-full px-6 py-4 grid grid-cols-2 gap-3" style={{ fontFamily: overlayFontFamily }}>
             <div className={`text-white rounded-md p-3 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`} style={{ backgroundColor: overlayBackgroundColor }}>
               <div className="opacity-80 mb-1" style={{ fontSize: `${12 * overlayTextScale}px` }}>
@@ -181,7 +195,7 @@ export default function ProgramPreview({ className, style, hideHeader }: { class
             ))}
           </div>
         )}
-        {currentScripture && showScriptureOverlay && translationStyle === 'ticker' && (
+        {currentScripture && showScriptureOverlay && currentScripture.translation !== 'RAW' && translationStyle === 'ticker' && (
           <div className="absolute bottom-0 left-0 w-full" style={{ fontFamily: overlayFontFamily }}>
             <div className="text-white whitespace-nowrap overflow-hidden" style={{ backgroundColor: overlayBackgroundColor, fontSize: `${12 * overlayTextScale}px` }}>
               <div className="animate-[ticker_15s_linear_infinite] inline-block px-4">

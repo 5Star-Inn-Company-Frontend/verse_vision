@@ -10,6 +10,8 @@ export default function ScriptureApprovalQueue() {
   const [showHelp, setShowHelp] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const [manualForm, setManualForm] = useState({ reference: '', translation: 'KJV' })
+  const [addTab, setAddTab] = useState<'scripture' | 'text'>('scripture')
+  const [textForm, setTextForm] = useState({ title: '', text: '' })
   const [addError, setAddError] = useState<string | null>(null)
   const [availableTranslations, setAvailableTranslations] = useState<string[]>([])
   const timers = useRef<Record<string, number>>({})
@@ -91,36 +93,64 @@ export default function ScriptureApprovalQueue() {
 
       {isAdding && (
         <div className="bg-gray-800 rounded p-3 mb-2 border border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex gap-2 mb-3 border-b border-gray-700 pb-2">
+            <button 
+              className={`text-xs px-2 py-1 rounded ${addTab === 'scripture' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              onClick={() => setAddTab('scripture')}
+            >
+              Scripture
+            </button>
+            <button 
+              className={`text-xs px-2 py-1 rounded ${addTab === 'text' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              onClick={() => setAddTab('text')}
+            >
+              Manual Text
+            </button>
+          </div>
+
           <div className="space-y-2">
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                className="col-span-2 bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                value={manualForm.reference}
-                onChange={(e) => {
-                  setManualForm({ ...manualForm, reference: e.target.value })
-                  setAddError(null)
-                }}
-                placeholder="Reference (e.g. John 3:16)"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && manualForm.reference) {
-                     // We could trigger submit here, but let's stick to the button for now
-                  }
-                }}
-              />
-              <select
-                className="bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                value={manualForm.translation}
-                onChange={(e) => setManualForm({ ...manualForm, translation: e.target.value })}
-              >
-                {availableTranslations.length > 0 ? (
-                  availableTranslations.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))
-                ) : (
-                  <option value="" disabled>No Bibles Available</option>
-                )}
-              </select>
-            </div>
+            {addTab === 'scripture' ? (
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  className="col-span-2 bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={manualForm.reference}
+                  onChange={(e) => {
+                    setManualForm({ ...manualForm, reference: e.target.value })
+                    setAddError(null)
+                  }}
+                  placeholder="Reference (e.g. John 3:16)"
+                />
+                <select
+                  className="bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={manualForm.translation}
+                  onChange={(e) => setManualForm({ ...manualForm, translation: e.target.value })}
+                >
+                  {availableTranslations.length > 0 ? (
+                    availableTranslations.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No Bibles Available</option>
+                  )}
+                </select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  className="w-full bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={textForm.title}
+                  onChange={(e) => setTextForm({ ...textForm, title: e.target.value })}
+                  placeholder="Title (Optional, e.g. Announcement)"
+                />
+                <textarea
+                  className="w-full bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[80px]"
+                  value={textForm.text}
+                  onChange={(e) => setTextForm({ ...textForm, text: e.target.value })}
+                  placeholder="Enter text to project..."
+                />
+              </div>
+            )}
+
             {addError && (
               <div className="text-[10px] text-red-400 px-1">{addError}</div>
             )}
@@ -130,22 +160,29 @@ export default function ScriptureApprovalQueue() {
                 onClick={() => {
                   setIsAdding(false)
                   setAddError(null)
+                  setTextForm({ title: '', text: '' })
+                  setManualForm({ reference: '', translation: 'KJV' })
                 }}
               >
                 Cancel
               </button>
               <button
                 className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded disabled:opacity-50"
-                disabled={!manualForm.reference}
+                disabled={addTab === 'scripture' ? !manualForm.reference : !textForm.text}
                 onClick={async () => {
                   setAddError(null)
                   try {
-                    await api.addManualScripture(manualForm)
-                    setManualForm({ reference: '', translation: 'KJV' })
+                    if (addTab === 'scripture') {
+                      await api.addManualScripture(manualForm)
+                      setManualForm({ reference: '', translation: 'KJV' })
+                    } else {
+                      await api.addManualText(textForm)
+                      setTextForm({ title: '', text: '' })
+                    }
                     setIsAdding(false)
                     await loadQueue()
                   } catch (err: any) {
-                    setAddError(err.message || 'Failed to add scripture')
+                    setAddError(err.message || 'Failed to add item')
                   }
                 }}
               >

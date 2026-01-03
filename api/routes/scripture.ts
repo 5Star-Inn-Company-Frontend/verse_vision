@@ -31,6 +31,23 @@ router.post('/detect', async (req: Request, res: Response) => {
   res.status(201).json({ success: true, data: item })
 })
 
+router.post('/manual-text', async (req: Request, res: Response) => {
+  const { title, text } = req.body || {}
+  
+  if (!text) {
+    res.status(400).json({ success: false, error: 'Text is required' })
+    return
+  }
+
+  const item = await scriptureStore.detect({ 
+    reference: title || 'Announcement', 
+    translation: 'RAW', 
+    text, 
+    confidence: 1.0 
+  })
+  res.status(201).json({ success: true, data: item })
+})
+
 router.post('/approve', async (req: Request, res: Response) => {
   const { id } = req.body || {}
   if (!id) {
