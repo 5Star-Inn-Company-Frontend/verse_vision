@@ -475,8 +475,9 @@ def extract_references(text):
     # Improved Regex for Nigerian/Sermon Context:
     # Tolerates: "Open to John 3 16", "John Chapter 3 Verse 16", "John 3"
     # Added support for dot notation: "John 3.16"
+    # Added support for "vs" separator: "John 3 vs 16"
     
-    pattern = r'\b((?:[1-3]\s)?[A-Za-z]+(?:\s[A-Za-z]+)*?)(?:\s+(?:chapter|chap|ch)\.?)?\s+(\d+)(?:\s*(?:[:v,.]|\s+(?:verse|v|ver)\.?\s*|\s+)(\d+)(?:-(\d+))?)?\b'
+    pattern = r'\b((?:[1-3]\s)?[A-Za-z]+(?:\s[A-Za-z]+)*?)(?:\s+(?:chapter|chap|ch)\.?)?\s+(\d+)(?:\s*(?:[:v,.]|\s+(?:verse|v|vs|ver)\.?\s*|\s+)(\d+)(?:-(\d+))?)?\b'
     
     matches = re.findall(pattern, processed_text, re.IGNORECASE)
     
