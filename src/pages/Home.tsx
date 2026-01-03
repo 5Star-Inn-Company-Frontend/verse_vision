@@ -14,6 +14,7 @@ import AudioService from '@/components/AudioService'
 import MicrophoneSelector from '@/components/MicrophoneSelector'
 import OfflineIndicator from '@/components/OfflineIndicator'
 import WelcomeModal from '@/components/WelcomeModal'
+import PermissionModal from '@/components/PermissionModal'
 import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function Home() {
@@ -28,6 +29,7 @@ export default function Home() {
 
   return (
     <div className="h-screen bg-neutral-900 text-gray-100 flex flex-col overflow-hidden">
+      <PermissionModal />
       <WelcomeModal />
       <KeyboardShortcuts />
       <SyncBridge />

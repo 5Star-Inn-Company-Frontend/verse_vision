@@ -16,24 +16,55 @@ else:
     # Otherwise use the script's directory
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_DIR = os.path.join(BASE_DIR, "..", "data")
+DATA_DIR = os.path.join(BASE_DIR, "..", "api", "data", "bibles")
 
-BIBLE_CONFIG = {
-    'kjv': {
-        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_kjv.json',
-        'path': os.path.join(DATA_DIR, 'bible_kjv.json'),
-        'name': 'King James Version'
-    },
-    'bbe': {
-        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/en_bbe.json',
-        'path': os.path.join(DATA_DIR, 'bible_bbe.json'),
-        'name': 'Bible in Basic English'
-    },
-    'fr': {
-        'url': 'https://raw.githubusercontent.com/thiagobodruk/bible/master/json/fr_apee.json',
-        'path': os.path.join(DATA_DIR, 'bible_fr.json'),
-        'name': 'French Bible (Epee)'
-    }
+# Metadata for display/logging
+VERSION_METADATA = {
+    'asv': 'American Standard Version',
+    'amp': 'Amplified Bible',
+    'anderson': 'Anderson New Testament',
+    'abpe': 'Aramaic Bible in Plain English',
+    'blb': 'Berean Literal Bible',
+    'bsb': 'Berean Standard Bible',
+    'brenton': 'Brenton Septuagint Translation',
+    'cpdv': 'Catholic Public Domain Version',
+    'csb': 'Christian Standard Bible',
+    'cev': 'Contemporary English Version',
+    'drb': 'Douay-Rheims Bible',
+    'erv': 'English Revised Version',
+    'esv': 'English Standard Version',
+    'gw': 'God\'s Word Translation',
+    'godbey': 'Godbey New Testament',
+    'gnt': 'Good News Translation',
+    'haweis': 'Haweis New Testament',
+    'hcsb': 'Holman Christian Standard Bible',
+    'isv': 'International Standard Version',
+    'jps': 'JPS Tanakh 1917',
+    'kjv': 'King James Version',
+    'kjv_legacy': 'KJV (Legacy Structure)',
+    'lamsa': 'Lamsa Bible',
+    'lsb': 'Legacy Standard Bible',
+    'lsv': 'Literal Standard Version',
+    'mace': 'Mace New Testament',
+    'msb': 'Majority Standard Bible',
+    'nasb1977': 'NASB 1977',
+    'nasb1995': 'NASB 1995',
+    'net': 'NET Bible',
+    'nab': 'New American Bible',
+    'nasb': 'New American Standard Bible',
+    'nheb': 'New Heart English Bible',
+    'niv': 'New International Version',
+    'nkjv': 'New King James Version',
+    'nlt': 'New Living Translation',
+    'nrsv': 'New Revised Standard Version',
+    'peshitta': 'Peshitta Holy Bible',
+    'slt': 'Smith\'s Literal Translation',
+    'wbt': 'Webster\'s Bible Translation',
+    'weymouth': 'Weymouth New Testament',
+    'web': 'World English Bible',
+    'worrell': 'Worrell New Testament',
+    'worsley': 'Worsley New Testament',
+    'ylt': 'Young\'s Literal Translation'
 }
 
 # Globals
@@ -163,41 +194,94 @@ def load_whisper():
         print(f"Error loading Whisper: {e}", file=sys.stderr)
         sys.stderr.flush()
 
+def normalize_bible_data(data):
+    """
+    Normalizes Bible JSON data into a standard list-of-books format.
+    Standard Format: [{'name': 'Genesis', 'chapters': [['v1', 'v2'], ['v1', ...]]}]
+    """
+    # Check if it's already in list format (legacy/github format)
+    if isinstance(data, list):
+        return data
+    
+    # New format: {"Book": {"1": {"1": "Text"}}}
+    if isinstance(data, dict):
+        books = []
+        # Sort books? The dict might not be ordered, but we usually want Genesis first.
+        # We can try to use a standard book order if available, or trust the dict iteration.
+        # Given we don't have a book order list handy in this script, we'll trust the source or insertion order.
+        
+        for book_name, chapters_data in data.items():
+            book = {'name': book_name, 'chapters': []}
+            
+            # Handle chapters
+            try:
+                # keys are strings "1", "2", etc.
+                sorted_chap_nums = sorted([int(k) for k in chapters_data.keys()])
+            except:
+                continue 
+                
+            for chap_num in sorted_chap_nums:
+                verses_data = chapters_data.get(str(chap_num), {})
+                # verses keys "1", "2"
+                try:
+                    sorted_verse_nums = sorted([int(k) for k in verses_data.keys()])
+                except:
+                    sorted_verse_nums = []
+                
+                if not sorted_verse_nums:
+                    book['chapters'].append([])
+                    continue
+                    
+                max_verse = sorted_verse_nums[-1]
+                # Initialize with empty strings
+                chapter_verses = [""] * max_verse
+                
+                for v_num in sorted_verse_nums:
+                    text = verses_data.get(str(v_num), "")
+                    if v_num - 1 < len(chapter_verses):
+                        chapter_verses[v_num - 1] = text
+                
+                book['chapters'].append(chapter_verses)
+            
+            books.append(book)
+        return books
+    return []
+
 def load_bible():
     global bible_versions
     
     # Ensure data directory exists
+    if not os.path.exists(DATA_DIR):
+        print(f"Data directory not found: {DATA_DIR}", file=sys.stderr)
+        return
+
+    # Scan for JSON files
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
+        files = [f for f in os.listdir(DATA_DIR) if f.endswith('.json')]
     except Exception as e:
-        print(f"Error creating data directory: {e}", file=sys.stderr)
+        print(f"Error listing data directory: {e}", file=sys.stderr)
+        return
 
-    for key, config in BIBLE_CONFIG.items():
-        path = config['path']
-        url = config['url']
+    for filename in files:
+        # Determine key from filename (acronym)
+        key = filename.replace('.json', '').lower().replace(' ', '_')
+            
+        path = os.path.join(DATA_DIR, filename)
         
-        if not os.path.exists(path):
-            print(f"Downloading {config['name']}...", file=sys.stderr)
-            try:
-                response = requests.get(url)
-                if response.status_code == 200:
-                    with open(path, 'wb') as f:
-                        f.write(response.content)
-                    print(f"Downloaded {key}.", file=sys.stderr)
-                else:
-                    print(f"Failed to download {key}: {response.status_code}", file=sys.stderr)
-                    continue
-            except Exception as e:
-                print(f"Error downloading {key}: {e}", file=sys.stderr)
-                continue
-
         try:
             with open(path, 'r', encoding='utf-8-sig') as f:
                 data = json.load(f)
-                bible_versions[key] = data
-            print(f"Loaded {config['name']} ({len(data)} books).", file=sys.stderr)
+                
+            normalized_data = normalize_bible_data(data)
+            if normalized_data:
+                bible_versions[key] = normalized_data
+                name = VERSION_METADATA.get(key, key.replace('_', ' ').title())
+                print(f"Loaded {name} ({key}) - {len(normalized_data)} books.", file=sys.stderr)
+            else:
+                print(f"Failed to normalize {filename}", file=sys.stderr)
+                
         except Exception as e:
-            print(f"Error loading {key}: {e}", file=sys.stderr)
+            print(f"Error loading {filename}: {e}", file=sys.stderr)
 
 def transcribe(file_path):
     if not model:
@@ -351,7 +435,20 @@ def extract_references(text):
     version_patterns = {
         'kjv': [r'\bkjv\b', r'\bking james\b'],
         'bbe': [r'\bbbe\b', r'\bbasic english\b'],
-        'fr': [r'\bfrench\b', r'\bfrançais\b', r'\bfrancais\b']
+        'fr': [r'\bfrench\b', r'\bfrançais\b', r'\bfrancais\b'],
+        'niv': [r'\bniv\b', r'\bnew international\b'],
+        'nlt': [r'\bnlt\b', r'\bnew living\b'],
+        'esv': [r'\besv\b', r'\benglish standard\b'],
+        'nkjv': [r'\bnkjv\b', r'\bnew king james\b'],
+        'nasb': [r'\bnasb\b', r'\bnew american standard\b'],
+        'amp': [r'\bamp\b', r'\bamplified\b'],
+        'msg': [r'\bmsg\b', r'\bmessage\b'],
+        'csb': [r'\bcsb\b', r'\bchristian standard\b'],
+        'gnt': [r'\bgnt\b', r'\bgood news\b'],
+        'cev': [r'\bcev\b', r'\bcontemporary english\b'],
+        'gw': [r'\bgw\b', r'\bgod\'?s word\b'],
+        'web': [r'\bweb\b', r'\bworld english\b'],
+        'ylt': [r'\bylt\b', r'\byoung\'?s literal\b']
     }
     
     for v_key, patterns in version_patterns.items():

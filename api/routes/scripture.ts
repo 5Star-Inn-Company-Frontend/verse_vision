@@ -1,7 +1,13 @@
 import { Router, type Request, type Response } from 'express'
 import { scriptureStore } from '../services/scriptureStore.js'
+import { bibleService } from '../services/bibleService.js'
 
 const router = Router()
+
+router.get('/translations', async (req: Request, res: Response) => {
+  const translations = await bibleService.getAvailableTranslations()
+  res.json({ success: true, data: translations })
+})
 
 router.get('/queue', async (req: Request, res: Response) => {
   const data = await scriptureStore.getQueue()
@@ -15,10 +21,12 @@ router.get('/current', async (req: Request, res: Response) => {
 
 router.post('/detect', async (req: Request, res: Response) => {
   const { reference, translation, text, confidence } = req.body || {}
+  
   if (!reference || !translation || !text) {
     res.status(400).json({ success: false, error: 'Missing fields' })
     return
   }
+
   const item = await scriptureStore.detect({ reference, translation, text, confidence: confidence ?? 0.9 })
   res.status(201).json({ success: true, data: item })
 })

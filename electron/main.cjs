@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, screen, systemPreferences } = require('electron')
 const path = require('path')
 const { fork, spawn } = require('child_process')
 let serverProc = null
@@ -278,8 +278,41 @@ function createWindow() {
   })
   win.loadURL(`http://localhost:${serverPort}`)
 }
+
+// IPC Handlers for Microphone Permission
+ipcMain.handle('check-mic-status', async () => {
+  try {
+    const status = systemPreferences.getMediaAccessStatus('microphone')
+    console.log('Microphone status:', status)
+    return status
+  } catch (err) {
+    console.error('Failed to get microphone status:', err)
+    return 'unknown'
+  }
+})
+
+ipcMain.handle('request-mic-access', async () => {
+  try {
+    if (process.platform === 'darwin') {
+      const granted = await systemPreferences.askForMediaAccess('microphone')
+      if (!granted) {
+        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
+      }
+      return granted ? 'granted' : 'denied'
+    } else if (process.platform === 'win32') {
+      await shell.openExternal('ms-settings:privacy-microphone')
+      return 'prompted'
+    }
+    return 'granted' // Linux or others usually handled by OS/Browser
+  } catch (err) {
+    console.error('Failed to request microphone access:', err)
+    return 'error'
+  }
+})
+
 app.whenReady().then(async () => {
   setupMenu()
+  // Removed automatic checkMicrophonePermission() to let UI handle it via IPC
   app.setAboutPanelOptions({
     applicationName: 'VerseVision',
     applicationVersion: '1.0.0',

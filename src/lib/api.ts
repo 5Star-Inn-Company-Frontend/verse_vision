@@ -45,6 +45,21 @@ export const api = {
     const json = await res.json()
     return json.data // returns { references, queue }
   },
+  addManualScripture: async (data: { reference: string; translation: string; text?: string }) => {
+    const res = await fetch(`${BASE}/ai/scripture/detect`, {
+      method: 'POST',
+      headers: api._headers(),
+      body: JSON.stringify({ text: data.reference + " " + data.translation, engine: 'offline' }),
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error(json.error)
+    return json.data
+  },
+  getAvailableTranslations: async () => {
+    const res = await fetch(`${BASE}/scripture/translations`)
+    const json = await res.json()
+    return json.data || []
+  },
   getOfflineStatus: async () => {
     try {
       const res = await fetch(`${BASE}/ai/offline/status`)

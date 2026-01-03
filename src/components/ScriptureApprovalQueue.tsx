@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import { api } from '@/lib/api'
 import HelpModal from './HelpModal'
 
 export default function ScriptureApprovalQueue() {
@@ -7,12 +8,24 @@ export default function ScriptureApprovalQueue() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<{ reference: string; translation: string }>({ reference: '', translation: '' })
   const [showHelp, setShowHelp] = useState(false)
+  const [isAdding, setIsAdding] = useState(false)
+  const [manualForm, setManualForm] = useState({ reference: '', translation: 'KJV' })
+  const [addError, setAddError] = useState<string | null>(null)
+  const [availableTranslations, setAvailableTranslations] = useState<string[]>([])
   const timers = useRef<Record<string, number>>({})
   const deadlines = useRef<Record<string, number>>({})
   const [, force] = useState(0)
+
   useEffect(() => {
     void loadQueue()
+    api.getAvailableTranslations().then(translations => {
+      setAvailableTranslations(translations)
+      if (translations.length > 0 && !translations.includes(manualForm.translation)) {
+        setManualForm(f => ({ ...f, translation: translations[0] }))
+      }
+    })
   }, [loadQueue])
+
   useEffect(() => {
     const id = window.setInterval(async () => {
       if (scriptureQueue.length < 1) return
@@ -52,6 +65,16 @@ export default function ScriptureApprovalQueue() {
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-gray-100">Scripture Approval Queue</h3>
           <button 
+            onClick={() => setIsAdding(!isAdding)}
+            className={`transition-colors ${isAdding ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+            title="Add Manual Scripture"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button 
             onClick={() => setShowHelp(true)}
             className="text-gray-400 hover:text-white transition-colors"
             title="Help"
@@ -65,6 +88,73 @@ export default function ScriptureApprovalQueue() {
         </div>
         <span className="text-xs text-gray-400">{scriptureQueue.length} pending</span>
       </div>
+
+      {isAdding && (
+        <div className="bg-gray-800 rounded p-3 mb-2 border border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                className="col-span-2 bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                value={manualForm.reference}
+                onChange={(e) => {
+                  setManualForm({ ...manualForm, reference: e.target.value })
+                  setAddError(null)
+                }}
+                placeholder="Reference (e.g. John 3:16)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && manualForm.reference) {
+                     // We could trigger submit here, but let's stick to the button for now
+                  }
+                }}
+              />
+              <select
+                className="bg-gray-700 text-xs text-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                value={manualForm.translation}
+                onChange={(e) => setManualForm({ ...manualForm, translation: e.target.value })}
+              >
+                {availableTranslations.length > 0 ? (
+                  availableTranslations.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))
+                ) : (
+                  <option value="" disabled>No Bibles Available</option>
+                )}
+              </select>
+            </div>
+            {addError && (
+              <div className="text-[10px] text-red-400 px-1">{addError}</div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded"
+                onClick={() => {
+                  setIsAdding(false)
+                  setAddError(null)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded disabled:opacity-50"
+                disabled={!manualForm.reference}
+                onClick={async () => {
+                  setAddError(null)
+                  try {
+                    await api.addManualScripture(manualForm)
+                    setManualForm({ reference: '', translation: 'KJV' })
+                    setIsAdding(false)
+                    await loadQueue()
+                  } catch (err: any) {
+                    setAddError(err.message || 'Failed to add scripture')
+                  }
+                }}
+              >
+                Add to Queue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <HelpModal 
         isOpen={showHelp}
