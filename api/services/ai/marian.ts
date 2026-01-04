@@ -6,25 +6,43 @@ class MarianService {
   private process: ChildProcess | null = null
   private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void }> = []
   private buffer: string = ''
+  private activating: boolean = false
+  private activated: boolean = false
   
   constructor() {
-    // Lazy start or auto start? Let's auto start to load models
-    this.start()
   }
 
   private start() {
     let scriptPath = path.resolve(process.cwd(), 'python/marian_server.py')
+    let isExecutable = false
     
     if (process.env.RESOURCES_PATH) {
-      const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'marian_server.py')
-      if (fs.existsSync(prodPath)) {
-        scriptPath = prodPath
-      }
+        // Production path
+        const baseDir = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python')
+        
+        // Check for executable first (bundled)
+        const exeName = process.platform === 'win32' ? 'marian_server.exe' : 'marian_server'
+        const exePath = path.join(baseDir, 'dist', 'marian_server', exeName)
+        
+        if (fs.existsSync(exePath)) {
+            scriptPath = exePath
+            isExecutable = true
+        } else {
+            // Fallback to script if no executable
+            const scriptProdPath = path.join(baseDir, 'marian_server.py')
+            if (fs.existsSync(scriptProdPath)) {
+                scriptPath = scriptProdPath
+            }
+        }
     }
     
     console.log('Starting MarianMT service:', scriptPath)
     
-    this.process = spawn('python', [scriptPath])
+    if (isExecutable) {
+        this.process = spawn(scriptPath, [], { stdio: ['pipe', 'pipe', 'pipe'] })
+    } else {
+        this.process = spawn('python', [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] })
+    }
 
     this.process.stdout?.on('data', (data) => {
       this.buffer += data.toString()
@@ -74,7 +92,7 @@ class MarianService {
 
   public async translate(text: string): Promise<{ Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }> {
     if (!this.process) {
-        this.start()
+        throw new Error('Translation not activated')
     }
     
     return new Promise((resolve, reject) => {
@@ -88,10 +106,42 @@ class MarianService {
       }
     })
   }
+
+  public async activate(): Promise<{ status: 'downloading' | 'ready' }> {
+    if (this.activated) return { status: 'ready' }
+    if (this.activating) return { status: 'downloading' }
+    this.activating = true
+    await new Promise<void>((resolve, reject) => {
+      const dl = spawn('python', [path.resolve(process.cwd(), 'python/download_models.py'), '--marian'], { stdio: ['ignore', 'pipe', 'pipe'] })
+      dl.on('close', (code) => {
+        if (code === 0) resolve()
+        else reject(new Error(`download_models exited with code ${code}`))
+      })
+      dl.on('error', reject)
+    })
+    this.start()
+    this.activating = false
+    this.activated = true
+    return { status: 'ready' }
+  }
+
+  public getStatus(): { status: 'idle' | 'downloading' | 'ready' } {
+    if (this.activated && this.process) return { status: 'ready' }
+    if (this.activating) return { status: 'downloading' }
+    return { status: 'idle' }
+  }
 }
 
 export const marianService = new MarianService()
 
 export async function translateTextMarian(text: string): Promise<{ Yoruba?: string; Hausa?: string; Igbo?: string; French?: string }> {
     return marianService.translate(text)
+}
+
+export async function activateMarian(): Promise<{ status: 'downloading' | 'ready' }> {
+  return marianService.activate()
+}
+
+export async function getMarianStatus(): Promise<{ status: 'idle' | 'downloading' | 'ready' }> {
+  return marianService.getStatus()
 }

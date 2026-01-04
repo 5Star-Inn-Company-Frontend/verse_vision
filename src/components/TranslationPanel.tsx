@@ -14,13 +14,20 @@ export default function TranslationPanel() {
     updateTranslationSettings,
     setTranslationEngine,
     cloudApiToken,
-    userPlan,
   } = useOperatorStore()
 
   const [showHelp, setShowHelp] = useState(false)
+  const [localStatus, setLocalStatus] = useState<'idle' | 'downloading' | 'ready'>('idle')
 
   useEffect(() => {
     void loadSettings()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/ai/translation/status')
+        const json: { success: boolean; data?: { status: 'idle' | 'downloading' | 'ready' } } = await res.json()
+        if (json.success && json.data) setLocalStatus(json.data.status)
+      } catch {}
+    })()
   }, [loadSettings, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translationEngine])
 
   return (
@@ -38,6 +45,31 @@ export default function TranslationPanel() {
             <line x1="12" y1="17" x2="12.01" y2="17"></line>
           </svg>
         </button>
+      </div>
+
+      <div className="mb-2">
+        <div className="flex items-center gap-2">
+          <button
+            className={`px-2 py-1 text-xs rounded ${localStatus === 'ready' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+            disabled={localStatus !== 'idle'}
+            onClick={async () => {
+              try {
+                setLocalStatus('downloading')
+                const res = await fetch('/api/ai/translation/activate', { method: 'POST' })
+                const json: { success: boolean; data?: { status: 'downloading' | 'ready' }; error?: string } = await res.json()
+                if (!json.success || !json.data) throw new Error(json.error || 'Activation failed')
+                setLocalStatus(json.data.status)
+              } catch (e) {
+                setLocalStatus('idle')
+              }
+            }}
+          >
+            {localStatus === 'idle' ? 'Activate Local Translation (Download models)' : localStatus === 'downloading' ? 'Downloading…' : 'Activated'}
+          </button>
+          <span className={`text-xs ${localStatus === 'ready' ? 'text-green-400' : localStatus === 'downloading' ? 'text-yellow-400' : 'text-gray-400'}`}>
+            {localStatus === 'ready' ? '' : localStatus === 'downloading' ? 'Downloading models' : 'Not activated'}
+          </span>
+        </div>
       </div>
 
       <HelpModal 

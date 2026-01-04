@@ -3,7 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText, fetchSongLyrics } from '../services/ai/openai.js'
-import { translateTextMarian } from '../services/ai/marian.js'
+import { translateTextMarian, activateMarian, getMarianStatus } from '../services/ai/marian.js'
 import { offlineService } from '../services/ai/offline.js'
 import { findReferencesRule } from '../services/ai/scriptureDetection.js'
 import { scriptureStore } from '../services/scriptureStore.js'
@@ -157,6 +157,26 @@ router.post('/translate', async (req: Request, res: Response) => {
     // But for robustness, maybe fallback?
     // Let's just report error for now as fallback might cost money.
     res.status(500).json({ success: false, error: 'Translation failed' })
+  }
+})
+
+router.post('/translation/activate', async (req: Request, res: Response) => {
+  try {
+    const result = await activateMarian()
+    res.json({ success: true, data: result })
+  } catch (err) {
+    console.error('Activate translation error:', err)
+    res.status(500).json({ success: false, error: 'Activation failed' })
+  }
+})
+
+router.get('/translation/status', async (req: Request, res: Response) => {
+  try {
+    const result = await getMarianStatus()
+    res.json({ success: true, data: result })
+  } catch (err) {
+    console.error('Status translation error:', err)
+    res.status(500).json({ success: false, error: 'Status failed' })
   }
 })
 

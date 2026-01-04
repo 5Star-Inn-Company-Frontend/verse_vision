@@ -53,17 +53,19 @@ ipcMain.handle('go-live', async () => {
 
 ipcMain.handle('install-python', async () => {
   return new Promise((resolve, reject) => {
-    // Attempt to use winget to install Python 3.11
+    // Attempt to use winget to install Python 3.11 in a new visible window
     console.log('Attempting to install Python via winget...')
-    const child = spawn('winget', ['install', '-e', '--id', 'Python.Python.3.11'], {
+    // We use cmd /c start /wait to open a new console window so the user can see progress and interact (UAC)
+    const child = spawn('cmd.exe', ['/c', 'start', '/wait', 'winget', 'install', '-e', '--id', 'Python.Python.3.11'], {
       shell: true,
       windowsHide: false 
     })
     
     child.on('close', (code) => {
-      console.log('Winget finished with code:', code)
-      if (code === 0) resolve(true)
-      else reject(new Error('Winget exited with code ' + code))
+      console.log('Winget process finished with code:', code)
+      // We resolve true regardless because we can't easily read the exit code of the started process
+      // The user will see the output in the window.
+      resolve(true)
     })
     
     child.on('error', (err) => {

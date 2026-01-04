@@ -132,6 +132,12 @@ export default function AudioService() {
         
         const update = () => {
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') return
+            
+            // Auto-resume if suspended (common browser policy issue)
+            if (audioContextRef.current.state === 'suspended') {
+                void audioContextRef.current.resume()
+            }
+
             analyser.getByteFrequencyData(dataArray)
             
             // Calculate average volume (0-255)

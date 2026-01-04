@@ -17,7 +17,8 @@
     "build": "vite build",
     "build:server": "tsc -p api/tsconfig.json",
     "models:download": "python python/download_models.py",
-    "app:build": "npm run models:download && npm run build && npm run build:server",
+    "python:build": "python python/build_executables.py",
+    "app:build": "npm run python:build && npm run build && npm run build:server",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc --noEmit",
@@ -86,11 +87,11 @@
       "electron/**",
       "python/**/*.py",
       "python/requirements.txt",
-      "python/models/**",
+      "python/dist/**",
+      "api/data/**",
       "data/**",
       "package.json",
       "!python/build/**",
-      "!python/dist/**",
       "!python/__pycache__/**",
       "!python/*.exe",
       "!python/*.spec"
@@ -98,6 +99,7 @@
     "asar": true,
     "asarUnpack": [
       "python/**",
+      "api/data/**",
       "data/**"
     ],
     "win": {

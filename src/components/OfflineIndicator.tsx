@@ -9,7 +9,7 @@ export default function OfflineIndicator() {
 
   useEffect(() => {
     checkOfflineStatus()
-    const interval = setInterval(checkOfflineStatus, 2000)
+    const interval = setInterval(checkOfflineStatus, 20000)
     return () => clearInterval(interval)
   }, [checkOfflineStatus])
 
@@ -73,21 +73,25 @@ export default function OfflineIndicator() {
                     <>
                       <button 
                         onClick={installPython}
-                        className="underline hover:text-red-300 font-bold"
+                        className="underline hover:text-red-300 font-bold cursor-pointer"
                         title="Attempt automatic installation"
                       >
                         Auto-Install
                       </button>
                       <span className="text-gray-500">|</span>
-                      <a 
-                        href="https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe" 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="underline hover:text-red-300"
+                      <button 
+                        onClick={() => {
+                          if ((window as any).require) {
+                            (window as any).require('electron').shell.openExternal('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe')
+                          } else {
+                            window.open('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe', '_blank')
+                          }
+                        }}
+                        className="underline hover:text-red-300 font-bold cursor-pointer"
                         title="Download Python 3.11 Installer directly"
                       >
                         Manual (3.11)
-                      </a>
+                      </button>
                     </>
                  )}
                  {installError && <span className="text-[10px] text-red-400">({installError})</span>}

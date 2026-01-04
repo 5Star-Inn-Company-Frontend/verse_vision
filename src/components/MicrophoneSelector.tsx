@@ -27,6 +27,7 @@ export default function MicrophoneSelector() {
   }, [])
 
   useEffect(() => {
+    let watchdog: NodeJS.Timeout
     const handleLevel = (e: CustomEvent<number>) => {
       // Normalize 0-255 to 0-100
       const normalized = (e.detail / 255) * 100
@@ -35,9 +36,18 @@ export default function MicrophoneSelector() {
           const diff = normalized - prev
           return prev + diff * 0.5
       })
+
+      // Reset watchdog
+      clearTimeout(watchdog)
+      watchdog = setTimeout(() => {
+        setVolume(0)
+      }, 200)
     }
     window.addEventListener('audio-level', handleLevel as any)
-    return () => window.removeEventListener('audio-level', handleLevel as any)
+    return () => {
+      window.removeEventListener('audio-level', handleLevel as any)
+      clearTimeout(watchdog)
+    }
   }, [])
 
   const currentLabel = activeAudioCameraId 
@@ -76,7 +86,7 @@ export default function MicrophoneSelector() {
           <div className="flex flex-col items-start overflow-hidden flex-1">
               <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Audio Input</span>
               <div className="flex items-center gap-2 w-full">
-                  <span className="text-sm font-medium truncate text-gray-200">{currentLabel}</span>
+                  <span className="text-sm font-medium truncate text-gray-200">{currentLabel.slice(0, 35)}</span>
               </div>
           </div>
 

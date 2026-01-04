@@ -1,7 +1,21 @@
 import fs from 'fs'
 import path from 'path'
 
-const BIBLES_DIR = path.join(process.cwd(), 'api', 'data', 'bibles')
+const BIBLES_DIR = (() => {
+  // If in production (indicated by RESOURCES_PATH env var from Electron)
+  if (process.env.RESOURCES_PATH) {
+    // Check unpacked location first (preferred for speed)
+    const unpackedPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'api', 'data', 'bibles')
+    if (fs.existsSync(unpackedPath)) return unpackedPath
+
+    // Check inside ASAR
+    const asarPath = path.join(process.env.RESOURCES_PATH, 'app.asar', 'api', 'data', 'bibles')
+    if (fs.existsSync(asarPath)) return asarPath
+  }
+
+  // Fallback to dev path relative to cwd
+  return path.join(process.cwd(), 'api', 'data', 'bibles')
+})()
 
 export type BibleVerse = {
   text: string

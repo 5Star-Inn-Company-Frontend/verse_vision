@@ -3,20 +3,20 @@ import sys
 import json
 import os
 import re
-import requests
 import difflib
 
 # Configuration
 MODEL_SIZE = "base" # Reverted to base as small requires download and we are offline
 
 if getattr(sys, 'frozen', False):
-    # If frozen with PyInstaller, use the executable's directory
-    BASE_DIR = os.path.dirname(sys.executable)
+    # If frozen with PyInstaller, use the internal directory (sys._MEIPASS)
+    # This works for both onefile and onedir (pointing to _internal in onedir)
+    BASE_DIR = sys._MEIPASS
+    DATA_DIR = os.path.join(BASE_DIR, "bibles_data")
 else:
     # Otherwise use the script's directory
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-DATA_DIR = os.path.join(BASE_DIR, "..", "api", "data", "bibles")
+    DATA_DIR = os.path.join(BASE_DIR, "..", "api", "data", "bibles")
 
 # Metadata for display/logging
 VERSION_METADATA = {
@@ -187,7 +187,14 @@ def load_whisper():
         sys.stderr.flush()
         
         # Run on CPU with INT8 for compatibility/speed on average hardware
-        model = WhisperModel(model_path, device="cpu", compute_type="int8")
+        # Fallback to float32 if int8 fails (common on some Mac/CPU configs)
+        try:
+            model = WhisperModel(model_path, device="cpu", compute_type="int8")
+        except Exception as e:
+            print(f"Warning: INT8 loading failed ({e}), falling back to float32...", file=sys.stderr)
+            sys.stderr.flush()
+            model = WhisperModel(model_path, device="cpu", compute_type="float32")
+            
         print("Whisper model loaded.", file=sys.stderr)
         sys.stderr.flush()
     except Exception as e:
