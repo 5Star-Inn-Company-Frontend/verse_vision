@@ -32,3 +32,4 @@ data/versevision.sqlite
 
 # AI Models
 python/models/
+python/build/

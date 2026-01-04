@@ -2,10 +2,17 @@ import os
 import sys
 import shutil
 from faster_whisper import download_model
-import ctranslate2
-import transformers
 
 def download_and_convert_marian(model_name, output_dir):
+    try:
+        import ctranslate2
+        import transformers
+        from transformers import AutoTokenizer
+    except ImportError:
+        print("Error: 'transformers' or 'ctranslate2' module not found. Please install them to download Marian models.")
+        print("Run: pip install transformers ctranslate2 torch")
+        return
+
     print(f"Converting {model_name} to CTranslate2 format at {output_dir}...")
     if os.path.exists(output_dir):
         print(f"Model {model_name} already exists at {output_dir}")
