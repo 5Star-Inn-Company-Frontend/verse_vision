@@ -64,7 +64,6 @@ def main():
         "PyInstaller",
         "--noconfirm",
         "--onedir",
-        "--clean",
         "--name", "offline_server",
         "--distpath", dist_dir,
         "--workpath", work_dir,
