@@ -29,6 +29,7 @@ api/uploads
 *.sw?
 .vite
 data/versevision.sqlite
+marketing/
 
 # AI Models
 python/models/

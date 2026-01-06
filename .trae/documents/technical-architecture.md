@@ -30,22 +30,26 @@ src/
 ### 2. AI/ML Services Layer
 
 #### Speech Recognition Service
-- **Engine**: OpenAI Whisper (Proxied via Cloud Backend for paid plans, local fallback if offline/allowed).
-- **Model**: whisper-large-v3 for high accuracy
-- **Processing**: Real-time audio streaming with chunk-based transcription
-- **Performance**: <500ms latency for scripture detection
+- **Engine**: `faster-whisper` (optimized implementation of OpenAI Whisper).
+- **Model**: `medium` or `large-v3` (quantized for CPU/GPU inference).
+- **Processing**: Real-time audio streaming with VAD (Voice Activity Detection).
+- **Performance**: <500ms latency on standard consumer hardware.
 
 #### Scripture Detection Service
-- **NLP Framework**: Custom BERT-based model or OpenAI GPT-4o (Proxied via Cloud).
-- **Pattern Matching**: Regex patterns for explicit references + ML for implicit
-- **Context Analysis**: Sentence-level classification for biblical vs casual speech
-- **Training Data**: Curated dataset of sermon transcripts with labeled references
+- **NLP Framework**: Regex pattern matching + Contextual keyword analysis.
+- **Pattern Matching**: Detects "Book Chapter:Verse" patterns in transcribed text.
+- **Context Analysis**: Filters false positives based on surrounding context.
+- **Data**: Local SQLite database for rapid verse retrieval.
 
 #### Translation Service
-- **Engine**: MarianMT models for offline translation or OpenAI (Proxied via Cloud).
-- **Languages**: Yoruba, Hausa, Igbo, French
-- **Specialization**: Fine-tuned on religious/biblical terminology
-- **Performance**: <1 second latency, 90%+ accuracy
+- **Engine**: Marian NMT models running on `ctranslate2`.
+- **Architecture**: **On-Demand Download**. Models are not bundled to save space.
+- **Process**: 
+  1. User selects a language (e.g., French).
+  2. System checks for local model presence.
+  3. If missing, downloads model components from Hugging Face.
+  4. Initializes translator in a separate thread.
+- **Performance**: <1 second latency, offline capability after download.
 
 ### 3. Video Processing Layer
 
@@ -122,9 +126,11 @@ src/
 ```json
 {
   "dependencies": {
-    "electron": "^25.0.0",
-    "whisper": "^1.0.0",
+    "python": "^3.10.0",
+    "faster-whisper": "^1.0.0",
+    "ctranslate2": "^4.0.0",
     "transformers": "^4.30.0",
+    "torch": "^2.0.0",
     "ffmpeg-static": "^5.2.0",
     "sqlite3": "^5.1.0",
     "websocket": "^1.0.34"

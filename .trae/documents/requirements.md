@@ -141,13 +141,13 @@ VerseVision is an intelligent worship media management platform that combines pr
 ### Technology Stack Recommendations
 
 #### Backend
-- **Application Framework**: Electron (cross-platform desktop) or Native (C++/Rust)
+- **Application Framework**: Electron (main process) + Python (AI subprocess)
 - **AI/ML Framework**: 
-  - Speech Recognition: Whisper (OpenAI) or Google Speech-to-Text
-  - NLP for scripture detection: spaCy or custom BERT-based model
-  - Translation: MarianMT or Google Translate API
-- **Database**: SQLite (scripture database), PostgreSQL (user data)
-- **Video Processing**: FFmpeg, GStreamer, or custom DirectShow/AVFoundation
+  - Speech Recognition: `faster-whisper` (optimized local inference)
+  - NLP for scripture detection: Regex + Keyword matching (Python)
+  - Translation: Marian NMT via `ctranslate2` (Offline capable)
+- **Database**: SQLite (scripture database), Electron Store (settings)
+- **Video Processing**: FFmpeg, WebRTC
 
 #### Frontend
 - **UI Framework**: React or Vue.js (if using Electron), Qt (if native)
@@ -167,7 +167,10 @@ VerseVision is an intelligent worship media management platform that combines pr
 - **RAM**: 16GB
 - **GPU**: Dedicated GPU with 4GB VRAM
 - **Storage**: 10GB free space
-- **Network**: 100 Mbps LAN
+- **Network**: 
+  - 100 Mbps LAN for camera streaming
+  - **Internet Access**: Required for initial app install and **one-time download of translation models**.
+
 
 #### Recommended Specifications
 - **CPU**: Intel i7 10th gen / AMD Ryzen 7 5800X
