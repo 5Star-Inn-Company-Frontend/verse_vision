@@ -15,32 +15,48 @@ class AiController extends Controller
         // Validation and file handling
         $request->validate([
             'file' => 'required|file|mimes:mp3,wav,m4a,mp4,webm',
+            'engine' => 'nullable|string|in:openai,elevenlabs',
         ]);
 
         $startTime = microtime(true);
+        $engine = $request->input('engine', 'openai');
+        $response = null;
+        $model = '';
 
-        // Proxy to OpenAI
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-        ])->attach(
-            'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
-        )->withoutVerifying()->post('https://api.openai.com/v1/audio/transcriptions', [
-            'model' => 'whisper-1',
-            'response_format' => 'json',
-        ]);
+        if ($engine === 'elevenlabs') {
+            $model = 'scribe_v1';
+            $response = Http::withHeaders([
+                'xi-api-key' => env('ELEVENLABS_API_KEY'),
+            ])->attach(
+                'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
+            )->post('https://api.elevenlabs.io/v1/speech-to-text', [
+                'model_id' => $model,
+            ]);
+        } else {
+            $model = 'whisper-1';
+            // Proxy to OpenAI
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            ])->attach(
+                'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
+            )->withoutVerifying()->post('https://api.openai.com/v1/audio/transcriptions', [
+                'model' => $model,
+                'response_format' => 'json',
+            ]);
+        }
 
         $duration = (microtime(true) - $startTime) * 1000;
 
         $data = $response->json();
-        Log::info($request->title ."===Transcribe===".json_encode($data));
+        Log::info($request->title ."===Transcribe ($engine)===".json_encode($data));
 
         // Log request
         AiLog::create([
             'user_id' => $request->user()->id,
             'request_type' => 'transcription',
-            'model' => 'whisper-1',
+            'model' => $model,
             'duration_ms' => $duration,
-            'meta' => ['status' => $response->status()],
+            'meta' => ['status' => $response->status(), 'engine' => $engine],
         ]);
 
         return $response->json();
