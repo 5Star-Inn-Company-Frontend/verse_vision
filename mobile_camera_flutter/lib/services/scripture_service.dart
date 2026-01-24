@@ -143,9 +143,9 @@ class ScriptureService {
     );
 
     final RegExp scriptureRegex = RegExp(
-      r'((?:[1-3]\s)?[a-zA-Z]+(?:\s[a-zA-Z]+)*)\s+'
+      r'((?:[1-3]\s)?[a-zA-Z]+(?:\s(?!chapter\b)[a-zA-Z]+)*)\s+'
       r'(?:chapter\s+)?(\d+)' // Chapter
-      r'(?:[\s:]*(?:verse)?[\s:]*(\d+)(?:-(\d+))?)?', // Verse (handles : or space or "verse")
+      r'(?:[\s:.,]*(?:verse)?[\s:.,]*(\d+)(?:-(\d+))?)?', // Verse (handles : or space or "verse" and punctuation)
       caseSensitive: false,
     );
 
@@ -338,6 +338,9 @@ class ScriptureService {
 
   String _normalizeSermonSyntax(String text) {
     text = text.toLowerCase();
+
+    // Remove punctuation that interferes with parsing (commas, periods)
+    text = text.replaceAll(RegExp(r'[,\.]'), ' ');
 
     // Remove common prefixes
     text = text.replaceAll(RegExp(r'\bbook of\b'), '');
