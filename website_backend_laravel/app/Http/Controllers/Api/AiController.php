@@ -31,7 +31,7 @@ class AiController extends Controller
                 'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
             )->post('https://api.elevenlabs.io/v1/speech-to-text', [
                 'model_id' => $model,
-                'tag_audio_events' => false,
+                'tag_audio_events' => 'false',
             ]);
         } else {
             $model = 'whisper-1';
