@@ -8,12 +8,20 @@ dependencies:
   flutter:
     sdk: flutter
   camera: ^0.11.3
-  http: ^1.2.2
-  mobile_scanner: ^7.1.3
+  http: ^1.6.0
+  mobile_scanner: ^7.1.4
   flutter_webrtc: ^1.2.1
-  shared_preferences: ^2.5.1
-  battery_plus: ^6.2.1
-  wakelock_plus: ^1.2.10
+  shared_preferences: ^2.5.4
+  battery_plus: ^7.0.0
+  wakelock_plus: ^1.4.0
+  google_fonts: ^7.1.0
+  path_provider: ^2.1.5
+  record: ^6.1.2
+  permission_handler: ^11.3.1
+
+dependency_overrides:
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -28,3 +36,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/bible_kjv.json

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:versevision_camera/screens/standalone.dart';
 
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onConnect;
@@ -112,6 +113,38 @@ class WelcomeScreen extends StatelessWidget {
               ],
               
               const SizedBox(height: 24),
+              
+              // Standalone Mode Button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StandaloneScreen(
+                          onBack: () => Navigator.pop(context),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.mic, color: Color(0xFFA78BFA)), // Violet 400
+                  label: const Text(
+                    'Verse Companion',
+                    style: TextStyle(color: Color(0xFFA78BFA), fontSize: 16),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: const Color(0xFF7C3AED).withOpacity(0.3)),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
               TextButton(
                 onPressed: onSettings,
                 style: TextButton.styleFrom(foregroundColor: Colors.grey[500]),
