@@ -37,3 +37,4 @@ flutter:
   assets:
     - assets/
     - assets/bible_kjv.json
+    - assets/bibles/

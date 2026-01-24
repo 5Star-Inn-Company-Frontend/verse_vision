@@ -8,7 +8,9 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/cloud_api_service.dart';
+import '../services/scripture_service.dart';
 
 class StandaloneScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -22,6 +24,7 @@ class StandaloneScreen extends StatefulWidget {
 class _StandaloneScreenState extends State<StandaloneScreen> {
   // Cloud API Service
   final CloudApiService _cloudService = CloudApiService();
+  final ScriptureService _scriptureService = ScriptureService();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   bool _isListeningSession = false;
@@ -29,13 +32,12 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   String _transcriptionBuffer = '';
   String _statusText = 'Tap mic to start';
   
-  // Bible Data
-  Map<String, dynamic> _bibleData = {};
   bool _isLoadingBible = true;
   
   // Detection State
   String? _detectedVerseText;
   String? _detectedReference;
+  ScriptureResult? _currentScriptureResult;
   bool _isProcessingCloud = false;
   List<String> _savedScriptures = [];
 
@@ -50,7 +52,92 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
     super.initState();
     _initServices();
     _loadBibleData();
+    _loadSavedScriptures();
+    _checkFirstTimeUser();
     WakelockPlus.enable();
+  }
+
+  Future<void> _checkFirstTimeUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasSeenGuide = prefs.getBool('has_seen_welcome_guide') ?? false;
+
+    if (!hasSeenGuide && mounted) {
+      // Delay slightly to ensure context is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _showWelcomeGuide();
+      });
+    }
+  }
+
+  void _showWelcomeGuide() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1B4B), // Indigo 950
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF7C3AED), width: 1)),
+        title: Text(
+          'Welcome to Verse Companion',
+          style: GoogleFonts.inter(
+              color: Colors.white, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildGuideItem(Icons.mic, 'Tap the microphone to start listening.'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.record_voice_over,
+                'Speak a scripture reference (e.g., "John 3:16").'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.auto_stories,
+                'The app will transcribe and display the verse automatically.'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.book,
+                'Change Bible versions using the book icon at the top.'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.bookmark,
+                'Save your favorite detected verses for later.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('has_seen_welcome_guide', true);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(
+              'Get Started',
+              style: GoogleFonts.inter(
+                color: const Color(0xFFA78BFA), // Violet 400
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideItem(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: const Color(0xFFA78BFA), size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -73,8 +160,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
   Future<void> _loadBibleData() async {
     try {
-      final String response = await rootBundle.loadString('assets/bible_kjv.json');
-      _bibleData = json.decode(response);
+      await _scriptureService.init();
     } catch (e) {
       print('Error loading Bible data: $e');
       if (mounted) {
@@ -158,150 +244,113 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   }
 
   Future<void> _recordLoop() async {
-    if (!_isListeningSession) return;
+  if (!_isListeningSession) return;
 
-    try {
-      final tempDir = await getTemporaryDirectory();
-      // Use timestamp to avoid file locking issues
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${tempDir.path}/chunk_$timestamp.m4a';
+  try {
+    final tempDir = await getTemporaryDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filePath = '${tempDir.path}/chunk_$timestamp.m4a';
 
-      const config = RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        sampleRate: 44100,
-        bitRate: 64000, // Lower bitrate for faster upload
-      );
-
-      // Start Recording
-      await _audioRecorder.start(config, path: filePath);
-
-      // Wait for chunk duration (e.g., 4 seconds)
-      // We check _isListeningSession every second to allow faster stopping
-      for (int i = 0; i < 40; i++) {
-        if (!_isListeningSession) break;
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-
-      // Stop Recording
-      final path = await _audioRecorder.stop();
-
-      // If we are still listening, immediately start next loop
-      // The processing happens in background
-      if (_isListeningSession) {
-        _recordLoop();
-      } else {
-        setState(() => _statusText = 'Tap mic to start');
-      }
-
-      // Process the chunk
-      if (path != null) {
-        _processAudioChunk(File(path));
-      }
-
-    } catch (e) {
-      print('Record loop error: $e');
-      if (_isListeningSession) {
-        // Retry after short delay if error
-        await Future.delayed(const Duration(seconds: 1));
-        _recordLoop();
-      }
-    }
-  }
-
-  Future<void> _processAudioChunk(File audioFile) async {
-    if (!await audioFile.exists()) return;
-
-    try {
-      setState(() => _isProcessingCloud = true);
-      
-      // Upload to Cloud
-      final text = await _cloudService.transcribe(audioFile, engine: 'elevenlabs');
-
-      // Delete temp file to save space
-      await audioFile.delete();
-
-      if (mounted && text != null && text.trim().isNotEmpty) {
-        // Update Buffer
-        setState(() {
-          _transcriptionBuffer += " $text";
-          
-          // Smart Buffer Management: Keep last ~50 words
-          // This ensures we have enough context (e.g. "John" ... "3:16") 
-          // but prevents the buffer from growing indefinitely.
-          List<String> words = _transcriptionBuffer.trim().split(RegExp(r'\s+'));
-          if (words.length > 60) {
-            _transcriptionBuffer = words.sublist(words.length - 50).join(' ');
-          }
-          
-          _statusText = '...${text.trim()}'; // Show latest words
-        });
-
-        // Detect Scripture
-        _detectScripture(_transcriptionBuffer);
-      }
-
-    } catch (e) {
-      print('Chunk processing error: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessingCloud = false);
-      }
-    }
-  }
-
-  // Simple Regex for "Book Chapter:Verse" or "Book Chapter Verse"
-  void _detectScripture(String text) {
-    if (_bibleData.isEmpty) return;
-
-    // Pattern: (1-3)? (BookName) (Chapter) (:) (Verse)
-    final RegExp scriptureRegex = RegExp(
-      r'(\d?\s?[a-zA-Z]+)\s+(\d+)\s?[:v]?\s?(\d+)',
-      caseSensitive: false,
+    const config = RecordConfig(
+      encoder: AudioEncoder.aacLc,
+      sampleRate: 44100,
+      bitRate: 64000,
     );
 
-    // Find ALL matches to ensure we process the latest one
-    final matches = scriptureRegex.allMatches(text);
-    
-    // Iterate in reverse to prioritize the most recently spoken scripture
-    for (final match in matches.toList().reversed) {
-      String book = match.group(1)?.trim() ?? '';
-      String chapter = match.group(2) ?? '';
-      String verse = match.group(3) ?? '';
+    await _audioRecorder.start(config, path: filePath);
 
-      book = _normalizeBookName(book);
+    // 5 seconds (better for Nigerian network + speech cadence)
+    for (int i = 0; i < 50; i++) {
+      if (!_isListeningSession) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
 
-      if (_bibleData.containsKey(book)) {
-        var bookData = _bibleData[book];
-        if (bookData.containsKey(chapter)) {
-          var chapterData = bookData[chapter];
-          if (chapterData.containsKey(verse)) {
-            String scriptureText = chapterData[verse];
-            
-            // Only update if it's a new reference
-            if (_detectedReference != '$book $chapter:$verse') {
-              setState(() {
-                _detectedReference = '$book $chapter:$verse';
-                _detectedVerseText = scriptureText;
-              });
-            }
-            return; // Found the latest valid scripture, stop searching
-          }
-        }
+    final path = await _audioRecorder.stop();
+
+    if (_isListeningSession) {
+      _recordLoop(); // immediately restart
+    }
+
+    if (path != null) {
+      final file = File(path);
+
+      // 🚫 Skip silence / very small audio
+      if (file.lengthSync() > 8000) {
+        _processAudioChunk(file);
+      } else {
+        await file.delete();
       }
+    }
+  } catch (e) {
+    debugPrint('Record loop error: $e');
+    if (_isListeningSession) {
+      await Future.delayed(const Duration(seconds: 1));
+      _recordLoop();
+    }
+  }
+}
+
+
+  Future<void> _processAudioChunk(File audioFile) async {
+  try {
+    final text =
+        await _cloudService.transcribe(audioFile, engine: 'elevenlabs');
+
+    await audioFile.delete();
+
+    if (!mounted || text == null || text.trim().isEmpty) return;
+
+    setState(() {
+      _transcriptionBuffer += ' $text';
+
+      // Keep last ~50 words only
+      final words =
+          _transcriptionBuffer.trim().split(RegExp(r'\s+'));
+      if (words.length > 60) {
+        _transcriptionBuffer =
+            words.sublist(words.length - 50).join(' ');
+      }
+
+      _statusText = '...${text.trim()}';
+    });
+
+    _detectScripture(_transcriptionBuffer);
+  } catch (e) {
+    debugPrint('Chunk processing error: $e');
+  }
+}
+
+
+  void _detectScripture(String text) {
+    if (!_scriptureService.isLoaded) return;
+
+    final result = _scriptureService.detectScripture(text);
+    if (result != null) {
+      _updateVerse(result);
     }
   }
 
-  String _normalizeBookName(String input) {
-    if (input.isEmpty) return input;
-    
-    if (RegExp(r'^\d').hasMatch(input)) {
-       var parts = input.split(' ');
-       if (parts.length > 1) {
-         return '${parts[0]} ${parts.sublist(1).map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase()).join(' ')}';
-       }
-    }
-    
-    return input[0].toUpperCase() + input.substring(1).toLowerCase();
+  void _updateVerse(ScriptureResult result) {
+    if (_detectedReference == result.reference && 
+        _currentScriptureResult?.version == result.version) return;
+
+    setState(() {
+      _detectedReference = result.reference;
+      _detectedVerseText = result.text;
+      _currentScriptureResult = result;
+    });
+  }
+
+  Future<void> _loadSavedScriptures() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _savedScriptures = prefs.getStringList('saved_scriptures') ?? [];
+    });
+  }
+
+  Future<void> _saveScripturesToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('saved_scriptures', _savedScriptures);
   }
 
   void _saveScripture() {
@@ -309,9 +358,41 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
       setState(() {
         _savedScriptures.add(_detectedReference!);
       });
+      _saveScripturesToPrefs();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Scripture saved to list')),
       );
+    }
+  }
+
+  Future<void> _changeBibleVersion(String version) async {
+    setState(() => _isLoadingBible = true);
+    try {
+      await _scriptureService.setVersion(version);
+      
+      // Re-fetch current scripture in new version if exists
+      if (_currentScriptureResult != null) {
+        final newResult = _scriptureService.lookupScripture(
+          _currentScriptureResult!.book,
+          _currentScriptureResult!.chapter,
+          _currentScriptureResult!.startVerse,
+          _currentScriptureResult!.endVerse,
+        );
+        
+        if (newResult != null) {
+          _updateVerse(newResult);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading $version: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBible = false);
+      }
     }
   }
 
@@ -331,10 +412,31 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
           onPressed: widget.onBack,
         ),
         title: Text(
-          'VerseVision Cloud',
+          'Verse Companion',
           style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.book, color: Colors.white),
+            onSelected: _changeBibleVersion,
+            itemBuilder: (context) {
+              return ScriptureService.availableVersions.map((v) {
+                final isSelected = v == _scriptureService.currentVersion;
+                return PopupMenuItem<String>(
+                  value: v,
+                  child: Row(
+                    children: [
+                      Text(v.toUpperCase()),
+                      if (isSelected) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.check, size: 16, color: Colors.blue),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
           if (_isLoggedIn)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -482,7 +584,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _detectedReference!,
+                                '${_detectedReference!} (${_scriptureService.currentVersion.toUpperCase()})',
                                 style: GoogleFonts.inter(
                                   fontSize: isPortrait ? 24 : 32,
                                   fontWeight: FontWeight.bold,
@@ -490,19 +592,45 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                _detectedVerseText!,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.merriweather(
-                                  fontSize: isPortrait ? 20 : 28,
-                                  color: Colors.white,
-                                  height: 1.5,
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      _detectedVerseText!,
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.merriweather(
+                                        fontSize: isPortrait ? 20 : 28,
+                                        color: Colors.white,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 24),
+                                const SizedBox(height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
+                                  PopupMenuButton<String>(
+            icon: const Icon(Icons.book, color: Colors.white),
+            onSelected: _changeBibleVersion,
+            itemBuilder: (context) {
+              return ScriptureService.availableVersions.map((v) {
+                final isSelected = v == _scriptureService.currentVersion;
+                return PopupMenuItem<String>(
+                  value: v,
+                  child: Row(
+                    children: [
+                      Text(v.toUpperCase()),
+                      if (isSelected) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.check, size: 16, color: Colors.blue),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
+          const SizedBox(width: 16),
                                   IconButton(
                                     icon: const Icon(Icons.bookmark_border, color: Colors.white70),
                                     onPressed: _saveScripture,
@@ -630,6 +758,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                                 setState(() {
                                   _savedScriptures.removeAt(index);
                                 });
+                                _saveScripturesToPrefs();
                                 Navigator.pop(context);
                                 _showSavedScriptures(context); // Refresh
                               },
