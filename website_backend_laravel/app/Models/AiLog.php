@@ -16,6 +16,7 @@ class AiLog extends Model
         'input_tokens',
         'output_tokens',
         'duration_ms',
+        'audio_duration_sec',
         'prompt_snippet',
         'meta',
     ];

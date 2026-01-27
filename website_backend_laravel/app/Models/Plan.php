@@ -17,6 +17,7 @@ class Plan extends Model
         'camera_limit',
         'allow_auto_approve',
         'translation_limit',
+        'transcription_minutes_limit',
         'allow_cloud_recording',
         'cloud_storage_gb',
         'output_resolution',

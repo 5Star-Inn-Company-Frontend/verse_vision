@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\AiLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Plan;
 
 class AiController extends Controller
 {
@@ -17,6 +18,28 @@ class AiController extends Controller
             'file' => 'required|file|mimes:mp3,wav,m4a,mp4,webm',
             'engine' => 'nullable|string|in:openai,elevenlabs',
         ]);
+
+        $user = $request->user();
+        $plan = $user?->activeSubscription?->plan;
+
+        // Check Usage Limits
+        if ($plan && isset($plan->transcription_minutes_limit) && $plan->transcription_minutes_limit !== -1) {
+             // Calculate current usage for the month (minutes)
+             $usedSeconds = AiLog::where('user_id', $user->id)
+                ->where('request_type', 'transcription')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('audio_duration_sec');
+            
+             $usedMinutes = $usedSeconds / 60;
+
+             if ($usedMinutes >= $plan->transcription_minutes_limit) {
+                 return response()->json([
+                    'error' => "Monthly transcription limit reached ({$plan->transcription_minutes_limit} mins). Please upgrade your plan.",
+                    'code' => 'TRANSCRIPTION_NOT_ALLOWED',
+                 ], 403);
+             }
+        }
 
         $startTime = microtime(true);
         $engine = $request->input('engine', 'openai');
@@ -42,7 +65,7 @@ class AiController extends Controller
                 'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
             )->withoutVerifying()->post('https://api.openai.com/v1/audio/transcriptions', [
                 'model' => $model,
-                'response_format' => 'json',
+                'response_format' => 'verbose_json',
             ]);
         }
 
@@ -51,12 +74,27 @@ class AiController extends Controller
         $data = $response->json();
         Log::info($request->title ."===Transcribe ($engine)===".json_encode($data));
 
+        // Calculate Audio Duration for Usage Tracking
+        $audioDurationSec = 0;
+        if ($engine === 'openai') {
+             $audioDurationSec = $data['duration'] ?? 0;
+        } elseif ($engine === 'elevenlabs') {
+             // Estimate duration from file size (assuming ~128kbps = 16KB/s)
+             try {
+                $size = filesize($request->file('file')->path());
+                $audioDurationSec = $size / 16000; 
+             } catch (\Exception $e) {
+                $audioDurationSec = 10; // Fallback
+             }
+        }
+
         // Log request
         AiLog::create([
             'user_id' => $request->user()->id,
             'request_type' => 'transcription',
             'model' => $model,
             'duration_ms' => $duration,
+            'audio_duration_sec' => $audioDurationSec,
             'meta' => ['status' => $response->status(), 'engine' => $engine, 'model' => $model, 'text' => $data['text'] ?? ''],
         ]);
 

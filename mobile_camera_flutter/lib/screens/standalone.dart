@@ -307,12 +307,13 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
     await audioFile.delete();
 
-    if (!mounted || text == null || text.trim().isEmpty) return;
+    if (!mounted) return;
+
+    if (text == null || text.trim().isEmpty) return;
 
     setState(() {
       _transcriptionBuffer += ' $text';
 
-      // Keep last ~50 words only
       final words =
           _transcriptionBuffer.trim().split(RegExp(r'\s+'));
       if (words.length > 60) {
@@ -324,6 +325,42 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
     });
 
     _detectScripture(_transcriptionBuffer);
+  } on CloudTranscriptionException catch (e) {
+    if (!mounted) return;
+    _isListeningSession = false;
+    _statusText = 'Plan limit reached';
+    await _audioRecorder.stop();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1B4B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF7C3AED), width: 1),
+          ),
+          title: Text(
+            'Upgrade Required',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            e.message,
+            style: GoogleFonts.inter(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   } catch (e) {
     debugPrint('Chunk processing error: $e');
   }

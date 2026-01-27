@@ -80,18 +80,36 @@ class CloudApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Assuming response structure: { "text": "..." } or { "data": { "text": "..." } }
-        // Based on AiController: return $response->json(); which returns OpenAI/ElevenLabs format.
-        // OpenAI: { "text": "..." }
-        // ElevenLabs: { "text": "..." }
         return data['text']; 
-      } else {
-        print('Transcribe error: ${response.statusCode} ${response.body}');
-        return null;
       }
+
+      if (response.statusCode == 403) {
+        try {
+          final data = jsonDecode(response.body);
+          if (data['code'] == 'TRANSCRIPTION_NOT_ALLOWED') {
+            throw CloudTranscriptionException(
+              message: data['error'] ?? 'Cloud transcription not available on your plan.',
+              code: data['code'],
+            );
+          }
+        } catch (_) {}
+      }
+
+      print('Transcribe error: ${response.statusCode} ${response.body}');
+      return null;
     } catch (e) {
       print('Transcribe exception: $e');
       return null;
     }
   }
+}
+
+class CloudTranscriptionException implements Exception {
+  final String message;
+  final String? code;
+
+  CloudTranscriptionException({required this.message, this.code});
+
+  @override
+  String toString() => 'CloudTranscriptionException($code): $message';
 }
