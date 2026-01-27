@@ -103,6 +103,9 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
             const SizedBox(height: 12),
             _buildGuideItem(Icons.bookmark,
                 'Save your favorite detected verses for later.'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.history,
+                'View and share your session history anytime.'),
           ],
         ),
         actions: [
@@ -877,16 +880,30 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                               _savedScriptures[index],
                               style: const TextStyle(color: Colors.white),
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.white54),
-                              onPressed: () {
-                                setState(() {
-                                  _savedScriptures.removeAt(index);
-                                });
-                                _saveScripturesToPrefs();
-                                Navigator.pop(context);
-                                _showSavedScriptures(context); // Refresh
-                              },
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.copy, color: Colors.white54),
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: _savedScriptures[index]));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Scripture reference copied')),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.white54),
+                                  onPressed: () {
+                                    setState(() {
+                                      _savedScriptures.removeAt(index);
+                                    });
+                                    _saveScripturesToPrefs();
+                                    Navigator.pop(context);
+                                    _showSavedScriptures(context); // Refresh
+                                  },
+                                ),
+                              ],
                             ),
                           );
                         },
