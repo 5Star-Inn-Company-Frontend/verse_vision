@@ -84,21 +84,52 @@ class CloudApiService {
       }
 
       if (response.statusCode == 403) {
+        dynamic data;
         try {
-          final data = jsonDecode(response.body);
-          if (data['code'] == 'TRANSCRIPTION_NOT_ALLOWED') {
-            throw CloudTranscriptionException(
-              message: data['error'] ?? 'Cloud transcription not available on your plan.',
-              code: data['code'],
-            );
-          }
+          data = jsonDecode(response.body);
         } catch (_) {}
+
+        if (data is Map && data['code'] == 'TRANSCRIPTION_NOT_ALLOWED') {
+          throw CloudTranscriptionException(
+            message: data['error'] ?? 'Cloud transcription not available on your plan.',
+            code: data['code'],
+            nextPlanSlug: data['next_plan_slug'],
+          );
+        }
       }
 
       print('Transcribe error: ${response.statusCode} ${response.body}');
       return null;
     } catch (e) {
+      if (e is CloudTranscriptionException) rethrow;
       print('Transcribe exception: $e');
+      return null;
+    }
+  }
+
+  Future<String?> initializeSubscription(String planSlug) async {
+    if (_token == null) return null;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/subscription/initialize'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'plan_slug': planSlug}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['authorization_url'];
+      }
+
+      print('Subscription init error: ${response.statusCode} ${response.body}');
+      return null;
+    } catch (e) {
+      print('Subscription init exception: $e');
       return null;
     }
   }
@@ -107,8 +138,9 @@ class CloudApiService {
 class CloudTranscriptionException implements Exception {
   final String message;
   final String? code;
+  final String? nextPlanSlug;
 
-  CloudTranscriptionException({required this.message, this.code});
+  CloudTranscriptionException({required this.message, this.code, this.nextPlanSlug});
 
   @override
   String toString() => 'CloudTranscriptionException($code): $message';

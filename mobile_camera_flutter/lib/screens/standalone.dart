@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/cloud_api_service.dart';
 import '../services/scripture_service.dart';
 
@@ -326,11 +327,13 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
     _detectScripture(_transcriptionBuffer);
   } on CloudTranscriptionException catch (e) {
-    if (!mounted) return;
-    _isListeningSession = false;
-    _statusText = 'Plan limit reached';
-    await _audioRecorder.stop();
-    showDialog(
+      if (!mounted) return;
+      setState(() {
+        _isListeningSession = false;
+        _statusText = 'Plan limit reached';
+      });
+      await _audioRecorder.stop();
+      showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -356,6 +359,35 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                 Navigator.of(context).pop();
               },
               child: const Text('Close', style: TextStyle(color: Colors.white)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                // Use the next plan slug from the exception, or fallback
+                final upgradePlanSlug = e.nextPlanSlug ?? 'professional'; 
+                
+                final url = await _cloudService.initializeSubscription(upgradePlanSlug);
+                if (url != null) {
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                     if (!context.mounted) return;
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not launch payment page')),
+                    );
+                  }
+                } else {
+                   if (!context.mounted) return;
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to initialize upgrade')),
+                  );
+                }
+              },
+              child: const Text('Upgrade Now'),
             ),
           ],
         );

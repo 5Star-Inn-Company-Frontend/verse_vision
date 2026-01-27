@@ -34,9 +34,15 @@ class AiController extends Controller
              $usedMinutes = $usedSeconds / 60;
 
              if ($usedMinutes >= $plan->transcription_minutes_limit) {
+                 $nextPlan = Plan::where('price', '>', $plan->price)
+                     ->orderBy('price', 'asc')
+                     ->first();
+
                  return response()->json([
                     'error' => "Monthly transcription limit reached ({$plan->transcription_minutes_limit} mins). Please upgrade your plan.",
                     'code' => 'TRANSCRIPTION_NOT_ALLOWED',
+                    'next_plan_slug' => $nextPlan?->slug,
+                    'current_plan_slug' => $plan?->slug,
                  ], 403);
              }
         }
