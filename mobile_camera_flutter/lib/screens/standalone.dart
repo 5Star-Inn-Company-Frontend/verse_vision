@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/cloud_api_service.dart';
 import '../services/scripture_service.dart';
 
@@ -40,6 +41,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   ScriptureResult? _currentScriptureResult;
   bool _isProcessingCloud = false;
   List<String> _savedScriptures = [];
+  List<String> _sessionHistory = [];
 
   // Login State
   final TextEditingController _emailController = TextEditingController();
@@ -226,6 +228,9 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
         _statusText = 'Stopping...';
       });
       await _audioRecorder.stop();
+      if (mounted) {
+        _showSessionSummary();
+      }
     } else {
       // Start the loop
       if (await Permission.microphone.request().isGranted) {
@@ -233,6 +238,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
           _isListeningSession = true;
           _statusText = 'Listening...';
           _transcriptionBuffer = ''; // Clear buffer on new session
+          _sessionHistory = [];
         });
         _recordLoop();
       } else {
@@ -338,6 +344,11 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
       _detectedReference = result.reference;
       _detectedVerseText = result.text;
       _currentScriptureResult = result;
+      if (result.reference.isNotEmpty) {
+        if (_sessionHistory.isEmpty || _sessionHistory.last != result.reference) {
+          _sessionHistory.add(result.reference);
+        }
+      }
     });
   }
 
@@ -363,6 +374,114 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
         const SnackBar(content: Text('Scripture saved to list')),
       );
     }
+  }
+
+  String _buildSessionSummaryText() {
+    final seen = <String>{};
+    final ordered = <String>[];
+    for (final r in _sessionHistory) {
+      if (!seen.contains(r)) {
+        seen.add(r);
+        ordered.add(r);
+      }
+    }
+    return ordered.isEmpty ? '' : 'VerseVision heard these: ${ordered.join(', ')}';
+  }
+
+  Future<void> _saveCurrentSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getStringList('session_history_saved') ?? [];
+    final now = DateTime.now().toIso8601String();
+    final entry = jsonEncode({'time': now, 'items': _sessionHistory});
+    existing.add(entry);
+    await prefs.setStringList('session_history_saved', existing);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session saved')),
+      );
+    }
+  }
+
+  void _showSessionSummary() {
+    final summary = _buildSessionSummaryText();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1B4B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF7C3AED), width: 1),
+          ),
+          title: Text(
+            'Session Summary',
+            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (summary.isNotEmpty)
+                  Text(summary, style: GoogleFonts.inter(color: Colors.white70)),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _sessionHistory.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          _sessionHistory[index],
+                          style: GoogleFonts.inter(color: Colors.white),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _saveCurrentSession();
+              },
+              child: const Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                final text = _buildSessionSummaryText();
+                if (text.isNotEmpty) {
+                  Clipboard.setData(ClipboardData(text: text));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied to clipboard')),
+                  );
+                }
+              },
+              child: const Text('Copy'),
+            ),
+            TextButton(
+              onPressed: () {
+                final text = _buildSessionSummaryText();
+                if (text.isNotEmpty) {
+                  Share.share(text);
+                }
+              },
+              child: const Text('Share'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _changeBibleVersion(String version) async {
@@ -404,7 +523,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A), // Slate 900
-      appBar: AppBar(
+      appBar: !isPortrait ? null  :AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -446,6 +565,12 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
             icon: const Icon(Icons.bookmarks, color: Colors.white),
             onPressed: () {
               _showSavedScriptures(context);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.history, color: Colors.white),
+            onPressed: () {
+              _showSessionSummary();
             },
           ),
         ],
@@ -586,19 +711,19 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                               Text(
                                 '${_detectedReference!} (${_scriptureService.currentVersion.toUpperCase()})',
                                 style: GoogleFonts.inter(
-                                  fontSize: isPortrait ? 24 : 32,
+                                  fontSize: isPortrait ? 24 : 28,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFFA78BFA), // Violet 400
                                 ),
                               ),
                               const SizedBox(height: 16),
-                                Expanded(
+                                Flexible(
                                   child: SingleChildScrollView(
                                     child: Text(
                                       _detectedVerseText!,
                                       textAlign: TextAlign.center,
                                       style: GoogleFonts.merriweather(
-                                        fontSize: isPortrait ? 20 : 28,
+                                        fontSize: isPortrait ? 20 : 24,
                                         color: Colors.white,
                                         height: 1.5,
                                       ),
@@ -606,28 +731,28 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 24),
-                              Row(
+                              !isPortrait ? Container() : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   PopupMenuButton<String>(
-            icon: const Icon(Icons.book, color: Colors.white),
-            onSelected: _changeBibleVersion,
-            itemBuilder: (context) {
-              return ScriptureService.availableVersions.map((v) {
-                final isSelected = v == _scriptureService.currentVersion;
-                return PopupMenuItem<String>(
-                  value: v,
-                  child: Row(
-                    children: [
-                      Text(v.toUpperCase()),
-                      if (isSelected) ...[
-                        const SizedBox(width: 8),
-                        const Icon(Icons.check, size: 16, color: Colors.blue),
-                      ],
-                    ],
-                  ),
-                );
-              }).toList();
+                                  icon: const Icon(Icons.book, color: Colors.white),
+                                  onSelected: _changeBibleVersion,
+                                  itemBuilder: (context) {
+                                    return ScriptureService.availableVersions.map((v) {
+                                      final isSelected = v == _scriptureService.currentVersion;
+                                      return PopupMenuItem<String>(
+                                        value: v,
+                                        child: Row(
+                                          children: [
+                                            Text(v.toUpperCase()),
+                                            if (isSelected) ...[
+                                              const SizedBox(width: 8),
+                                              const Icon(Icons.check, size: 16, color: Colors.blue),
+                                            ],
+                                          ],
+                                        ),
+                                      );
+                                    }).toList();
             },
           ),
           const SizedBox(width: 16),
