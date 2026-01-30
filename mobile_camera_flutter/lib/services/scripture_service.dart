@@ -108,11 +108,17 @@ class ScriptureService {
 
     final verseStart = start;
     final verseEnd = end ?? start;
+    final bool isRange = verseEnd > verseStart;
 
     String combined = '';
     for (int v = verseStart; v <= verseEnd; v++) {
       if (chapterData.containsKey(v.toString())) {
-        combined += '${chapterData[v.toString()]} ';
+        if (isRange) {
+          // Add superscript-like verse number for ranges
+          combined += '$v ${chapterData[v.toString()]} ';
+        } else {
+          combined += '${chapterData[v.toString()]} ';
+        }
       }
     }
 
