@@ -14,6 +14,15 @@ class CloudApiService {
 
   bool get isLoggedIn => _token != null;
 
+  bool get isFreePlan {
+    if (_user == null) return true;
+    final subscription = _user!['active_subscription'];
+    if (subscription == null) return true;
+    final plan = subscription['plan'];
+    if (plan == null) return true;
+    return plan['slug'] == 'starter';
+  }
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(_tokenKey);

@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/cloud_api_service.dart';
 import '../services/scripture_service.dart';
+import '../services/local_transcription_service.dart';
 
 class StandaloneScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -27,9 +28,11 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   // Cloud API Service
   final CloudApiService _cloudService = CloudApiService();
   final ScriptureService _scriptureService = ScriptureService();
+  final LocalTranscriptionService _localService = LocalTranscriptionService();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   bool _isListeningSession = false;
+  bool _useCloud = false;
   // bool _isProcessingAudio = false; // Removed as we use _isProcessingCloud
   String _transcriptionBuffer = '';
   String _statusText = 'Tap mic to start';
@@ -148,6 +151,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
   @override
   void dispose() {
+    _localService.cancel();
     _audioRecorder.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -157,6 +161,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
   Future<void> _initServices() async {
     await _cloudService.init();
+    await _localService.init();
     if (mounted) {
       setState(() {
         _isLoggedIn = _cloudService.isLoggedIn;
@@ -232,6 +237,8 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
         _statusText = 'Stopping...';
       });
       await _audioRecorder.stop();
+      await _localService.stopListening();
+      
       if (mounted) {
         _showSessionSummary();
       }
@@ -240,17 +247,54 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
       if (await Permission.microphone.request().isGranted) {
         setState(() {
           _isListeningSession = true;
-          _statusText = 'Listening...';
           _transcriptionBuffer = ''; // Clear buffer on new session
           _sessionHistory = [];
         });
-        _recordLoop();
+
+        if (_useCloud) {
+          setState(() => _statusText = 'Listening (Cloud)...');
+          _recordLoop();
+        } else {
+          _startLocalListening();
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Microphone permission required')),
         );
       }
     }
+  }
+
+  Future<void> _startLocalListening() async {
+    await _localService.startListening(
+      onResult: (text) {
+        if (!mounted || !_isListeningSession) return;
+        setState(() {
+          _transcriptionBuffer = text;
+          _statusText = '...$text';
+        });
+        _detectScripture(text);
+      },
+      onStatus: (status) {
+        if (!mounted) return;
+        
+        if (_isListeningSession) {
+           if (status == 'listening') {
+             setState(() => _statusText = 'Listening (Local)...');
+           } else if (status == 'notListening' || status == 'done') {
+             // Restart loop if session is still active
+             if (_isListeningSession && !_useCloud) {
+                // Delay slightly to prevent rapid loops
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted && _isListeningSession && !_useCloud) {
+                    _startLocalListening();
+                  }
+                });
+             }
+           }
+        }
+      },
+    );
   }
 
   Future<void> _recordLoop() async {
@@ -269,9 +313,17 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
 
     await _audioRecorder.start(config, path: filePath);
 
-    // 5 seconds (better for Nigerian network + speech cadence)
+    double maxAmplitude = -160.0;
+
+    // 5 seconds
     for (int i = 0; i < 50; i++) {
       if (!_isListeningSession) break;
+      
+      try {
+        final amp = await _audioRecorder.getAmplitude();
+        if (amp.current > maxAmplitude) maxAmplitude = amp.current;
+      } catch (_) {}
+
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
@@ -284,8 +336,8 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
     if (path != null) {
       final file = File(path);
 
-      // 🚫 Skip silence / very small audio
-      if (file.lengthSync() > 8000) {
+      // VAD: Skip silence (threshold approx -45 dB)
+      if (maxAmplitude > -45.0 && file.lengthSync() > 4000) {
         _processAudioChunk(file);
       } else {
         await file.delete();
@@ -603,7 +655,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
           onPressed: widget.onBack,
         ),
         title: Text(
-          'Verse Companion',
+          'V. Companion',
           style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -628,6 +680,25 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
               }).toList();
             },
           ),
+          if (_isLoggedIn)
+            IconButton(
+              icon: Icon(_useCloud ? Icons.cloud : Icons.cloud_off, color: Colors.white),
+              tooltip: _useCloud ? 'Switch to Local' : 'Switch to Cloud',
+              onPressed: () {
+                setState(() {
+                  _useCloud = !_useCloud;
+                  if (_isListeningSession) {
+                     _isListeningSession = false;
+                     _audioRecorder.stop(); 
+                     _localService.stopListening();
+                     _statusText = 'Mode changed. Tap mic to start.';
+                  }
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Switched to ${_useCloud ? "Cloud" : "Local"} Transcription')),
+                );
+              },
+            ),
           if (_isLoggedIn)
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -701,6 +772,8 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            Text("New user? An account will be automatically created. Please remember your password.", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -783,7 +856,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                               Text(
                                 '${_detectedReference!} (${_scriptureService.currentVersion.toUpperCase()})',
                                 style: GoogleFonts.inter(
-                                  fontSize: isPortrait ? 24 : 28,
+                                  fontSize: isPortrait ? 24 : 32,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFFA78BFA), // Violet 400
                                 ),
@@ -871,7 +944,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
             ),
 
             // Bottom Controls
-            Expanded(
+            _detectedVerseText != null ? Container() :  Expanded(
               flex: 1,
               child: Container(
                 padding: const EdgeInsets.only(bottom: 32),
