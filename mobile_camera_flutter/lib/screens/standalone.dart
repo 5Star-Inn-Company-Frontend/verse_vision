@@ -52,6 +52,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoggingIn = false;
   bool _isLoggedIn = false;
+  Timer? _restartTimer;
 
   @override
   void initState() {
@@ -94,7 +95,9 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildGuideItem(Icons.mic, 'Tap the microphone to start listening.'),
+            _buildGuideItem(Icons.mic, 'Tap the microphone to start listening (Local mode is default).'),
+            const SizedBox(height: 12),
+            _buildGuideItem(Icons.cloud_off, 'Toggle between Cloud and Local transcription using the cloud icon.'),
             const SizedBox(height: 12),
             _buildGuideItem(Icons.record_voice_over,
                 'Speak a scripture reference (e.g., "John 3:16").'),
@@ -284,9 +287,11 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
            } else if (status == 'notListening' || status == 'done') {
              // Restart loop if session is still active
              if (_isListeningSession && !_useCloud) {
-                // Delay slightly to prevent rapid loops
-                Future.delayed(const Duration(milliseconds: 500), () {
+                // Cancel any pending restart to prevent double-firing
+                _restartTimer?.cancel();
+                _restartTimer = Timer(const Duration(milliseconds: 1000), () {
                   if (mounted && _isListeningSession && !_useCloud) {
+                    debugPrint('Auto-restarting local listening...');
                     _startLocalListening();
                   }
                 });
@@ -527,6 +532,8 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
   }
 
   void _showSessionSummary() {
+    if (_sessionHistory.isEmpty) return;
+
     final summary = _buildSessionSummaryText();
     showDialog(
       context: context,

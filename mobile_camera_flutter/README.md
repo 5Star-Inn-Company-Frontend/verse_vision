@@ -1,171 +1,143 @@
-# VerseVision Camera (Mobile)
+# VerseVision Mobile (Camera & Companion)
 
-High-quality mobile camera app for VerseVision. Streams over WebRTC, pairs via QR code or manual settings, and reports battery and signal to the VerseVision platform.
+A dual-purpose mobile application for the VerseVision ecosystem. It serves as both a high-quality **WebRTC Camera Source** for the VerseVision desktop platform and a **Standalone Verse Companion** for personal scripture transcription and study.
 
-## Overview
+## Features Overview
 
-The app turns a phone into a live camera source for VerseVision:
-- Pair to the VerseVision server (QR or manual)
-- Start the camera feed (WebRTC)
-- Send heartbeats with battery and Wi‑Fi signal strength
-- Control resolution, frame rate, audio, and camera facing
+### 1. Verse Companion (Standalone Mode)
+A personal assistant that listens to speech (sermons, conversations) and automatically detects and displays referenced Bible verses.
 
-## Architecture & Flow
+- **Real-time Transcription**:
+  - **Local Mode (Default)**: Uses on-device speech recognition (offline, free, unlimited).
+  - **Cloud Mode**: Uses advanced AI (ElevenLabs) for high-accuracy transcription (requires subscription).
+- **Scripture Detection**: Automatically identifies Bible references (e.g., "John 3:16") and displays the text.
+- **Multi-Version Support**: Switch between KJV, NKJV, NIV, ESV, and CSB.
+- **Session History**:
+  - View a log of all detected verses in the current session.
+  - Save favorite verses to a persistent list.
+  - Copy or share session summaries.
+- **Smart Features**:
+  - **Voice Activity Detection (VAD)**: Filters out silence to save battery and data.
+  - **Continuous Listening**: Automatically restarts listening loop in local mode.
+  - **Subscription Management**: Handles Free vs Professional plans with in-app upgrade flows.
 
-1. Pairing
-   - Scan a QR code or enter server URL/token manually.
-   - Registers with backend: `POST /api/camera/register` with `token`, `deviceId`, `name`.
-   - Persists connection info using `shared_preferences`.
+### 2. VerseVision Camera (WebRTC Mode)
+Turns your phone into a live camera source for the VerseVision desktop platform.
 
-2. Status & Heartbeat
-   - Reads battery via `battery_plus` or platform channel fallback.
-   - Reads Wi‑Fi RSSI via platform `MethodChannel('versevision/device')`.
-   - Sends heartbeat every 15s: `POST /api/camera/heartbeat` with `{ token, battery, signal }`.
+- **High-Quality Streaming**: WebRTC-based video/audio streaming.
+- **Easy Pairing**: Scan a QR code from the desktop app to connect.
+- **Remote Monitoring**: Reports battery level and Wi-Fi signal strength to the desktop.
+- **Controls**: Toggle resolution (720p/1080p), frame rate (30/60fps), and camera facing.
+- **OLED Saver**: "Lock" screen mode to save battery while streaming.
 
-3. Signaling & Streaming
-   - Fetches ICE servers: `GET /api/webrtc/config`.
-   - Connects to the signaling WebSocket at `ws(s)://<server-host>/ws`.
-   - Responds to offers with answers; sends ICE candidates.
-   - Captures media with chosen resolution and frame rate and streams via `flutter_webrtc`.
+---
 
-## UI Screens
+## Architecture & Flows
 
-- Welcome: connect via QR or go to Settings; reconnect if a saved connection exists.
-- QR Scan: uses `mobile_scanner` to parse server/token/device/name from QR.
-- Connected: shows server, battery, network, resolution; start feed.
-- Camera: live preview with overlays, controls (Settings, Lock, Flip, Grid), stats, duration.
-- Lock: black screen to save battery (OLED‑friendly).
-- Settings: camera name, server URL, resolution (1080p/720p), frame rate (30/60 fps), audio streaming toggle.
+### Verse Companion (Standalone)
+- **Transcription**:
+  - **Local**: Uses `speech_to_text` package for continuous on-device recognition.
+  - **Cloud**: Records audio chunks using `record`, filters silence via amplitude analysis, and sends to `POST /api/ai/transcribe`.
+- **Scripture Lookup**:
+  - Regex-based parsing of transcribed text.
+  - Local JSON Bible data for instant text retrieval.
+- **State Management**:
+  - `StandaloneScreen` manages the listening state, UI updates, and mode switching.
+  - `LocalTranscriptionService` handles the continuous speech recognition loop.
+
+### VerseVision Camera (WebRTC)
+- **Signaling**: Connects to `ws(s)://<server-host>/ws` for WebRTC negotiation.
+- **Peer Connection**: Uses `flutter_webrtc` for media streaming.
+- **Heartbeat**: Sends status updates every 15s via `POST /api/camera/heartbeat`.
+
+---
 
 ## Dependencies
 
-Defined in `pubspec.yaml`:
-- `camera`, `flutter_webrtc`, `http`, `mobile_scanner`, `shared_preferences`, `battery_plus`, `wakelock_plus`, `flutter_launcher_icons`
+Key packages defined in `pubspec.yaml`:
 
-## Setup
+- **Core**: `http`, `shared_preferences`, `permission_handler`
+- **Camera/Streaming**: `camera`, `flutter_webrtc`, `mobile_scanner`, `wakelock_plus`
+- **Transcription/Audio**: `speech_to_text`, `record`, `url_launcher`
+- **System**: `battery_plus`, `flutter_launcher_icons`
 
-1. Install Flutter SDK (3.x).
-2. Fetch packages:
+---
+
+## Setup & Installation
+
+1. **Install Flutter SDK** (3.x).
+2. **Get Dependencies**:
    ```bash
    flutter pub get
    ```
-3. Optional: generate launcher icons (uses `assets/icon.png`):
-   ```bash
-   flutter pub run flutter_launcher_icons
-   ```
-4. Run the app on a device:
+3. **Run on Device**:
    ```bash
    flutter run
    ```
 
-## Pairing Instructions
+### Permissions
+The app requires the following permissions:
+- **Microphone**: For transcription and audio streaming.
+- **Camera**: For WebRTC streaming and QR scanning.
+- **Internet**: For server communication and cloud transcription.
+- **Wake Lock**: To keep the screen/process active during sessions.
 
-### Option A: QR Code (Recommended)
-- Open the VerseVision desktop app and show the camera pairing QR.
-- The QR may encode either a URL with query params or JSON. Supported formats:
-  - URL: `https://host:port?server=http://<server>&token=<token>&deviceId=<id>&name=<cameraName>`
-  - JSON: `{ "server": "http://<server>", "token": "<token>", "deviceId": "<id>", "name": "<cameraName>" }`
-- Scan the code; the app will save the connection and attempt pairing automatically.
+---
 
-### Option B: Manual
-- Go to Settings and set:
-  - `Camera Name`
-  - `Server URL` (e.g., `http://192.168.1.184:3001`)
-- Return to Welcome and tap `Connect to Platform` to scan a token or provide one as text.
+## Usage Guide
 
-## Starting a Live Feed
+### Verse Companion (Standalone)
+1. **Start**: Launch app and tap "Verse Companion" (or "Standalone Mode").
+2. **Listen**: Tap the microphone icon.
+   - **Default**: Starts in **Local Mode** (offline icon).
+   - **Switch**: Tap the Cloud/Local toggle button in the top bar to switch modes.
+3. **Login**: Required for Cloud Mode. Enter credentials to access professional features.
+4. **History**: Tap the History icon to view/save/share detected verses.
 
-1. After pairing, open `Connected` and tap `Start Camera Feed`.
-2. The app will:
-   - Enable wakelock
-   - Open WebSocket signaling (`/ws`)
-   - Capture media with chosen constraints
-   - Create a `RTCPeerConnection` and send tracks
-   - Handle remote offer and reply with an answer
-3. Use `Flip` to switch front/back cameras, `Grid` to toggle overlay, `Lock` to save battery.
+### VerseVision Camera (Pairing)
+1. **Pairing**:
+   - Open VerseVision Desktop > Camera Source > "Add Camera".
+   - Scan the QR code with this app.
+   - Or enter URL/Token manually in Settings.
+2. **Streaming**:
+   - Once connected, tap "Start Camera Feed".
+   - Use "Flip" to switch cameras or "Lock" to save screen power.
 
-## Heartbeat & Status Reporting
-
-- Interval: 15 seconds
-- Payload: `{ token, battery: 0-100, signal: 0-4 }`
-- Signal mapping:
-  - `WiFi Strong` → `4`
-  - `WiFi Medium` → `3`
-  - `WiFi Weak` → `2`
-  - Unknown/Other → `0`
-- Battery is read via `battery_plus` with a platform channel fallback.
-
-## Permissions
-
-Android `AndroidManifest.xml` includes:
-- `ACCESS_WIFI_STATE`, `ACCESS_NETWORK_STATE`
-
-In addition, the app requires (typically added by plugins or should be added if missing):
-- `INTERNET` (streaming, signaling)
-- `CAMERA` (capture)
-- `RECORD_AUDIO` (if audio streaming is enabled)
-- `WAKE_LOCK` (prevent sleep during streaming)
+---
 
 ## Build & Release
 
-Android (APK):
+**Android (APK)**:
 ```bash
 flutter build apk --release
 ```
 
-iOS:
-- Open `ios/` in Xcode and configure signing.
-- Build via Xcode or:
+**iOS**:
 ```bash
 flutter build ios --release
 ```
 
 ## Troubleshooting
 
-- Cannot connect:
-  - Verify `Server URL` is reachable from the phone (same network).
-  - Check firewall rules for `HTTP` and `WebSocket` ports.
-  - Confirm token is valid and not expired.
-- No video:
-  - Ensure camera permission is granted.
-  - Try switching camera (`Flip`).
-- No audio:
-  - Enable `Audio Streaming` in Settings and grant microphone permission.
-- Signal shows `0`:
-  - Wi‑Fi RSSI may be unavailable on some devices; move closer to AP.
+- **Microphone stops in Local Mode**: The app automatically attempts to restart the listening loop. Ensure the app is in the foreground.
+- **Cloud Mode "Plan Limit"**: If you hit the Free tier limit, upgrade via the dialog or switch to Local Mode (unlimited).
+- **Connection Issues**: Ensure phone and desktop are on the same network (for Camera mode) or have internet access (for Cloud transcription).
 
-## Data Usage & Privacy
+---
 
-What the app collects and uses:
-- Video and optionally audio: captured locally and streamed to VerseVision via WebRTC.
-- Device info you provide: `name`, `server URL`, `token`, and generated `deviceId` to identify the camera.
-- Operational metrics: battery level (0–100) and Wi‑Fi signal (0–4) sent in heartbeats.
+## Privacy & Data
 
-Where data is stored:
-- On device: `server`, `token`, `deviceId`, and `name` in `SharedPreferences` for reconnect convenience.
-- On server: camera registration details and latest battery/signal in the platform database for monitoring.
+- **Audio**:
+  - **Local Mode**: Processed entirely on-device. No audio leaves your phone.
+  - **Cloud Mode**: Short audio chunks are sent to the secure API for transcription and immediately discarded after processing.
+- **Camera**: Video is streamed directly to your paired VerseVision desktop instance via WebRTC (P2P where possible).
+- **Personal Data**: We store email/token for login and session history locally on your device.
 
-How data is transmitted and protected:
-- Streaming uses WebRTC with DTLS‑SRTP encryption between peers; signaling occurs over WebSocket.
-- Tokens authenticate camera registration and heartbeats.
-
-What we do NOT collect:
-- No contacts, messages, GPS location, or files from your device.
-- No background data beyond heartbeats and streaming while the app is active.
-
-Usage purpose:
-- Operate live streaming and provide status monitoring to operators (battery, connectivity).
-- Improve reliability by adjusting settings and identifying connection issues.
-
-Retention & control:
-- Device‑side settings persist until you clear app data.
-- Server‑side metrics are retained to show camera status; you may request removal by clearing the camera registration.
-
-Third parties:
-- Data is not sold to third parties. WebRTC may use public STUN/TURN services for connectivity if configured.
+---
 
 ## Code References
 
-- Heartbeat & status: `lib/services/webrtc_service.dart` (pairing, heartbeat, battery, connectivity)
-- WebRTC setup: `lib/services/webrtc_service.dart` (ICE config, signaling, peer connection)
-- UI screens: `lib/screens/*` (`welcome.dart`, `qr.dart`, `connected.dart`, `camera.dart`, `lock.dart`, `settings.dart`)
+- **Standalone/Companion**: `lib/screens/standalone.dart`
+- **Transcription Services**: `lib/services/local_transcription_service.dart`, `lib/services/cloud_api_service.dart`
+- **WebRTC/Camera**: `lib/services/webrtc_service.dart`
+- **Scripture Logic**: `lib/services/scripture_service.dart`

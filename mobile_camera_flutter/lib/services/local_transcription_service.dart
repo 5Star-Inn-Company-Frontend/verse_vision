@@ -45,8 +45,8 @@ class LocalTranscriptionService {
              onResult(result.recognizedWords);
           }
         },
-        // listenFor: const Duration(seconds: 60),
-        // pauseFor: const Duration(seconds: 10),
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 10),
         listenOptions: options
       );
       // onStatus('Listening (Local)...'); // Removed as status is now handled via listener
