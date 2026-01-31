@@ -866,7 +866,7 @@ class _StandaloneScreenState extends State<StandaloneScreen> {
                                   child: SingleChildScrollView(
                                     child: Text(
                                       _detectedVerseText!,
-                                      textAlign: TextAlign.center,
+                                      textAlign: TextAlign.left,
                                       style: GoogleFonts.merriweather(
                                         fontSize: isPortrait ? 20 : 24,
                                         color: Colors.white,

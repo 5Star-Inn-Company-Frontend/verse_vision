@@ -34,17 +34,20 @@ class LocalTranscriptionService {
     if (!_isInitialized) await init();
     
     if (_isInitialized) {
+      SpeechListenOptions options =SpeechListenOptions(
+        listenMode: ListenMode.dictation,
+        partialResults: true,
+        cancelOnError: false
+      );
       await _speechToText.listen(
         onResult: (SpeechRecognitionResult result) {
           if (result.finalResult || result.alternates.isNotEmpty) {
              onResult(result.recognizedWords);
           }
         },
-        listenFor: const Duration(seconds: 60),
-        pauseFor: const Duration(seconds: 10),
-        partialResults: true,
-        cancelOnError: false,
-        listenMode: ListenMode.dictation,
+        // listenFor: const Duration(seconds: 60),
+        // pauseFor: const Duration(seconds: 10),
+        listenOptions: options
       );
       // onStatus('Listening (Local)...'); // Removed as status is now handled via listener
     }

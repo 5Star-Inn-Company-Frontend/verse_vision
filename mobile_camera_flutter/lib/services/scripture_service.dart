@@ -359,9 +359,11 @@ class ScriptureService {
       String combined = '';
       int actualEnd = start;
 
+      final bool isRange = end > start;
+
       for (int v = start; v <= end; v++) {
         if (chapterData.containsKey(v.toString())) {
-          combined += '${chapterData[v.toString()]} ';
+          combined += showBibleVerse(v, chapterData[v.toString()]!, isRange);
           actualEnd = v;
         }
       }
@@ -423,9 +425,11 @@ class ScriptureService {
                   final end = verseEnd != null ? int.parse(verseEnd) : start;
 
                   String combined = '';
+                  final bool isRange = end > start;
+
                   for (int v = start; v <= end; v++) {
                     if (chapterData.containsKey(v.toString())) {
-                      combined += '${chapterData[v.toString()]} ';
+                      combined += showBibleVerse(v, chapterData[v.toString()]!, isRange);
                     }
                   }
 
@@ -471,10 +475,11 @@ class ScriptureService {
                           
                           String combined = '';
                           int actualEnd = start;
+                          final bool isRange = end > start;
                           
                           for (int v = start; v <= end; v++) {
                             if (chapterData.containsKey(v.toString())) {
-                              combined += '${chapterData[v.toString()]} ';
+                              combined += showBibleVerse(v, chapterData[v.toString()]!, isRange);
                               actualEnd = v;
                             }
                           }
@@ -557,7 +562,6 @@ class ScriptureService {
     'matt': 'Matthew',
     'mk': 'Mark',
     'lk': 'Luke',
-    'jn': 'John',
     'rom': 'Romans',
     'cor': 'Corinthians',
     'gal': 'Galatians',
@@ -792,4 +796,15 @@ class ScriptureService {
 
     return text.trim();
   }
+
+  String showBibleVerse(int v, String verse, bool isRange){
+    String combined = '';
+    if (isRange) {
+        combined += '$v: $verse \n';
+    } else {
+        combined += '$verse ';
+    }
+    return combined;
+  }
+
 }
