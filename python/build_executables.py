@@ -12,24 +12,17 @@ def main():
     
     # Clean previous builds
     if os.path.exists(dist_dir):
-        try:
-            shutil.rmtree(dist_dir)
-        except Exception:
-            shutil.rmtree(dist_dir, ignore_errors=True)
+        shutil.rmtree(dist_dir)
     if os.path.exists(work_dir):
-        try:
-            shutil.rmtree(work_dir)
-        except Exception:
-            shutil.rmtree(work_dir, ignore_errors=True)
+        shutil.rmtree(work_dir)
         
     os.makedirs(dist_dir, exist_ok=True)
     
-    # Ensure Whisper models exist (download only Whisper)
+    # Check for models
     models_dir = os.path.join(base_dir, "models")
     if not os.path.exists(models_dir):
-        os.makedirs(models_dir, exist_ok=True)
-    print("Ensuring Whisper models are present...")
-    subprocess.run([sys.executable, os.path.join(base_dir, "download_models.py")], check=True)
+        print("WARNING: Models directory not found. Running download_models.py...")
+        subprocess.run([sys.executable, os.path.join(base_dir, "download_models.py")], check=True)
     
     # Get faster_whisper path to include assets
     import faster_whisper
@@ -64,6 +57,7 @@ def main():
         "PyInstaller",
         "--noconfirm",
         "--onedir",
+        "--clean",
         "--name", "offline_server",
         "--distpath", dist_dir,
         "--workpath", work_dir,
@@ -80,8 +74,37 @@ def main():
     
     subprocess.run(cmd, check=True)
     
-    # Do NOT build marian_server to keep distribution small
-    print("Build complete (offline_server only).")
+    # Build marian_server
+    print("Building marian_server...")
+    
+    # Prepare marian model paths
+    marian_models_args = []
+    for item in os.listdir(models_dir):
+        if item.startswith("marian"):
+            src = os.path.join(models_dir, item)
+            dst = os.path.join("models", item)
+            marian_models_args.extend(["--add-data", f"{src}{sep}{dst}"])
+    
+    cmd_marian = [
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--onedir",
+        "--clean",
+        "--name", "marian_server",
+        "--distpath", dist_dir,
+        "--workpath", work_dir,
+        "--specpath", base_dir,
+        # Add marian models
+        *marian_models_args,
+        
+        os.path.join(base_dir, "marian_server.py")
+    ]
+    
+    subprocess.run(cmd_marian, check=True)
+    
+    print("Build complete.")
 
 if __name__ == "__main__":
     main()

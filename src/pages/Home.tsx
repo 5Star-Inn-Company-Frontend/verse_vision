@@ -41,15 +41,17 @@ export default function Home() {
         </div>
         <div className="text-xs text-gray-400">Preview • Program • Status OK</div>
       </header>
-      <main className="flex-1 container mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
-        <section className="lg:col-span-2 flex flex-col h-full overflow-hidden">
-          <ProgramPreview className="h-full w-full" />
-        </section>
-        <section className="lg:col-span-1 h-full overflow-y-auto space-y-4 pr-2">
-          <MicrophoneSelector />
-          <div className="h-64 shrink-0">
+      <main className="flex-1 container mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
+        <section className="flex flex-col h-full overflow-hidden gap-4">
+          <div className="h-1/2 min-h-0">
+            <ProgramPreview className="h-full w-full" />
+          </div>
+          <div className="h-1/2 min-h-0">
             <ScriptureApprovalQueue />
           </div>
+        </section>
+        <section className="h-full overflow-y-auto space-y-4 pr-2">
+          <MicrophoneSelector />
           <SettingsPanel />
           <UtilityPanel />
           {panelTranslationVisible && <TranslationPanel />}

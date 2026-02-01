@@ -11,7 +11,7 @@ class OfflineService {
   public status: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' | 'installing_deps' | 'python_missing' = 'stopped'
   public details: string = ''
 
-  private mode: 'script' | 'binary' = 'script'
+  private mode: 'script' = 'script'
   private hasTriedInstall = false
   private retryCount = 0
   private pythonCmd: string = 'python'
@@ -138,65 +138,35 @@ class OfflineService {
 
   private async start() {
     this.status = 'starting'
-    this.details = 'Checking AI Engine...'
+    this.details = 'Checking Python installation...'
     
-    // Check for bundled executable first
-    let execPath: string | null = null
-    const exeName = process.platform === 'win32' ? 'offline_server.exe' : 'offline_server'
-    
-    // Dev path
-    const devExe = path.resolve(process.cwd(), 'python/dist/offline_server', exeName)
-    if (fs.existsSync(devExe)) {
-        execPath = devExe
-    }
-    
-    // Prod path
-    if (process.env.RESOURCES_PATH) {
-        const prodExe = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'dist', 'offline_server', exeName)
-        if (fs.existsSync(prodExe)) {
-            execPath = prodExe
-        }
+    console.log("samji Starting checkPython")
+    const hasPython = await this.checkPython()
+    console.log("samji checkPython",hasPython)
+    if (!hasPython) {
+        this.status = 'python_missing'
+        this.details = 'Python 3.10+ is required. Please install it to use Offline AI.'
+        return
     }
 
+    this.details = 'Initializing process...'
+    
     let cmd: string
     let args: string[]
-
-    if (execPath) {
-        console.log('Starting Offline AI service (executable):', execPath)
-        cmd = execPath
-        args = []
-        this.mode = 'binary'
-        this.details = 'Initializing bundled AI Engine...'
-    } else {
-        // Fallback to script mode
-        this.mode = 'script'
-        this.details = 'Checking Python installation...'
-        
-        console.log("Starting checkPython")
-        const hasPython = await this.checkPython()
-        console.log("checkPython", hasPython)
-        
-        if (!hasPython) {
-            this.status = 'python_missing'
-            this.details = 'Python 3.10+ is required. Please install it to use Offline AI.'
-            return
+    
+    // Always use script mode now
+    let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
+    if (process.env.RESOURCES_PATH) {
+        const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'offline_server.py')
+        if (fs.existsSync(prodPath)) {
+        scriptPath = prodPath
         }
-
-        this.details = 'Initializing process...'
-        
-        let scriptPath = path.resolve(process.cwd(), 'python/offline_server.py')
-        if (process.env.RESOURCES_PATH) {
-            const prodPath = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'offline_server.py')
-            if (fs.existsSync(prodPath)) {
-                scriptPath = prodPath
-            }
-        }
-        
-        console.log('Starting Offline AI service (script):', scriptPath)
-        cmd = this.pythonCmd
-        const usePyLauncher = process.platform === 'win32' && cmd === 'py'
-        args = usePyLauncher ? ['-3', scriptPath] : [scriptPath]
     }
+    
+    console.log('Starting Offline AI service (script):', scriptPath)
+    cmd = this.pythonCmd
+    const usePyLauncher = process.platform === 'win32' && cmd === 'py'
+    args = usePyLauncher ? ['-3', scriptPath] : [scriptPath]
     
     this.process = spawn(cmd, args)
 
@@ -236,7 +206,7 @@ class OfflineService {
       } else if (msg.includes('Whisper model loaded')) {
         this.status = 'ready'
         this.details = 'AI Model Ready'
-      } else if (msg.includes('Error') || msg.toLowerCase().includes('traceback') || msg.includes('Library not loaded')) {
+      } else if (msg.includes('Error')) {
          // Keep last status but update details unless it's a fatal error?
          // If it's a download error, maybe set to error.
          if (msg.includes('downloading') || msg.includes('loading')) {
@@ -267,19 +237,8 @@ class OfflineService {
         }
 
         this.status = 'error'
-        
-        // Check if the current details message is useful (an error) or just a progress update
-        const isProgressMessage = this.details.startsWith('Loading') || 
-                                  this.details.startsWith('Initializing') || 
-                                  this.details.startsWith('Downloading') || 
-                                  this.details.startsWith('Checking');
-
-        // Only overwrite details if it doesn't already contain a specific error
-        if (isProgressMessage && !this.details.includes('Error') && !this.details.includes('failed')) {
-             this.details = `Process exited (code ${code}). Ensure Python 3 and required packages are installed.`
-        } else {
-             this.details += ` (Exit Code: ${code})`
-        }
+        // Common cause: Python not found or dependencies missing
+        this.details = `Process exited (code ${code}). Ensure Python 3 and required packages are installed.`
       } else {
         this.status = 'stopped'
         this.details = `Process exited (code ${code})`

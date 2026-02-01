@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import HelpModal from './HelpModal'
 
 export default function ScriptureApprovalQueue() {
-  const { scriptureQueue, approveScripture, rejectScripture, loadQueue, updateScripture, autoApproveEnabled, autoApproveDelayMs } = useOperatorStore()
+  const { scriptureQueue, approveScripture, rejectScripture, loadQueue, updateScripture, autoApproveEnabled, autoApproveDelayMs, currentScripture } = useOperatorStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<{ reference: string; translation: string }>({ reference: '', translation: '' })
   const [showHelp, setShowHelp] = useState(false)
@@ -17,6 +17,52 @@ export default function ScriptureApprovalQueue() {
   const timers = useRef<Record<string, number>>({})
   const deadlines = useRef<Record<string, number>>({})
   const [, force] = useState(0)
+  const [navigating, setNavigating] = useState(false)
+  const [chapterVerses, setChapterVerses] = useState<Record<string, string> | null>(null)
+  const [showChapterVerses, setShowChapterVerses] = useState(false)
+
+  const handleNavigate = async (direction: 'prev' | 'next' | number) => {
+    if (!currentScripture || !currentScripture.reference) return
+    setNavigating(true)
+    try {
+      const match = currentScripture.reference.match(/^((?:\d\s)?[A-Za-z\s]+)\s(\d+):(\d+)$/)
+      if (!match) return
+
+      const [, book, chapter, verse] = match
+      let nextVerse: number
+
+      if (typeof direction === 'number') {
+        nextVerse = direction
+      } else {
+        const currentVerse = parseInt(verse, 10)
+        nextVerse = direction === 'next' ? currentVerse + 1 : Math.max(1, currentVerse - 1)
+      }
+      
+      const newReference = `${book.trim()} ${chapter}:${nextVerse}`
+      const translation = currentScripture.translation || 'KJV'
+
+      const result = await api.addManualScripture({ reference: newReference, translation })
+      await loadQueue()
+      const queue = await api.getQueue()
+      const item = queue.find((q: any) => q.reference === newReference)
+      if (item) approveScripture(item.id)
+    } catch (e) {
+      console.error('Navigation failed:', e)
+    } finally {
+      setNavigating(false)
+    }
+  }
+
+  useEffect(() => {
+    if (currentScripture && currentScripture.reference && showChapterVerses) {
+      const match = currentScripture.reference.match(/^((?:\d\s)?[A-Za-z\s]+)\s(\d+):(\d+)$/)
+      if (match) {
+        const [, book, chapter] = match
+        api.getChapter(currentScripture.translation || 'KJV', book.trim(), chapter)
+          .then(data => setChapterVerses(data))
+      }
+    }
+  }, [currentScripture?.reference, currentScripture?.translation, showChapterVerses])
 
   useEffect(() => {
     void loadQueue()
@@ -87,9 +133,62 @@ export default function ScriptureApprovalQueue() {
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
           </button>
+          {currentScripture && currentScripture.reference !== 'Announcement' && (
+             <button 
+               onClick={() => setShowChapterVerses(!showChapterVerses)}
+               className={`transition-colors ${showChapterVerses ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+               title="Show Chapter Verses"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+             </button>
+          )}
         </div>
         <span className="text-xs text-gray-400">{scriptureQueue.length} pending</span>
       </div>
+
+      {showChapterVerses && chapterVerses && (
+        <div className="mb-2 bg-gray-800 p-2 rounded border border-gray-700 grid grid-cols-8 gap-1 max-h-32 overflow-y-auto">
+           {Object.keys(chapterVerses).sort((a,b) => parseInt(a)-parseInt(b)).map(v => (
+             <button
+               key={v}
+               onClick={() => handleNavigate(parseInt(v))}
+               disabled={navigating}
+               className={`text-[10px] py-1 rounded ${
+                 currentScripture?.reference.includes(':'+v) || currentScripture?.reference.includes(':'+v+'-')
+                   ? 'bg-blue-600 text-white font-bold' 
+                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+               }`}
+               title={chapterVerses[v]}
+             >
+               {v}
+             </button>
+           ))}
+        </div>
+      )}
+
+      {currentScripture && currentScripture.reference !== 'Announcement' && (
+        <div className="flex items-center justify-between mb-2 bg-gray-800 p-2 rounded border border-gray-700">
+          <button 
+            onClick={() => handleNavigate('prev')} 
+            disabled={navigating}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-xs text-white flex items-center gap-1 disabled:opacity-50 transition-colors"
+            title="Previous Verse"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Prev
+          </button>
+          <span className="text-xs text-blue-300 font-mono font-medium">{currentScripture.reference}</span>
+          <button 
+            onClick={() => handleNavigate('next')} 
+            disabled={navigating}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-xs text-white flex items-center gap-1 disabled:opacity-50 transition-colors"
+            title="Next Verse"
+          >
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      )}
 
       {isAdding && (
         <div className="bg-gray-800 rounded p-3 mb-2 border border-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">

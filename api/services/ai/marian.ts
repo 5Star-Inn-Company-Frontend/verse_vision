@@ -112,7 +112,7 @@ class MarianService {
     if (this.activating) return { status: 'downloading' }
     this.activating = true
     await new Promise<void>((resolve, reject) => {
-      const dl = spawn('python', [path.resolve(process.cwd(), 'python/download_models.py'), '--marian'], { stdio: ['ignore', 'pipe', 'pipe'] })
+      const dl = spawn('python', [path.resolve(process.cwd(), 'python/download_models.py')], { stdio: ['ignore', 'pipe', 'pipe'] })
       dl.on('close', (code) => {
         if (code === 0) resolve()
         else reject(new Error(`download_models exited with code ${code}`))
@@ -124,12 +124,6 @@ class MarianService {
     this.activated = true
     return { status: 'ready' }
   }
-
-  public getStatus(): { status: 'idle' | 'downloading' | 'ready' } {
-    if (this.activated && this.process) return { status: 'ready' }
-    if (this.activating) return { status: 'downloading' }
-    return { status: 'idle' }
-  }
 }
 
 export const marianService = new MarianService()
@@ -140,8 +134,4 @@ export async function translateTextMarian(text: string): Promise<{ Yoruba?: stri
 
 export async function activateMarian(): Promise<{ status: 'downloading' | 'ready' }> {
   return marianService.activate()
-}
-
-export async function getMarianStatus(): Promise<{ status: 'idle' | 'downloading' | 'ready' }> {
-  return marianService.getStatus()
 }

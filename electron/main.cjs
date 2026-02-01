@@ -53,19 +53,17 @@ ipcMain.handle('go-live', async () => {
 
 ipcMain.handle('install-python', async () => {
   return new Promise((resolve, reject) => {
-    // Attempt to use winget to install Python 3.11 in a new visible window
+    // Attempt to use winget to install Python 3.11
     console.log('Attempting to install Python via winget...')
-    // We use cmd /c start /wait to open a new console window so the user can see progress and interact (UAC)
-    const child = spawn('cmd.exe', ['/c', 'start', '/wait', 'winget', 'install', '-e', '--id', 'Python.Python.3.11'], {
+    const child = spawn('winget', ['install', '-e', '--id', 'Python.Python.3.11'], {
       shell: true,
       windowsHide: false 
     })
     
     child.on('close', (code) => {
-      console.log('Winget process finished with code:', code)
-      // We resolve true regardless because we can't easily read the exit code of the started process
-      // The user will see the output in the window.
-      resolve(true)
+      console.log('Winget finished with code:', code)
+      if (code === 0) resolve(true)
+      else reject(new Error('Winget exited with code ' + code))
     })
     
     child.on('error', (err) => {
@@ -280,41 +278,32 @@ function createWindow() {
   })
   win.loadURL(`http://localhost:${serverPort}`)
 }
-
-// IPC Handlers for Microphone Permission
-ipcMain.handle('check-mic-status', async () => {
+const checkMicrophonePermission = async () => {
   try {
     const status = systemPreferences.getMediaAccessStatus('microphone')
     console.log('Microphone status:', status)
-    return status
-  } catch (err) {
-    console.error('Failed to get microphone status:', err)
-    return 'unknown'
-  }
-})
+    
+    if (status === 'granted') return
 
-ipcMain.handle('request-mic-access', async () => {
-  try {
     if (process.platform === 'darwin') {
       const granted = await systemPreferences.askForMediaAccess('microphone')
       if (!granted) {
-        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
+        // If denied after asking, guide user to settings
+        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
       }
-      return granted ? 'granted' : 'denied'
     } else if (process.platform === 'win32') {
-      await shell.openExternal('ms-settings:privacy-microphone')
-      return 'prompted'
+      // On Windows, if not granted (and not 'not-determined' which is rare for win32 mic usually), open settings
+      // But usually on Windows it's 'granted' unless globally disabled.
+      shell.openExternal('ms-settings:privacy-microphone')
     }
-    return 'granted' // Linux or others usually handled by OS/Browser
   } catch (err) {
-    console.error('Failed to request microphone access:', err)
-    return 'error'
+    console.error('Failed to check microphone permission:', err)
   }
-})
+}
 
 app.whenReady().then(async () => {
   setupMenu()
-  // Removed automatic checkMicrophonePermission() to let UI handle it via IPC
+  await checkMicrophonePermission()
   app.setAboutPanelOptions({
     applicationName: 'VerseVision',
     applicationVersion: '1.0.0',

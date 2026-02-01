@@ -1,7 +1,2 @@
 faster-whisper
 sentencepiece
-pyinstaller
-transformers
-ctranslate2
-torch
-sacremoses

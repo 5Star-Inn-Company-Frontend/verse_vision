@@ -18,10 +18,7 @@ export function removePeer(ws: WebSocket): void {
 
 export function sendTo(id: string, payload: unknown): void {
   const sock = peers.get(id)
-  if (!sock) {
-    console.warn(`[Signaling] sendTo failed: peer ${id} not found`)
-    return
-  }
+  if (!sock) return
   try { sock.send(JSON.stringify(payload)) } catch (e) { void e }
 }
 

@@ -1,95 +1,128 @@
-# VerseVision
+# React + TypeScript + Vite
 
-VerseVision is an AI-powered tool designed for Bible study, teaching, and live worship broadcasting. It leverages advanced speech recognition and translation models to provide real-time captions and scripture detection, completely offline.
+## Mobile Camera App Flow
 
-## Features
+1. Welcome Screen
+- Beautiful gradient icon animation
+- App introduction and value proposition
+- Two main actions: `Connect to Platform` and `Settings`
 
-- **Real-time Transcription**: Uses OpenAI's Whisper model (running locally) to transcribe speech to text with high accuracy.
-- **Offline Operation**: All core features, including transcription and scripture detection, run locally on your machine without requiring an internet connection (after initial setup).
-- **Optional Translation**: Support for offline translation (e.g., English to French) using Marian NMT models.
-  - *Note: Translation models are downloaded on-demand to keep the initial app size small.*
-- **Scripture Detection**: Automatically detects Bible references in speech and displays the corresponding verses.
-- **Broadcasting Support**: 
-  - **OBS Studio**: Capture the window or use the browser source URL.
-  - **EasyWorship**: Integration via web media item or chroma key.
-  - **Lower Thirds**: Transparent background mode for professional overlays.
+2. QR Scanner Screen
+- Animated scanning frame with corner guides
+- Moving scan line animation
+- Instructions for positioning QR code
+- Simulated connection button for demo
 
-## Getting Started
+3. Connecting Screen
+- Loading state with spinning gear icon
+- `Connecting to Platform` message
+- Professional status animation
 
-### Prerequisites
+4. Connected Screen
+- Success checkmark with scale-in animation
+- Complete connection information card:
+- Camera name
+- Platform IP address
+- Connection strength (WiFi)
+- Battery level
+- Video resolution
+- Actions: `Start Camera Feed` and `Disconnect`
 
-- Node.js (v18 or higher)
-- Python 3.10+
-- `pip` (Python package manager)
+5. Camera Active Screen
+- Full-screen camera view with overlays
+- Top overlay:
+- Pulsing `STREAMING` badge (red)
+- Battery indicator (e.g., 87%)
+- WiFi signal strength
+- Center overlay:
+- Rule of thirds grid for composition
+- Bottom controls:
+- Settings button
+- Lock button (center, large, red)
+- Flip camera button
+- Stream info: Resolution, bitrate, duration
 
-### Installation
+6. Lock Screen Mode
+- Minimal power consumption interface
+- Lock icon with fade-in animation
+- Real-time statistics:
+- Battery percentage (updates)
+- Streaming duration (live timer)
+- Message: `Camera continues streaming in background`
+- Unlock button to return to camera view
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/your-repo/versevision.git
-    cd versevision
-    ```
+7. Settings Screen
+- Comprehensive settings organized in sections:
+- Camera Settings:
+- Resolution (e.g., 1080p)
+- Frame Rate (e.g., 30 fps)
+- Auto Exposure (toggle)
+- Grid Overlay (toggle)
+- Connection:
+- Camera Name
+- Connection Type (WiFi/USB)
+- Platform Status
+- Performance:
+- Low Power Mode (toggle)
+- Audio Streaming (toggle)
+- Adaptive Bitrate (toggle)
+- About:
+- App Version
+- Help & Support
+- Privacy Policy
 
-2.  Install Node.js dependencies:
-    ```bash
-    npm install
-    ```
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-3.  Install Python dependencies:
-    ```bash
-    pip install -r python/requirements.txt
-    ```
+Currently, two official plugins are available:
 
-### Development
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-To run the application in development mode:
+## Expanding the ESLint configuration
 
-```bash
-npm run dev
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default tseslint.config({
+  extends: [
+    // Remove ...tseslint.configs.recommended and replace with this
+    ...tseslint.configs.recommendedTypeChecked,
+    // Alternatively, use this for stricter rules
+    ...tseslint.configs.strictTypeChecked,
+    // Optionally, add this for stylistic rules
+    ...tseslint.configs.stylisticTypeChecked,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
 ```
 
-This command concurrently starts:
-- The React frontend (Vite)
-- The Electron main process
-- The Python offline server (if configured for dev)
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-### Building the Application
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-To build the standalone application for your platform:
-
-**Windows:**
-```bash
-npm run electron:win
+export default tseslint.config({
+  extends: [
+    // other configs...
+    // Enable lint rules for React
+    reactX.configs['recommended-typescript'],
+    // Enable lint rules for React DOM
+    reactDom.configs.recommended,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
 ```
-
-**macOS:**
-```bash
-npm run electron:mac
-```
-
-**Linux:**
-```bash
-npm run electron:linux
-```
-
-**General Build Command:**
-```bash
-npm run app:build
-```
-*This command builds the Python backend, the React frontend, and prepares the Electron assets.*
-
-## Architecture
-
-VerseVision uses a hybrid architecture:
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS.
-- **Backend**: Python (Flask/FastAPI-like structure) running `faster-whisper` and `ctranslate2` for AI tasks.
-- **Electron**: Wraps everything into a native desktop application.
-
-### Model Management
-
-- **Whisper (Transcription)**: The base model is downloaded during the build process and bundled with the app.
-- **Marian (Translation)**: These models are **optional**. Users can trigger the download from within the application interface. This reduces the installer size by ~300MB per language pair.
-
-## License
-
-MIT

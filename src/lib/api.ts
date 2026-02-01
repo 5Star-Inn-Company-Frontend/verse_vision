@@ -70,6 +70,16 @@ export const api = {
     const json = await res.json()
     return json.data || []
   },
+  getChapter: async (translation: string, book: string, chapter: string): Promise<Record<string, string> | null> => {
+    try {
+      const res = await fetch(`${BASE}/scripture/chapter?translation=${encodeURIComponent(translation)}&book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`)
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.data
+    } catch {
+      return null
+    }
+  },
   getOfflineStatus: async () => {
     try {
       const res = await fetch(`${BASE}/ai/offline/status`)

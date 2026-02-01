@@ -3,24 +3,6 @@ allprojects {
         google()
         mavenCentral()
     }
-    
-    // Ensure JCenter is removed if added by plugins
-    repositories.removeIf {
-        it is MavenArtifactRepository && it.url.toString().contains("jcenter")
-    }
-}
-
-subprojects {
-    buildscript {
-        repositories {
-            mavenCentral()
-            google()
-        }
-        // Try to remove jcenter from buildscript repos too
-        repositories.removeIf {
-            it is MavenArtifactRepository && it.url.toString().contains("jcenter")
-        }
-    }
 }
 
 val newBuildDir: Directory =

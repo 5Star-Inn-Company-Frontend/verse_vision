@@ -19,6 +19,20 @@ router.get('/current', async (req: Request, res: Response) => {
   res.json({ success: true, data })
 })
 
+router.get('/chapter', async (req: Request, res: Response) => {
+  const { translation, book, chapter } = req.query
+  if (!translation || !book || !chapter) {
+    res.status(400).json({ success: false, error: 'Missing parameters' })
+    return
+  }
+  const data = await bibleService.getChapter(String(translation), String(book), String(chapter))
+  if (!data) {
+    res.status(404).json({ success: false, error: 'Chapter not found' })
+    return
+  }
+  res.json({ success: true, data })
+})
+
 router.post('/detect', async (req: Request, res: Response) => {
   const { reference, translation, text, confidence } = req.body || {}
   

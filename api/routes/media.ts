@@ -26,7 +26,7 @@ router.post('/upload', upload.single('file'), (req: Request & { file?: { filenam
     res.status(400).json({ success: false, error: 'file required' })
     return
   }
-  const publicBase = process.env.PUBLIC_SERVER_URL || 'http://localhost:3332'
+  const publicBase = process.env.PUBLIC_SERVER_URL || 'http://localhost:3001'
   const rel = `/uploads/${req.file.filename}`
   const isVideo = (req.file.mimetype || '').startsWith('video/')
   const ext = (req.file.originalname || '').toLowerCase().split('.').pop()

@@ -7,7 +7,7 @@ let cachedConfig: RTCConfiguration | null = null
 const peers = new Map<string, RTCPeerConnection>()
 
 function sigUrl(): string {
-  if (window.location.protocol === 'file:') return 'ws://localhost:3332/ws'
+  if (window.location.protocol === 'file:') return 'ws://localhost:3001/ws'
   const u = new URL(window.location.href)
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'
   u.pathname = '/ws'

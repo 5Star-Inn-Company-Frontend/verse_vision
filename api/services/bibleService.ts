@@ -81,5 +81,26 @@ export const bibleService = {
       console.error('Error reading bible text:', e)
       return null
     }
+  },
+
+  getChapter: async (translation: string, bookName: string, chapter: string): Promise<Record<string, string> | null> => {
+    try {
+      const filePath = path.join(BIBLES_DIR, `${translation.toLowerCase()}.json`)
+      if (!fs.existsSync(filePath)) return null
+
+      const content = await fs.promises.readFile(filePath, 'utf-8')
+      const bible: BibleData = JSON.parse(content)
+
+      const bookKey = Object.keys(bible).find(k => k.toLowerCase() === bookName.toLowerCase())
+      if (!bookKey) return null
+
+      const book = bible[bookKey]
+      const chap = book[chapter]
+      
+      return chap || null
+    } catch (e) {
+      console.error('Error reading bible chapter:', e)
+      return null
+    }
   }
 }
