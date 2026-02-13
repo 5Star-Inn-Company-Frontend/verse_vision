@@ -11,7 +11,7 @@ export default function ScriptureApprovalQueue() {
   const [isAdding, setIsAdding] = useState(false)
   const [manualForm, setManualForm] = useState({ reference: '', translation: 'KJV' })
   const [addTab, setAddTab] = useState<'scripture' | 'text'>('scripture')
-  const [textForm, setTextForm] = useState({ title: '', text: '' })
+  const [textForm, setTextForm] = useState({ title: '', text: '', translate: false })
   const [addError, setAddError] = useState<string | null>(null)
   const [availableTranslations, setAvailableTranslations] = useState<string[]>([])
   const timers = useRef<Record<string, number>>({})
@@ -247,6 +247,16 @@ export default function ScriptureApprovalQueue() {
                   onChange={(e) => setTextForm({ ...textForm, text: e.target.value })}
                   placeholder="Enter text to project..."
                 />
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="manual-translate"
+                    className="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 w-3 h-3"
+                    checked={textForm.translate}
+                    onChange={(e) => setTextForm({ ...textForm, translate: e.target.checked })}
+                  />
+                  <label htmlFor="manual-translate" className="text-xs text-gray-300 cursor-pointer select-none">Translate using settings</label>
+                </div>
               </div>
             )}
 
@@ -259,7 +269,7 @@ export default function ScriptureApprovalQueue() {
                 onClick={() => {
                   setIsAdding(false)
                   setAddError(null)
-                  setTextForm({ title: '', text: '' })
+                  setTextForm({ title: '', text: '', translate: false })
                   setManualForm({ reference: '', translation: 'KJV' })
                 }}
               >
@@ -276,7 +286,7 @@ export default function ScriptureApprovalQueue() {
                       setManualForm({ reference: '', translation: 'KJV' })
                     } else {
                       await api.addManualText(textForm)
-                      setTextForm({ title: '', text: '' })
+                      setTextForm({ title: '', text: '', translate: false })
                     }
                     setIsAdding(false)
                     await loadQueue()

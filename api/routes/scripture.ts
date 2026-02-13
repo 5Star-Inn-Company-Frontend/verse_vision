@@ -46,7 +46,7 @@ router.post('/detect', async (req: Request, res: Response) => {
 })
 
 router.post('/manual-text', async (req: Request, res: Response) => {
-  const { title, text } = req.body || {}
+  const { title, text, translate } = req.body || {}
   
   if (!text) {
     res.status(400).json({ success: false, error: 'Text is required' })
@@ -55,7 +55,7 @@ router.post('/manual-text', async (req: Request, res: Response) => {
 
   const item = await scriptureStore.detect({ 
     reference: title || 'Announcement', 
-    translation: 'RAW', 
+    translation: translate ? 'MANUAL' : 'RAW', 
     text, 
     confidence: 1.0 
   })

@@ -61,7 +61,7 @@ export default function ScriptureOverlay() {
       <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
         <div className="text-white p-2 shrink-0">
           <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
-            {currentScripture.reference} • {currentScripture.translation}
+            {currentScripture.reference} {currentScripture.translation !== 'MANUAL' && `• ${currentScripture.translation}`}
           </div>
           <div className="leading-snug max-h-[40%]" style={{ fontSize: `${12 * overlayTextScale}px` }}>
             {currentScripture.text}
@@ -85,7 +85,7 @@ export default function ScriptureOverlay() {
         <div className="w-full h-full px-4 py-8 grid grid-cols-2 gap-4 overflow-y-auto">
           <div className={`text-white p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
             <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
-              {currentScripture.reference} • {currentScripture.translation}
+              {currentScripture.reference} {currentScripture.translation !== 'MANUAL' && `• ${currentScripture.translation}`}
             </div>
             <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{currentScripture.text}</div>
           </div>

@@ -10,6 +10,22 @@ class MarianService {
   private activated: boolean = false
   
   constructor() {
+    this.checkExistingModels()
+  }
+
+  private checkExistingModels() {
+    let modelsDir = path.resolve(process.cwd(), 'python/models')
+    if (process.env.RESOURCES_PATH) {
+        modelsDir = path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked', 'python', 'models')
+    }
+    
+    // Check if models exist (just checking one key directory is enough for now)
+    const multiDir = path.join(modelsDir, 'marian-multi')
+    if (fs.existsSync(multiDir) && fs.statSync(multiDir).isDirectory()) {
+        console.log('Marian models found locally. Auto-activating...')
+        this.activated = true
+        this.start()
+    }
   }
 
   private start() {
@@ -124,6 +140,12 @@ class MarianService {
     this.activated = true
     return { status: 'ready' }
   }
+
+  public getStatus(): 'idle' | 'downloading' | 'ready' {
+    if (this.activating) return 'downloading'
+    if (this.activated) return 'ready'
+    return 'idle'
+  }
 }
 
 export const marianService = new MarianService()
@@ -134,4 +156,8 @@ export async function translateTextMarian(text: string): Promise<{ Yoruba?: stri
 
 export async function activateMarian(): Promise<{ status: 'downloading' | 'ready' }> {
   return marianService.activate()
+}
+
+export async function getMarianStatus(): Promise<{ status: 'idle' | 'downloading' | 'ready' }> {
+  return { status: marianService.getStatus() }
 }

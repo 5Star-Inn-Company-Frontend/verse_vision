@@ -191,12 +191,28 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   countdownEndAt: null,
   approveScripture: async (id) => {
     const approved = await api.approve(id)
+    
+    // Auto-enable scripture overlay and disable lyrics
+    const { showScriptureOverlay, showLyricsOverlay } = get()
+    if (!showScriptureOverlay || showLyricsOverlay) {
+      await api.updateSettings({ showScriptureOverlay: true, showLyricsOverlay: false })
+      set({ showScriptureOverlay: true, showLyricsOverlay: false })
+      publish('settings', { showScriptureOverlay: true, showLyricsOverlay: false })
+    }
+
     set((state) => ({
-      scriptureQueue: state.scriptureQueue.filter((s) => s.id !== id),
-      currentScripture: approved,
-    }))
-    publish('scripture-current', approved)
-  },
+            scriptureQueue: state.scriptureQueue.filter((s) => s.id !== id),
+            currentScripture: approved,
+          }))
+          publish('scripture-current', approved)
+          
+          // Fetch translations for the approved scripture
+          if (approved.translation !== 'RAW') {
+             await get().fetchTranslations(approved.text)
+          } else {
+             set({ translations: null })
+          }
+        },
   rejectScripture: async (id) => {
     await api.reject(id)
     set((state) => ({
@@ -227,6 +243,9 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   loadCurrent: async () => {
     const current = await api.getCurrent()
     set({ currentScripture: current })
+    if (current && current.translation !== 'RAW') {
+      await get().fetchTranslations(current.text)
+    }
   },
   updateScripture: async (id, patch) => {
     const updated = await api.update(id, patch)
@@ -238,7 +257,12 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     })
     if (isCurrent) publish('scripture-current', newCurrent)
   },
-  syncScripture: (item) => set({ currentScripture: item }),
+  syncScripture: (item) => {
+    set({ currentScripture: item })
+    if (item && item.translation !== 'RAW' && item.text) {
+      get().fetchTranslations(item.text)
+    }
+  },
   loadSettings: async () => {
     const s = await api.getSettings() as Partial<import('@/../api/services/settingsStore').AppSettings>
     let plan = get().userPlan
