@@ -46,5 +46,15 @@ router.post('/current', async (req: Request, res: Response) => {
   res.json({ success: true, data: { songId: data.currentSongId ?? null, lineIndex: data.currentLineIndex ?? 0, show: data.showLyricsOverlay ?? false } })
 })
 
+router.get('/:id', async (req: Request, res: Response) => {
+  const { id } = req.params
+  const data = await lyricsStore.get(id)
+  if (!data) {
+    res.status(404).json({ success: false, error: 'not found' })
+    return
+  }
+  res.json({ success: true, data })
+})
+
 export default router
 

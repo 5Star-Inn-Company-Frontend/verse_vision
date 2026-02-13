@@ -150,13 +150,13 @@ router.post('/translate', async (req: Request, res: Response) => {
     console.log(`translate source`,text);
     console.log(`translate ${engine}`,data);
     res.json({ success: true, data })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Translation error:', err)
-    // Fallback to OpenAI or return error?
-    // If user explicitly asked for marian and it failed, we should probably report it.
-    // But for robustness, maybe fallback?
-    // Let's just report error for now as fallback might cost money.
-    res.status(500).json({ success: false, error: 'Translation failed' })
+    if (err.message === 'Translation not activated') {
+      res.status(400).json({ success: false, error: 'Offline translation not activated. Please go to Settings -> Offline AI and download the models.' })
+      return
+    }
+    res.status(500).json({ success: false, error: err.message || 'Translation failed' })
   }
 })
 

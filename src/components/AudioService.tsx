@@ -3,7 +3,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { api } from '@/lib/api'
 
 export default function AudioService() {
-  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId, showScriptureOverlay } = useOperatorStore()
+  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId, showScriptureOverlay, setLastTranscription } = useOperatorStore()
   const processingRef = useRef(false)
   const sessionRef = useRef<string>('')
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -208,6 +208,7 @@ export default function AudioService() {
         return
       }
       console.log('[AudioService] Transcribed:', text)
+      setLastTranscription(text)
 
       // 2. Combine with buffer for context (handling split references like "John" ... "3:16")
       const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()

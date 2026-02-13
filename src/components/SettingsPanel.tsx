@@ -9,7 +9,8 @@ export default function SettingsPanel() {
     iceServers, loadIceServers, updateIceServers, 
     scriptureDetectionEngine, setScriptureDetectionEngine,
     offlineStatus, offlineDetails, checkOfflineStatus,
-    cloudApiToken, setCloudToken, userPlan, setUserPlan
+    cloudApiToken, setCloudToken, userPlan, setUserPlan,
+    lastTranscription
   } = useOperatorStore()
   
   const [peers, setPeers] = useState<string[]>([])
@@ -251,6 +252,13 @@ export default function SettingsPanel() {
           >
             Offline (Local)
           </button>
+        </div>
+      </div>
+
+      <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+        <div className="text-[10px] text-gray-400 mb-1 font-bold uppercase">Live Transcription (Debug)</div>
+        <div className="text-xs text-gray-300 min-h-[20px] max-h-[60px] overflow-y-auto font-mono bg-black/30 p-1.5 rounded break-words whitespace-pre-wrap">
+           {lastTranscription || <span className="text-gray-600 italic">Listening...</span>}
         </div>
       </div>
 

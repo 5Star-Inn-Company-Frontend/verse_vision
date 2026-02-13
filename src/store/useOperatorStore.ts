@@ -98,6 +98,11 @@ type OperatorState = {
   setLyricsOverlay: (show: boolean) => Promise<void>
   toggleScriptureOverlay: (show: boolean) => Promise<void>
   setCurrentSong: (songId: string | null) => Promise<void>
+
+  // Debug/Feedback
+  lastTranscription: string
+  setLastTranscription: (text: string) => void
+
   setCurrentLineIndex: (index: number) => Promise<void>
   setCurrentLyric: (payload: { show: boolean; songId: string | null; lineIndex: number }) => Promise<void>
   loadCurrentLyric: () => Promise<void>
@@ -258,7 +263,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       scriptureDetectionEngine: s.scriptureDetectionEngine ?? get().scriptureDetectionEngine,
       translationEngine: s.translationEngine ?? get().translationEngine,
       cloudApiToken: s.cloudApiToken ?? get().cloudApiToken,
-      showScriptureOverlay: s.showScriptureOverlay ?? get().showScriptureOverlay,
+      showScriptureOverlay: (s.showScriptureOverlay ?? get().showScriptureOverlay) && !(s.showLyricsOverlay ?? get().showLyricsOverlay),
       showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay,
       overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
       overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
@@ -282,7 +287,23 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       overlayFontFamily: s.overlayFontFamily,
     })
   },
-  syncSettings: (s) => set((prev) => ({
+  syncSettings: (s) => set((prev) => {
+    // Determine target states
+    const nextScripture = s.showScriptureOverlay ?? prev.showScriptureOverlay
+    const nextLyrics = s.showLyricsOverlay ?? prev.showLyricsOverlay
+    
+    // Mutual exclusion logic for sync
+    let finalScripture = nextScripture
+    let finalLyrics = nextLyrics
+    
+    // If we receive an update to show one, we must hide the other
+    if (s.showScriptureOverlay === true) {
+      finalLyrics = false
+    } else if (s.showLyricsOverlay === true) {
+      finalScripture = false
+    }
+
+    return {
     autoApproveEnabled: s.autoApproveEnabled ?? prev.autoApproveEnabled,
     autoApproveDelayMs: s.autoApproveDelayMs ?? prev.autoApproveDelayMs,
     recordingEnabled: s.recordingEnabled ?? prev.recordingEnabled,
@@ -290,11 +311,12 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     scriptureDetectionEngine: s.scriptureDetectionEngine ?? prev.scriptureDetectionEngine,
     translationEngine: s.translationEngine ?? prev.translationEngine,
     cloudApiToken: s.cloudApiToken ?? prev.cloudApiToken,
-    showScriptureOverlay: s.showScriptureOverlay ?? prev.showScriptureOverlay,
-    overlayBackgroundColor: s.overlayBackgroundColor ?? prev.overlayBackgroundColor,
+    showScriptureOverlay: finalScripture,
+      showLyricsOverlay: finalLyrics,
+      overlayBackgroundColor: s.overlayBackgroundColor ?? prev.overlayBackgroundColor,
     overlayTextScale: s.overlayTextScale ?? prev.overlayTextScale,
     overlayFontFamily: s.overlayFontFamily ?? prev.overlayFontFamily,
-  })),
+  }}),
   updateTranslationSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({
@@ -352,15 +374,33 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   currentSongId: null,
   currentLineIndex: 0,
   currentSongLines: [],
+  
+  lastTranscription: '',
+  setLastTranscription: (text) => set({ lastTranscription: text }),
+
   setLyricsOverlay: async (show) => {
-    const s = await api.updateSettings({ showLyricsOverlay: show })
-    set({ showLyricsOverlay: s.showLyricsOverlay ?? false })
+    const patch: any = { showLyricsOverlay: show }
+    if (show) patch.showScriptureOverlay = false
+    const s = await api.updateSettings(patch)
+    set({ 
+      showLyricsOverlay: s.showLyricsOverlay ?? false,
+      showScriptureOverlay: (s.showScriptureOverlay ?? get().showScriptureOverlay) && !(s.showLyricsOverlay ?? false)
+    })
     publish('lyric-current', { show: s.showLyricsOverlay ?? false, songId: get().currentSongId, lineIndex: get().currentLineIndex })
+    if (show) publish('settings', { showScriptureOverlay: false })
   },
   toggleScriptureOverlay: async (show) => {
-    const s = await api.updateSettings({ showScriptureOverlay: show })
-    set({ showScriptureOverlay: s.showScriptureOverlay ?? show })
+    const patch: any = { showScriptureOverlay: show }
+    if (show) patch.showLyricsOverlay = false
+    const s = await api.updateSettings(patch)
+    set({ 
+      showScriptureOverlay: s.showScriptureOverlay ?? show,
+      showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay
+    })
     publish('settings', { showScriptureOverlay: s.showScriptureOverlay ?? show })
+    if (show) {
+      publish('lyric-current', { show: false, songId: get().currentSongId, lineIndex: get().currentLineIndex })
+    }
   },
   setCurrentSong: async (songId) => {
     const s = await api.updateSettings({ currentSongId: songId, currentLineIndex: 0 })
@@ -390,9 +430,21 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     } else if (!cur.songId) {
       lines = []
     }
-    set({ showLyricsOverlay: cur.show, currentSongId: cur.songId, currentLineIndex: cur.lineIndex, currentSongLines: lines })
+    set({ 
+      showLyricsOverlay: cur.show, 
+      currentSongId: cur.songId, 
+      currentLineIndex: cur.lineIndex, 
+      currentSongLines: lines,
+      showScriptureOverlay: cur.show ? false : get().showScriptureOverlay
+    })
   },
   setCurrentLyric: async (payload) => {
+    if (payload.show) {
+      // Mutual exclusion: Turn off scripture if lyrics are being shown
+      await api.updateSettings({ showScriptureOverlay: false })
+      set({ showScriptureOverlay: false })
+      publish('settings', { showScriptureOverlay: false })
+    }
     const cur = await api.setCurrentLyric(payload)
     await get().syncLyricState(cur)
     publish('lyric-current', cur)
