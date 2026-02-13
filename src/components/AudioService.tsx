@@ -10,6 +10,7 @@ export default function AudioService() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const transcriptionBufferRef = useRef<string>('')
+  const voiceActivityRef = useRef<boolean>(false)
 
   // Derived stream for the selected camera (if any)
   const cameraStream = activeAudioCameraId ? liveStreams[activeAudioCameraId] : null
@@ -141,6 +142,11 @@ export default function AudioService() {
             }
             const average = sum / bufferLength
             
+            // VAD Logic: Check for meaningful audio
+            if (average > 10) { // Threshold (out of 255) - approx 4% volume
+                voiceActivityRef.current = true
+            }
+
             // Dispatch event for UI
             window.dispatchEvent(new CustomEvent('audio-level', { detail: average }))
             
@@ -156,6 +162,9 @@ export default function AudioService() {
     // Check if this loop belongs to the current active session
     if (sessionRef.current !== sessionId) return
 
+    // Reset VAD flag for this recording window
+    voiceActivityRef.current = false
+
     try {
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
       const chunks: Blob[] = []
@@ -170,7 +179,12 @@ export default function AudioService() {
 
         const blob = new Blob(chunks, { type: 'audio/webm;codecs=opus' })
         if (blob.size > 0) {
-           void processAudio(blob)
+           if (voiceActivityRef.current) {
+               void processAudio(blob)
+           } else {
+               // Optional: clear buffer on prolonged silence? Or just skip.
+               console.log('[AudioService] Skipping silent chunk')
+           }
         }
         
         // Loop if still active session and stream is alive

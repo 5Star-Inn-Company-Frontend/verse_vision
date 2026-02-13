@@ -304,7 +304,7 @@ def transcribe(file_path):
             language="en",
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500),
-            initial_prompt="The following is a church service recording containing Bible verses, scripture readings, and sermons. Words like God, Jesus, Chapter, Verse, Genesis, Revelation, and other biblical terms are expected.",
+            initial_prompt="Listening...",
             condition_on_previous_text=False
         )
         
