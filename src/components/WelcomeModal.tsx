@@ -75,7 +75,7 @@ export default function WelcomeModal() {
                 </div>
                 <h4 className="font-medium text-white mb-1">Translation Models</h4>
                 <p className="text-sm text-gray-400">
-                  Offline translation requires downloading language packs.
+                  Offline translation models are auto-detected. Download language packs if needed.
                 </p>
               </div>
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
@@ -98,7 +98,7 @@ export default function WelcomeModal() {
               <h4 className="font-medium text-white">Where to configure?</h4>
               <ul className="text-sm text-gray-300 mt-1 space-y-1 list-disc pl-4">
                 <li>
-                  <span className="font-bold text-white">Settings Panel:</span> Toggle AI Engines (Offline vs Cloud) & Login.
+                  <span className="font-bold text-white">Settings Panel:</span> Toggle AI Engines (Offline vs Cloud), Login, and enable Live Transcription Translation.
                 </li>
                 <li>
                   <span className="font-bold text-white">Utility Panel:</span> Toggle Overlays, Recording, and show/hide other panels.

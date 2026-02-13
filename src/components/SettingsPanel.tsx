@@ -10,7 +10,8 @@ export default function SettingsPanel() {
     scriptureDetectionEngine, setScriptureDetectionEngine,
     offlineStatus, offlineDetails, checkOfflineStatus,
     cloudApiToken, setCloudToken, userPlan, setUserPlan,
-    lastTranscription
+    lastTranscription,
+    liveTranslationEnabled, setLiveTranslationEnabled
   } = useOperatorStore()
   
   const [peers, setPeers] = useState<string[]>([])
@@ -124,6 +125,15 @@ export default function SettingsPanel() {
             </div>
 
             <div>
+              <h4 className="font-semibold text-white mb-1">Live Transcription</h4>
+              <p>The "Live Transcription (Debug)" area shows real-time text from the audio input.</p>
+              <ul className="list-disc pl-5 space-y-1 mt-1">
+                <li><strong>Translation ON/OFF:</strong> Toggle this button to enable real-time translation of the spoken words into your selected languages.</li>
+                <li><strong>Engine:</strong> Uses the same "Detection Engine" setting (Online/Offline) for translation.</li>
+              </ul>
+            </div>
+
+            <div>
               <h4 className="font-semibold text-white mb-1">System Status</h4>
               <p>The <strong>Offline Status</strong> indicator shows the health of the local AI engine. Yellow warnings indicate initial model downloads are in progress.</p>
             </div>
@@ -131,6 +141,106 @@ export default function SettingsPanel() {
         }
       />
 
+      <div className="flex items-center justify-between mb-3">
+        <label className="text-xs text-gray-300">Detection Engine</label>
+        <div className="flex bg-gray-800 rounded p-0.5">
+          <button
+            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'openai' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => {
+               if (!cloudApiToken) {
+                 alert('Please connect to the cloud first to use Online (OpenAI) detection')
+                 return
+               }
+               if (userPlan === 'starter') {
+                 alert('Online Detection is not available on the Starter plan. Please upgrade.')
+                 return
+               }
+               setScriptureDetectionEngine('openai')
+             }}
+          >
+            Online (AI)
+          </button>
+          <button
+            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'offline' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setScriptureDetectionEngine('offline')}
+          >
+            Offline (Local)
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+        <div className="flex items-center justify-between mb-1">
+            <div className="text-[10px] text-gray-400 font-bold uppercase">Live Transcription (Debug)</div>
+            <button
+                className={`px-2 py-0.5 text-[10px] rounded transition-colors ${liveTranslationEnabled ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:text-white'}`}
+                onClick={() => setLiveTranslationEnabled(!liveTranslationEnabled)}
+            >
+                {liveTranslationEnabled ? 'Translation ON' : 'Translation OFF'}
+            </button>
+        </div>
+        <div className="text-xs text-gray-300 min-h-[20px] max-h-[60px] overflow-y-auto font-mono bg-black/30 p-1.5 rounded break-words whitespace-pre-wrap">
+           {lastTranscription || <span className="text-gray-600 italic">Listening...</span>}
+        </div>
+      </div>
+
+      {scriptureDetectionEngine === 'offline' && (
+        <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] uppercase font-bold text-gray-400">Offline Status</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+              offlineStatus === 'ready' ? 'bg-green-900/50 text-green-400 border border-green-900' :
+              offlineStatus === 'error' ? 'bg-red-900/50 text-red-400 border border-red-900' :
+              offlineStatus === 'stopped' ? 'bg-gray-700 text-gray-400' :
+              'bg-blue-900/50 text-blue-400 border border-blue-900 animate-pulse'
+            }`}>
+              {offlineStatus}
+            </span>
+          </div>
+          {offlineDetails && (
+            <div className="text-[10px] text-gray-300 font-mono bg-black/30 p-1.5 rounded break-all">
+              {offlineDetails}
+            </div>
+          )}
+          {(offlineStatus === 'downloading' || offlineStatus === 'loading' || offlineStatus === 'starting') && (
+            <div className="mt-1.5 flex gap-1.5 items-start">
+              <span className="text-yellow-500 text-xs">⚠️</span>
+              <p className="text-[10px] text-yellow-500/90 leading-tight">
+                Internet connection is required for the first-time setup to download AI models (~500MB). 
+                Once downloaded, the software works fully offline without Internet.
+                Please do not close the app.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-3">
+        <label className="text-xs text-gray-300">Auto-Approve</label>
+        <button
+          className={`px-2 py-1 text-xs rounded ${autoApproveEnabled ? 'bg-green-600' : 'bg-gray-700'} text-white`}
+          onClick={() => updateSettings({ autoApproveEnabled: !autoApproveEnabled })}
+        >
+          {autoApproveEnabled ? 'Enabled' : 'Disabled'}
+        </button>
+      </div>
+      <div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-300">Auto-Approve Delay</label>
+          <span className="text-xs text-gray-400">{((autoApproveDelayMs ?? 2000) / 1000).toFixed(1)}s</span>
+        </div>
+        <input
+          type="range"
+          min={500}
+          max={5000}
+          step={100}
+          value={autoApproveDelayMs ?? 2000}
+          onChange={(e) => updateSettings({ autoApproveDelayMs: Number(e.target.value) })}
+          className="w-full"
+        />
+      </div>
+
+      
       {/* Cloud Account Section */}
       <div className="mb-4 p-3 bg-gray-800/50 rounded border border-gray-700">
         <label className="text-xs font-semibold text-gray-300 block mb-2">Cloud Account</label>
@@ -227,96 +337,7 @@ export default function SettingsPanel() {
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-xs text-gray-300">Detection Engine</label>
-        <div className="flex bg-gray-800 rounded p-0.5">
-          <button
-            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'openai' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => {
-               if (!cloudApiToken) {
-                 alert('Please connect to the cloud first to use Online (OpenAI) detection')
-                 return
-               }
-               if (userPlan === 'starter') {
-                 alert('Online Detection is not available on the Starter plan. Please upgrade.')
-                 return
-               }
-               setScriptureDetectionEngine('openai')
-             }}
-          >
-            Online (AI)
-          </button>
-          <button
-            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'offline' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setScriptureDetectionEngine('offline')}
-          >
-            Offline (Local)
-          </button>
-        </div>
-      </div>
 
-      <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
-        <div className="text-[10px] text-gray-400 mb-1 font-bold uppercase">Live Transcription (Debug)</div>
-        <div className="text-xs text-gray-300 min-h-[20px] max-h-[60px] overflow-y-auto font-mono bg-black/30 p-1.5 rounded break-words whitespace-pre-wrap">
-           {lastTranscription || <span className="text-gray-600 italic">Listening...</span>}
-        </div>
-      </div>
-
-      {scriptureDetectionEngine === 'offline' && (
-        <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase font-bold text-gray-400">Offline Status</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-              offlineStatus === 'ready' ? 'bg-green-900/50 text-green-400 border border-green-900' :
-              offlineStatus === 'error' ? 'bg-red-900/50 text-red-400 border border-red-900' :
-              offlineStatus === 'stopped' ? 'bg-gray-700 text-gray-400' :
-              'bg-blue-900/50 text-blue-400 border border-blue-900 animate-pulse'
-            }`}>
-              {offlineStatus}
-            </span>
-          </div>
-          {offlineDetails && (
-            <div className="text-[10px] text-gray-300 font-mono bg-black/30 p-1.5 rounded break-all">
-              {offlineDetails}
-            </div>
-          )}
-          {(offlineStatus === 'downloading' || offlineStatus === 'loading' || offlineStatus === 'starting') && (
-            <div className="mt-1.5 flex gap-1.5 items-start">
-              <span className="text-yellow-500 text-xs">⚠️</span>
-              <p className="text-[10px] text-yellow-500/90 leading-tight">
-                Internet connection is required for the first-time setup to download AI models (~500MB). 
-                Once downloaded, the software works fully offline without Internet.
-                Please do not close the app.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-xs text-gray-300">Auto-Approve</label>
-        <button
-          className={`px-2 py-1 text-xs rounded ${autoApproveEnabled ? 'bg-green-600' : 'bg-gray-700'} text-white`}
-          onClick={() => updateSettings({ autoApproveEnabled: !autoApproveEnabled })}
-        >
-          {autoApproveEnabled ? 'Enabled' : 'Disabled'}
-        </button>
-      </div>
-      <div>
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-gray-300">Auto-Approve Delay</label>
-          <span className="text-xs text-gray-400">{((autoApproveDelayMs ?? 2000) / 1000).toFixed(1)}s</span>
-        </div>
-        <input
-          type="range"
-          min={500}
-          max={5000}
-          step={100}
-          value={autoApproveDelayMs ?? 2000}
-          onChange={(e) => updateSettings({ autoApproveDelayMs: Number(e.target.value) })}
-          className="w-full"
-        />
-      </div>
       {/* <div className="mt-4">
         <div className="flex items-center justify-between">
           <label className="text-xs text-gray-300">ICE Servers (JSON)</label>

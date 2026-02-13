@@ -102,6 +102,12 @@ type OperatorState = {
   // Debug/Feedback
   lastTranscription: string
   setLastTranscription: (text: string) => void
+  
+  // Live Translation
+  liveTranslationEnabled: boolean
+  liveTranslationContent: { text: string; translations: Record<string, string> } | null
+  setLiveTranslationEnabled: (enabled: boolean) => void
+  setLiveTranslationContent: (content: { text: string; translations: Record<string, string> } | null) => void
 
   setCurrentLineIndex: (index: number) => Promise<void>
   setCurrentLyric: (payload: { show: boolean; songId: string | null; lineIndex: number }) => Promise<void>
@@ -401,6 +407,12 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   
   lastTranscription: '',
   setLastTranscription: (text) => set({ lastTranscription: text }),
+
+  // Live Translation
+  liveTranslationEnabled: false,
+  liveTranslationContent: null,
+  setLiveTranslationEnabled: (enabled) => set({ liveTranslationEnabled: enabled }),
+  setLiveTranslationContent: (content) => set({ liveTranslationContent: content }),
 
   setLyricsOverlay: async (show) => {
     const patch: any = { showLyricsOverlay: show }

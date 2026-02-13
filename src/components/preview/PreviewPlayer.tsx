@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import VideoLive from './VideoLive'
 import ScriptureOverlay from './ScriptureOverlay'
+import LiveTranslationOverlay from './LiveTranslationOverlay'
 import LyricsOverlay from './LyricsOverlay'
 import MediaOverlay from './MediaOverlay'
 
@@ -50,6 +51,7 @@ export default function PreviewPlayer() {
       )}
       
       <ScriptureOverlay />
+      <LiveTranslationOverlay />
       <LyricsOverlay />
       <MediaOverlay />
     </div>

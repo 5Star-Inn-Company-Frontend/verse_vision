@@ -96,7 +96,12 @@ export default function TranslationPanel() {
 
             <div>
               <h4 className="font-semibold text-white mb-1">Languages</h4>
-              <p>Check the boxes to enable specific languages (Yoruba, Hausa, Igbo, French). Only enabled languages will be displayed.</p>
+              <p>Check the boxes to enable specific languages (Yoruba, Hausa, Igbo, French).</p>
+              <p className="mt-1">These language settings apply to:</p>
+              <ul className="list-disc pl-5 mt-1 text-gray-400">
+                <li>Scripture translations (Auto & Manual).</li>
+                <li>Live Transcription Translation (enabled in Settings).</li>
+              </ul>
             </div>
           </div>
         }

@@ -3,7 +3,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { api } from '@/lib/api'
 
 export default function AudioService() {
-  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId, showScriptureOverlay, setLastTranscription } = useOperatorStore()
+  const { activeAudioCameraId, liveStreams, setScriptureQueue, scriptureDetectionEngine, selectedMicrophoneId, showScriptureOverlay, setLastTranscription, liveTranslationEnabled } = useOperatorStore()
   const processingRef = useRef(false)
   const sessionRef = useRef<string>('')
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -75,11 +75,11 @@ export default function AudioService() {
       // Setup Audio Analysis
       setupAnalysis(stream)
 
-      if (showScriptureOverlay) {
+      if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
         console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
         void recordLoop(stream, sessionId)
       } else {
-        console.log(`[AudioService] Scripture Overlay OFF - Transcription Paused`)
+        console.log(`[AudioService] Transcription Paused`)
       }
     }
 
@@ -97,7 +97,7 @@ export default function AudioService() {
         audioContextRef.current = null
       }
     }
-  }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay])
+  }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay, liveTranslationEnabled])
 
   // Cleanup local stream on component unmount
   useEffect(() => {
@@ -199,7 +199,8 @@ export default function AudioService() {
     processingRef.current = true
 
     try {
-      const engine = useOperatorStore.getState().scriptureDetectionEngine
+      const state = useOperatorStore.getState()
+      const engine = state.scriptureDetectionEngine
       // 1. Transcribe
       const { text } = await api.transcribe(blob, engine)
       if (!text || text.trim().length < 5) {
@@ -210,29 +211,45 @@ export default function AudioService() {
       console.log('[AudioService] Transcribed:', text)
       setLastTranscription(text)
 
+      // Live Translation Logic
+      if (state.liveTranslationEnabled) {
+          try {
+             // Determine translation engine: if offline -> marian, else -> openai
+             const translationEngine = engine === 'offline' ? 'marian' : 'openai'
+             // We can fire-and-forget or await. Let's await to ensure sequential updates if possible, 
+             // but translation might be slow.
+             const translations = await api.translate(text, translationEngine)
+             state.setLiveTranslationContent({ text, translations })
+          } catch (e) {
+             console.error('[AudioService] Live Translation Error:', e)
+          }
+      }
+
       // 2. Combine with buffer for context (handling split references like "John" ... "3:16")
       const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()
       
-      // 3. Detect
-      const { queue, references } = await api.detectScripture(combinedText, engine)
-      
-      // 4. Update Buffer Strategy
-      if (references && references.length > 0) {
-        // Scripture found! Clear buffer as we successfully used the context
-        transcriptionBufferRef.current = ''
-        console.log('[AudioService] Scripture detected, clearing buffer')
-      } else {
-        // No scripture found yet. Keep this text in buffer for next turn to provide context.
-        // If buffer gets too large (e.g. > 500 chars), we drop the old part to avoid carrying stale context forever.
-        if (combinedText.length > 500) {
-             transcriptionBufferRef.current = text
-        } else {
-             transcriptionBufferRef.current = combinedText
-        }
-      }
+      // 3. Detect (Only if scripture overlay is enabled)
+      if (useOperatorStore.getState().showScriptureOverlay) {
+          const { queue, references } = await api.detectScripture(combinedText, engine)
+          
+          // 4. Update Buffer Strategy
+          if (references && references.length > 0) {
+            // Scripture found! Clear buffer as we successfully used the context
+            transcriptionBufferRef.current = ''
+            console.log('[AudioService] Scripture detected, clearing buffer')
+          } else {
+            // No scripture found yet. Keep this text in buffer for next turn to provide context.
+            // If buffer gets too large (e.g. > 500 chars), we drop the old part to avoid carrying stale context forever.
+            if (combinedText.length > 500) {
+                transcriptionBufferRef.current = text
+            } else {
+                transcriptionBufferRef.current = combinedText
+            }
+          }
 
-      // 5. Update Store
-      if (queue) setScriptureQueue(queue)
+          // 5. Update Store
+          if (queue) setScriptureQueue(queue)
+      }
       
     } catch (err) {
       console.error('[AudioService] Process error:', err)

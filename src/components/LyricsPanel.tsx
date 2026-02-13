@@ -154,6 +154,7 @@ export default function LyricsPanel() {
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Projecting:</strong> Click any line of a song to project it immediately. The active line is highlighted in blue.</li>
                 <li><strong>Hide/Show:</strong> Use the button in the header to toggle the entire lyrics overlay on or off.</li>
+                <li className="text-yellow-400"><strong>Note:</strong> Lyrics Overlay will automatically hide if Scripture Overlay is activated (and vice versa).</li>
               </ul>
             </div>
           </div>

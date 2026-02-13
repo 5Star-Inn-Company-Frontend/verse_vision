@@ -43,7 +43,7 @@ export default function UtilityPanel() {
             <div>
               <h4 className="font-semibold text-white mb-1">Quick Controls</h4>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Scripture Overlay:</strong> Toggle this to show or hide the scripture display on the live program output. Useful for quickly clearing the screen.</li>
+                <li><strong>Scripture Overlay:</strong> Toggle this to show or hide the scripture display on the live program output. (Auto-hides Lyrics Overlay).</li>
                 <li><strong>Recording:</strong> Start or stop recording the program output to your local device.</li>
               </ul>
             </div>

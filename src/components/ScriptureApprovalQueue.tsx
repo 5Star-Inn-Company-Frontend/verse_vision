@@ -321,6 +321,15 @@ export default function ScriptureApprovalQueue() {
             </div>
 
             <div>
+              <h4 className="font-semibold text-white mb-1">Manual Entry</h4>
+              <p>Click the <strong>"+"</strong> button to manually add:</p>
+              <ul className="list-disc pl-5 space-y-1 mt-1">
+                <li><strong>Scripture:</strong> Enter a reference (e.g., "John 3:16") to fetch and queue it.</li>
+                <li><strong>Text:</strong> Type custom text to display. Check "Translate using settings" to apply translations from the Translation Panel.</li>
+              </ul>
+            </div>
+
+            <div>
               <h4 className="font-semibold text-white mb-1">Automation</h4>
               <p>When <strong>Auto-Approve</strong> is enabled in Settings, items here will be automatically approved and displayed after a short countdown.</p>
             </div>
