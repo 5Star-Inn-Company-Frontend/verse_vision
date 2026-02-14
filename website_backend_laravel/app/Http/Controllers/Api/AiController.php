@@ -300,4 +300,59 @@ class AiController extends Controller
         $content = $data['choices'][0]['message']['content'] ?? '{}';
         return response()->json(json_decode($content));
     }
+
+    public function generateImage(Request $request)
+    {
+        $request->validate([
+            'prompt' => 'required|string',
+            'size' => 'nullable|string|in:512x512,768x768,1024x1024'
+        ]);
+
+        $startTime = microtime(true);
+        $size = $request->input('size', '1024x1024');
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+                'Content-Type' => 'application/json',
+            ])->withoutVerifying()->post('https://api.openai.com/v1/images/generations', [
+                'model' => 'gpt-image-1',
+                'prompt' => $request->prompt,
+                'size' => $size,
+            ]);
+
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $data = $response->json();
+            Log::info('ImageGen === '.json_encode($data));
+
+            $url = $data['data'][0]['url'] ?? null;
+            if (!$url) {
+                return response()->json([
+                    'error' => 'No image URL returned from OpenAI',
+                    'details' => $data,
+                ], 500);
+            }
+
+            AiLog::create([
+                'user_id' => $request->user()->id,
+                'request_type' => 'image_generation',
+                'model' => 'gpt-image-1',
+                'duration_ms' => $duration,
+                'prompt_snippet' => mb_substr($request->prompt, 0, 100, 'UTF-8'),
+                'meta' => $data,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [ 'url' => $url ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Image Generation Error: '.$e->getMessage());
+            return response()->json([
+                'error' => 'Failed to generate image',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -11,7 +11,7 @@ export default function UtilityPanel() {
     panelLyricsVisible, panelPlaylistVisible, panelSceneVisible,
     togglePanel,
     overlayBackgroundColor, overlayBackgroundImage, overlayTextScale, overlayFontFamily, updateOverlaySettings,
-    overlayTextColor
+    overlayTextColor, cloudApiToken
   } = useOperatorStore()
   
   const [showHelp, setShowHelp] = useState(false)
@@ -20,7 +20,14 @@ export default function UtilityPanel() {
 
   const handleGenerateImage = async (prompt: string) => {
     if (!prompt.trim() || isGenerating) return
+
+    if (!cloudApiToken) {
+      alert('Please connect to the cloud first to use Image generation')
+      return
+    }
+
     setIsGenerating(true)
+    
     try {
         const url = await api.generateAIBackground(prompt)
         if (url) {

@@ -29,4 +29,5 @@ Route::middleware(AuthTokenMiddleware::class)->group(function () {
     Route::post('/ai/translate', [AiController::class, 'translate']);
     Route::post('/ai/scripture/text', [AiController::class, 'getScriptureText']);
     Route::post('/ai/lyrics/fetch', [AiController::class, 'fetchLyrics']);
+    Route::post('/ai/image/generate', [AiController::class, 'generateImage']);
 });
