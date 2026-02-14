@@ -30,6 +30,12 @@ export default function SyncBridge() {
           translationEnabledIgbo?: boolean
           translationEnabledFrench?: boolean
         })
+      } else if (msg.name === 'live-translation') {
+        const d = msg.data as { text: string; translations: Record<string, string> } | null
+        s.setLiveTranslationContent(d, true)
+      } else if (msg.name === 'live-translation-enabled') {
+        const d = msg.data as { enabled: boolean }
+        if (typeof d.enabled === 'boolean') s.setLiveTranslationEnabled(d.enabled, true)
       } else if (msg.name === 'settings') {
         const d = msg.data as { showScriptureOverlay?: boolean }
         s.syncSettings({ showScriptureOverlay: d.showScriptureOverlay ?? false })
