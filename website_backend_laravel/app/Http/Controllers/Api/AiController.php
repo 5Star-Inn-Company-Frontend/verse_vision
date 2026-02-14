@@ -55,9 +55,12 @@ class AiController extends Controller
         $model = '';
 
         if ($engine === 'elevenlabs') {
+            $keys=explode(";",env('ELEVENLABS_API_KEY'));
+            $rand=rand(0,count($keys)-1);
+            $key= $keys[$rand];
             $model = 'scribe_v1';
             $response = Http::withHeaders([
-                'xi-api-key' => env('ELEVENLABS_API_KEY'),
+                'xi-api-key' => $key,
             ])->attach(
                 'file', file_get_contents($request->file('file')->path()), $request->file('file')->getClientOriginalName()
             )->post('https://api.elevenlabs.io/v1/speech-to-text', [

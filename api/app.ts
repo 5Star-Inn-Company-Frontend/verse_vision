@@ -9,6 +9,7 @@ import express, {
 } from 'express'
 import cors from 'cors'
 import path from 'path'
+import fs from 'fs'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import scriptureRoutes from './routes/scripture.js'
@@ -31,6 +32,25 @@ const app: express.Application = express()
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+function ensureSeedUploads(): void {
+  try {
+    if (!process.env.VV_DATA_DIR) return
+    const destDir = path.join(process.env.VV_DATA_DIR, 'uploads')
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true })
+    const existing = fs.readdirSync(destDir).filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+    if (existing.length > 0) return
+    const srcDir = path.resolve(__dirname, '../uploads')
+    if (!fs.existsSync(srcDir)) return
+    const srcFiles = fs.readdirSync(srcDir).filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+    for (const f of srcFiles) {
+      const from = path.join(srcDir, f)
+      const to = path.join(destDir, f)
+      try { fs.copyFileSync(from, to) } catch { /* ignore */ }
+    }
+  } catch { /* ignore */ }
+}
+ensureSeedUploads()
 
 /**
  * API Routes

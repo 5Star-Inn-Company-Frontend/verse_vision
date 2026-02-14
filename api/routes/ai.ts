@@ -230,9 +230,9 @@ router.post('/image/generate', async (req: Request, res: Response) => {
     const writer = fs.createWriteStream(filePath)
     response.data.pipe(writer)
     
-    await new Promise((resolve, reject) => {
-        writer.on('finish', resolve)
-        writer.on('error', reject)
+    await new Promise<void>((resolve, reject) => {
+        writer.on('finish', () => resolve())
+        writer.on('error', (err) => reject(err))
     })
     
     res.json({ success: true, data: { url: `/uploads/${filename}` } })

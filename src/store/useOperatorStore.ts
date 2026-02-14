@@ -71,6 +71,7 @@ type OperatorState = {
   updateOverlaySettings: (patch: {
     overlayBackgroundColor?: string
     overlayBackgroundImage?: string | null
+    overlayTextColor?: string
     overlayTextScale?: number
     overlayFontFamily?: string
   }) => Promise<void>

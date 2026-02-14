@@ -88,7 +88,9 @@ router.get('/jobs/:id', async (req: Request, res: Response) => {
 router.get('/backgrounds', (_req: Request, res: Response) => {
   try {
     if (!fs.existsSync(uploadDir)) {
-      res.json({ success: true, data: [] })
+      // Fallback to generated defaults if uploads dir not present
+      const defaults = [];
+      res.json({ success: true, data: defaults })
       return
     }
     const files = fs.readdirSync(uploadDir)
@@ -97,7 +99,8 @@ router.get('/backgrounds', (_req: Request, res: Response) => {
         return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
     }).map(f => `/uploads/${f}`)
     
-    res.json({ success: true, data: images })
+    const data = images.length > 0 ? images : []
+    res.json({ success: true, data })
   } catch (err) {
     console.error('Error listing backgrounds:', err)
     res.status(500).json({ success: false, error: 'Failed to list backgrounds' })

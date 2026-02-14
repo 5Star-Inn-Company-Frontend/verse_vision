@@ -5,6 +5,7 @@ import os
 import re
 import requests
 import difflib
+import time
 
 # Configuration
 MODEL_SIZE = "base" # Reverted to base as small requires download and we are offline
@@ -71,6 +72,18 @@ VERSION_METADATA = {
 model = None
 bible_versions = {}
 default_version = 'kjv'
+LAST_CONTEXT_BOOK = None
+LAST_CONTEXT_CHAPTER = None
+LAST_CONTEXT_VERSE_END = None
+LAST_CONTEXT_TIME = 0.0
+CONTEXT_WINDOW_SEC = 300.0
+
+def get_book_by_name(version_key, name):
+    books = bible_versions.get(version_key, [])
+    for b in books:
+        if b.get('name', '').lower() == name.lower():
+            return b
+    return None
 
 # --- Nigerian Localization Constants ---
 
@@ -457,8 +470,101 @@ def extract_references(text):
                 target_version = v_key
                 break
 
-    # Pre-process text
-    # 1. Convert spoken numbers to digits
+    now_ts = time.time()
+    lower_text = text.lower()
+    if LAST_CONTEXT_BOOK and LAST_CONTEXT_CHAPTER and (now_ts - LAST_CONTEXT_TIME) < CONTEXT_WINDOW_SEC:
+        if ('next verse' in lower_text) and (LAST_CONTEXT_VERSE_END is not None):
+            book = get_book_by_name(target_version, LAST_CONTEXT_BOOK)
+            if book:
+                chap_idx = int(LAST_CONTEXT_CHAPTER) - 1
+                if chap_idx >= 0 and chap_idx < len(book.get('chapters', [])):
+                    chapter = book['chapters'][chap_idx]
+                    next_v = LAST_CONTEXT_VERSE_END + 1
+                    if next_v - 1 < len(chapter) and chapter[next_v - 1]:
+                        ref = f"{LAST_CONTEXT_BOOK} {LAST_CONTEXT_CHAPTER}:{next_v}"
+                        text_out = chapter[next_v - 1]
+                        globals()['LAST_CONTEXT_VERSE_END'] = next_v
+                        globals()['LAST_CONTEXT_TIME'] = now_ts
+                        return [{
+                            "reference": ref,
+                            "text": text_out,
+                            "translation": target_version.upper(),
+                            "confidence": 0.9
+                        }]
+        if ('previous verse' in lower_text or 'go back a verse' in lower_text) and (LAST_CONTEXT_VERSE_END is not None):
+            if LAST_CONTEXT_VERSE_END > 1:
+                book = get_book_by_name(target_version, LAST_CONTEXT_BOOK)
+                if book:
+                    chap_idx = int(LAST_CONTEXT_CHAPTER) - 1
+                    if chap_idx >= 0 and chap_idx < len(book.get('chapters', [])):
+                        chapter = book['chapters'][chap_idx]
+                        prev_v = LAST_CONTEXT_VERSE_END - 1
+                        if prev_v - 1 < len(chapter) and chapter[prev_v - 1]:
+                            ref = f"{LAST_CONTEXT_BOOK} {LAST_CONTEXT_CHAPTER}:{prev_v}"
+                            text_out = chapter[prev_v - 1]
+                            globals()['LAST_CONTEXT_VERSE_END'] = prev_v
+                            globals()['LAST_CONTEXT_TIME'] = now_ts
+                            return [{
+                                "reference": ref,
+                                "text": text_out,
+                                "translation": target_version.upper(),
+                                "confidence": 0.9
+                            }]
+        if 'next chapter' in lower_text:
+            book = get_book_by_name(target_version, LAST_CONTEXT_BOOK)
+            if book:
+                next_ch = int(LAST_CONTEXT_CHAPTER) + 1
+                if next_ch - 1 < len(book.get('chapters', [])):
+                    chapter = book['chapters'][next_ch - 1]
+                    text_out = " ".join([v for v in chapter if v])
+                    if text_out:
+                        ref = f"{LAST_CONTEXT_BOOK} {next_ch}"
+                        globals()['LAST_CONTEXT_CHAPTER'] = str(next_ch)
+                        globals()['LAST_CONTEXT_VERSE_END'] = None
+                        globals()['LAST_CONTEXT_TIME'] = now_ts
+                        return [{
+                            "reference": ref,
+                            "text": text_out,
+                            "translation": target_version.upper(),
+                            "confidence": 0.85
+                        }]
+        if ('previous chapter' in lower_text or 'last chapter' in lower_text):
+            if int(LAST_CONTEXT_CHAPTER) > 1:
+                book = get_book_by_name(target_version, LAST_CONTEXT_BOOK)
+                if book:
+                    prev_ch = int(LAST_CONTEXT_CHAPTER) - 1
+                    if prev_ch - 1 < len(book.get('chapters', [])):
+                        chapter = book['chapters'][prev_ch - 1]
+                        text_out = " ".join([v for v in chapter if v])
+                        if text_out:
+                            ref = f"{LAST_CONTEXT_BOOK} {prev_ch}"
+                            globals()['LAST_CONTEXT_CHAPTER'] = str(prev_ch)
+                            globals()['LAST_CONTEXT_VERSE_END'] = None
+                            globals()['LAST_CONTEXT_TIME'] = now_ts
+                            return [{
+                                "reference": ref,
+                                "text": text_out,
+                                "translation": target_version.upper(),
+                                "confidence": 0.85
+                            }]
+        if ('whole chapter' in lower_text or 'full chapter' in lower_text):
+            book = get_book_by_name(target_version, LAST_CONTEXT_BOOK)
+            if book:
+                ch = int(LAST_CONTEXT_CHAPTER)
+                if ch - 1 < len(book.get('chapters', [])):
+                    chapter = book['chapters'][ch - 1]
+                    text_out = " ".join([v for v in chapter if v])
+                    if text_out:
+                        ref = f"{LAST_CONTEXT_BOOK} {LAST_CONTEXT_CHAPTER}"
+                        globals()['LAST_CONTEXT_VERSE_END'] = None
+                        globals()['LAST_CONTEXT_TIME'] = now_ts
+                        return [{
+                            "reference": ref,
+                            "text": text_out,
+                            "translation": target_version.upper(),
+                            "confidence": 0.85
+                        }]
+    processed_text = convert_spoken_numbers(text)
     processed_text = convert_spoken_numbers(text)
     
     # 2. Normalize "Chapter" and "Verse" keywords
@@ -562,6 +668,17 @@ def extract_references(text):
                     "translation": target_version.upper(),
                     "confidence": confidence
                 })
+                globals()['LAST_CONTEXT_BOOK'] = book['name']
+                globals()['LAST_CONTEXT_CHAPTER'] = chapter_num
+                if verse_start:
+                    try:
+                        ve = int(verse_end) if verse_end else int(verse_start)
+                    except:
+                        ve = None
+                    globals()['LAST_CONTEXT_VERSE_END'] = ve
+                else:
+                    globals()['LAST_CONTEXT_VERSE_END'] = None
+                globals()['LAST_CONTEXT_TIME'] = now_ts
                 
         except Exception as e:
             print(f"Error processing match: {e}", file=sys.stderr)
