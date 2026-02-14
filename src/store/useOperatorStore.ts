@@ -70,10 +70,13 @@ type OperatorState = {
   syncSettings: (settings: any) => void
   updateOverlaySettings: (patch: {
     overlayBackgroundColor?: string
+    overlayBackgroundImage?: string | null
     overlayTextScale?: number
     overlayFontFamily?: string
   }) => Promise<void>
   overlayBackgroundColor: string
+  overlayBackgroundImage: string | null
+  overlayTextColor: string
   overlayTextScale: number
   overlayFontFamily: string
   updateTranslationSettings: (patch: {
@@ -190,7 +193,9 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   cloudApiToken: null,
   userPlan: null,
   overlayBackgroundColor: 'rgba(0,0,0,0.7)',
-  overlayTextScale: 1,
+  overlayBackgroundImage: null,
+  overlayTextColor: '#ffffff',
+  overlayTextScale: 1.0,
   overlayFontFamily: 'sans-serif',
   showScriptureOverlay: false,
   recordingEnabled: false,
@@ -296,6 +301,8 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       showScriptureOverlay: (s.showScriptureOverlay ?? get().showScriptureOverlay) && !(s.showLyricsOverlay ?? get().showLyricsOverlay),
       showLyricsOverlay: s.showLyricsOverlay ?? get().showLyricsOverlay,
       overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
+      overlayBackgroundImage: s.overlayBackgroundImage ?? get().overlayBackgroundImage,
+      overlayTextColor: s.overlayTextColor ?? get().overlayTextColor,
       overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
       overlayFontFamily: s.overlayFontFamily ?? get().overlayFontFamily,
     })
@@ -304,15 +311,25 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     const s = await api.updateSettings(patch)
     set({ autoApproveEnabled: s.autoApproveEnabled, autoApproveDelayMs: s.autoApproveDelayMs })
   },
-  updateOverlaySettings: async (patch) => {
+  updateOverlaySettings: async (patch: {
+    overlayBackgroundColor?: string
+    overlayBackgroundImage?: string | null
+    overlayTextColor?: string
+    overlayTextScale?: number
+    overlayFontFamily?: string
+  }) => {
     const s = await api.updateSettings(patch)
     set({
       overlayBackgroundColor: s.overlayBackgroundColor ?? get().overlayBackgroundColor,
+      overlayBackgroundImage: s.overlayBackgroundImage !== undefined ? s.overlayBackgroundImage : get().overlayBackgroundImage,
+      overlayTextColor: s.overlayTextColor ?? get().overlayTextColor,
       overlayTextScale: s.overlayTextScale ?? get().overlayTextScale,
       overlayFontFamily: s.overlayFontFamily ?? get().overlayFontFamily,
     })
     publish('settings', {
       overlayBackgroundColor: s.overlayBackgroundColor,
+      overlayBackgroundImage: s.overlayBackgroundImage,
+      overlayTextColor: s.overlayTextColor,
       overlayTextScale: s.overlayTextScale,
       overlayFontFamily: s.overlayFontFamily,
     })
@@ -344,9 +361,11 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     showScriptureOverlay: finalScripture,
       showLyricsOverlay: finalLyrics,
       overlayBackgroundColor: s.overlayBackgroundColor ?? prev.overlayBackgroundColor,
-    overlayTextScale: s.overlayTextScale ?? prev.overlayTextScale,
-    overlayFontFamily: s.overlayFontFamily ?? prev.overlayFontFamily,
-  }}),
+      overlayBackgroundImage: s.overlayBackgroundImage !== undefined ? s.overlayBackgroundImage : prev.overlayBackgroundImage,
+      overlayTextColor: s.overlayTextColor ?? prev.overlayTextColor,
+      overlayTextScale: s.overlayTextScale ?? prev.overlayTextScale,
+      overlayFontFamily: s.overlayFontFamily ?? prev.overlayFontFamily,
+    }}),
   updateTranslationSettings: async (patch) => {
     const s = await api.updateSettings(patch)
     set({

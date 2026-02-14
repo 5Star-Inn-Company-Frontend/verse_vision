@@ -149,3 +149,27 @@ export async function fetchSongLyrics(title: string): Promise<{ title: string; l
         return null
     }
 }
+
+export async function generateImage(prompt: string): Promise<{ url?: string; error?: string }> {
+    const token = await getCloudToken()
+    if (!token) return { error: 'Cloud API Token not configured in Settings.' }
+
+    try {
+        console.log(`Generating image at ${CLOUD_API_URL}/ai/image/generate with prompt: ${prompt.substring(0, 20)}...`)
+        const res = await axios.post(`${CLOUD_API_URL}/ai/image/generate`, {
+            prompt
+        }, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        // Expecting { success: true, data: { url: "..." } }
+        if (res.data?.data?.url) {
+            return { url: res.data.data.url }
+        }
+        return { error: 'Cloud API returned success but no image URL.' }
+    } catch (err: any) {
+        const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown Cloud API error'
+        console.error('Cloud Image Generation error:', msg)
+        return { error: `Cloud API Error: ${msg}` }
+    }
+}

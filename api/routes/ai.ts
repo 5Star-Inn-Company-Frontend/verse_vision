@@ -2,7 +2,8 @@ import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText, fetchSongLyrics } from '../services/ai/openai.js'
+import axios from 'axios'
+import { transcribeAudio, translateTextParallel, extractScriptureReferences, getScriptureText, fetchSongLyrics, generateImage } from '../services/ai/openai.js'
 import { translateTextMarian, activateMarian, getMarianStatus } from '../services/ai/marian.js'
 import { offlineService } from '../services/ai/offline.js'
 import { findReferencesRule } from '../services/ai/scriptureDetection.js'
@@ -13,6 +14,11 @@ const tmpDir = process.env.VV_DATA_DIR
   ? path.join(process.env.VV_DATA_DIR, 'tmp')
   : path.resolve(__dirname, '../tmp')
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
+
+const uploadDir = process.env.VV_DATA_DIR
+  ? path.join(process.env.VV_DATA_DIR, 'uploads')
+  : path.resolve(__dirname, '../uploads')
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
 const upload = multer({ dest: tmpDir })
 
@@ -197,6 +203,43 @@ router.post('/lyrics/fetch', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Lyrics fetch route error:', err)
     res.status(500).json({ success: false, error: 'Fetch failed' })
+  }
+})
+
+router.post('/image/generate', async (req: Request, res: Response) => {
+  const { prompt } = req.body || {}
+  if (!prompt) {
+    res.status(400).json({ success: false, error: 'prompt required' })
+    return
+  }
+
+  try {
+    const result = await generateImage(prompt)
+    if (result.error || !result.url) {
+        res.status(500).json({ success: false, error: result.error || 'Failed to generate image' })
+        return
+    }
+    const imageUrl = result.url
+
+    // Download image
+    console.log(`Downloading generated image from: ${imageUrl}`)
+    const response = await axios.get(imageUrl, { responseType: 'stream' })
+    const filename = `${Date.now()}_ai_generated.png`
+    const filePath = path.join(uploadDir, filename)
+    
+    const writer = fs.createWriteStream(filePath)
+    response.data.pipe(writer)
+    
+    await new Promise((resolve, reject) => {
+        writer.on('finish', resolve)
+        writer.on('error', reject)
+    })
+    
+    res.json({ success: true, data: { url: `/uploads/${filename}` } })
+
+  } catch (err: any) {
+    console.error('Image generation route error:', err)
+    res.status(500).json({ success: false, error: err.message || 'Generation failed' })
   }
 })
 

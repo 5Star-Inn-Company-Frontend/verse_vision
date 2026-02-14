@@ -20,6 +20,8 @@ export type AppSettings = {
   scriptureDetectionEngine?: 'openai' | 'offline'
   cloudApiToken?: string | null
   overlayBackgroundColor?: string
+  overlayBackgroundImage?: string | null
+  overlayTextColor?: string
   overlayTextScale?: number
   overlayFontFamily?: string
 }
@@ -44,6 +46,8 @@ const defaults: AppSettings = {
   scriptureDetectionEngine: 'offline',
   cloudApiToken: null,
   overlayBackgroundColor: 'rgba(0,0,0,0.7)',
+  overlayBackgroundImage: null,
+  overlayTextColor: '#ffffff',
   overlayTextScale: 1.0,
   overlayFontFamily: 'sans',
 }
@@ -76,6 +80,8 @@ export const settingsStore = {
       scriptureDetectionEngine: (map.get('scriptureDetectionEngine') as AppSettings['scriptureDetectionEngine']) ?? defaults.scriptureDetectionEngine,
       cloudApiToken: (map.get('cloudApiToken') as string) ?? defaults.cloudApiToken ?? null,
       overlayBackgroundColor: (map.get('overlayBackgroundColor') as string) ?? defaults.overlayBackgroundColor,
+      overlayBackgroundImage: (map.get('overlayBackgroundImage') as string) ?? defaults.overlayBackgroundImage ?? null,
+      overlayTextColor: (map.get('overlayTextColor') as string) ?? defaults.overlayTextColor,
       overlayTextScale: Number(map.get('overlayTextScale') ?? defaults.overlayTextScale),
       overlayFontFamily: (map.get('overlayFontFamily') as string) ?? defaults.overlayFontFamily,
     }
@@ -110,6 +116,8 @@ export const settingsStore = {
       ['scriptureDetectionEngine', String(next.scriptureDetectionEngine ?? defaults.scriptureDetectionEngine)],
       ['cloudApiToken', String(next.cloudApiToken ?? '')],
       ['overlayBackgroundColor', String(next.overlayBackgroundColor ?? defaults.overlayBackgroundColor)],
+      ['overlayBackgroundImage', String(next.overlayBackgroundImage ?? '')],
+      ['overlayTextColor', String(next.overlayTextColor ?? defaults.overlayTextColor)],
       ['overlayTextScale', String(next.overlayTextScale ?? defaults.overlayTextScale)],
       ['overlayFontFamily', String(next.overlayFontFamily ?? defaults.overlayFontFamily)],
     ]

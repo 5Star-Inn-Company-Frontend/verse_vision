@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useOperatorStore } from '@/store/useOperatorStore'
+import { api } from '@/lib/api'
 import HelpModal from './HelpModal'
 
 export default function UtilityPanel() {
@@ -9,12 +10,40 @@ export default function UtilityPanel() {
     panelTranslationVisible, panelPairingVisible, panelCameraGridVisible,
     panelLyricsVisible, panelPlaylistVisible, panelSceneVisible,
     togglePanel,
-    overlayBackgroundColor, overlayTextScale, overlayFontFamily, updateOverlaySettings
+    overlayBackgroundColor, overlayBackgroundImage, overlayTextScale, overlayFontFamily, updateOverlaySettings,
+    overlayTextColor
   } = useOperatorStore()
   
   const [showHelp, setShowHelp] = useState(false)
-  
-  useEffect(() => { void loadSettings() }, [loadSettings])
+  const [backgrounds, setBackgrounds] = useState<string[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  const handleGenerateImage = async (prompt: string) => {
+    if (!prompt.trim() || isGenerating) return
+    setIsGenerating(true)
+    try {
+        const url = await api.generateAIBackground(prompt)
+        if (url) {
+            // Refresh backgrounds
+            const newBackgrounds = await api.getBackgrounds()
+            setBackgrounds(newBackgrounds)
+            // Select the new one
+            updateOverlaySettings({ overlayBackgroundImage: url })
+        } else {
+            alert('Failed to generate image. Please check settings (Cloud API Token) and try again.')
+        }
+    } catch (e) {
+        console.error(e)
+        alert('Error generating image')
+    } finally {
+        setIsGenerating(false)
+    }
+  }
+
+  useEffect(() => {  
+      void loadSettings() 
+      api.getBackgrounds().then(setBackgrounds)
+  }, [loadSettings])
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
@@ -126,6 +155,67 @@ export default function UtilityPanel() {
                  />
                </div>
             </div>
+            
+            {/* Background Images */}
+            <div className="mt-2">
+                 <label className="text-xs text-gray-500 block mb-1">Image Backgrounds</label>
+
+                 {/* AI Generation */}
+                 <div className="mb-2">
+                    <div className="flex gap-1">
+                      <input 
+                        type="text" 
+                        placeholder="AI Generate (Enter prompt)..."
+                        className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleGenerateImage(e.currentTarget.value)
+                            e.currentTarget.value = ''
+                          }
+                        }}
+                        disabled={isGenerating}
+                      />
+                    </div>
+                    {isGenerating && <div className="text-[10px] text-blue-400 mt-1">Generating image...</div>}
+                 </div>
+
+                 {backgrounds.length > 0 && (
+                 <div className="flex flex-wrap gap-1">
+                    <button
+                        onClick={() => updateOverlaySettings({ overlayBackgroundImage: null })}
+                        className={`w-8 h-8 rounded border flex items-center justify-center bg-gray-800 ${!overlayBackgroundImage ? 'border-white' : 'border-gray-600'}`}
+                        title="None (Use Color)"
+                    >
+                        <span className="text-[10px] text-gray-400">None</span>
+                    </button>
+                    {backgrounds.map((bg) => (
+                        <button
+                            key={bg}
+                            onClick={() => updateOverlaySettings({ overlayBackgroundImage: bg })}
+                            className={`w-8 h-8 rounded border bg-cover bg-center ${overlayBackgroundImage === bg ? 'border-white' : 'border-gray-600'}`}
+                            style={{ backgroundImage: `url(${bg})` }}
+                            title={bg.split('/').pop()}
+                        />
+                    ))}
+                 </div>
+                 )}
+            </div>
+          </div>
+
+          {/* Text Color */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Text Color</label>
+            <div className="flex gap-2 items-center">
+                <div className="relative w-8 h-8 rounded overflow-hidden border border-gray-600" title="Text Color">
+                    <input 
+                    type="color" 
+                    className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-0"
+                    value={overlayTextColor || '#ffffff'}
+                    onChange={(e) => updateOverlaySettings({ overlayTextColor: e.target.value })}
+                    />
+                </div>
+                <div className="text-xs text-gray-400">{overlayTextColor || '#ffffff'}</div>
+            </div>
           </div>
 
           {/* Text Size */}
@@ -168,6 +258,8 @@ export default function UtilityPanel() {
               <option value="'Arial Black', sans-serif">Arial Black</option>
             </select>
           </div>
+
+          
         </div>
       </div>
 

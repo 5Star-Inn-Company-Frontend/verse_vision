@@ -1,13 +1,24 @@
 import { useOperatorStore } from '@/store/useOperatorStore'
 
 export default function LyricsOverlay() {
-  const { showLyricsOverlay, overlayBackgroundColor } = useOperatorStore()
+  const { showLyricsOverlay, overlayBackgroundColor, overlayBackgroundImage, overlayTextColor } = useOperatorStore()
 
   if (!showLyricsOverlay) return null
 
+  const containerStyle: React.CSSProperties = {
+    backgroundColor: overlayBackgroundColor,
+    color: overlayTextColor,
+    ...(overlayBackgroundImage ? { 
+        backgroundImage: `url(${overlayBackgroundImage})`, 
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+    } : {})
+  }
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center px-8 text-center" style={{ backgroundColor: overlayBackgroundColor }}>
-      <div className="text-white w-full h-full flex items-center justify-center overflow-hidden">
+    <div className="absolute inset-0 flex items-center justify-center px-8 text-center" style={containerStyle}>
+      <div className="w-full h-full flex items-center justify-center overflow-hidden">
         <div className="max-h-full overflow-y-auto w-full">
           <LyricsText />
         </div>

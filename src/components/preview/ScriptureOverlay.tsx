@@ -12,9 +12,23 @@ export default function ScriptureOverlay() {
     translationEnabledIgbo, 
     translationEnabledFrench,
     overlayBackgroundColor,
+    overlayBackgroundImage,
     overlayFontFamily,
-    overlayTextScale
+    overlayTextScale,
+    overlayTextColor
   } = useOperatorStore()
+
+  const containerStyle: React.CSSProperties = {
+    fontFamily: overlayFontFamily,
+    backgroundColor: overlayBackgroundColor,
+    color: overlayTextColor,
+    ...(overlayBackgroundImage ? { 
+        backgroundImage: `url(${overlayBackgroundImage})`, 
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+    } : {})
+  }
 
   const activeTranslations = useMemo(() => {
     const t = (translations || {}) as Record<string, string | undefined>
@@ -41,8 +55,8 @@ export default function ScriptureOverlay() {
 
   if (currentScripture.translation === 'RAW') {
     return (
-      <div className="absolute inset-0 flex items-center justify-center p-8 text-center" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
-        <div className="text-white w-full h-full flex flex-col items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center p-8 text-center" style={containerStyle}>
+        <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden">
           {currentScripture.reference !== 'Announcement' && (
             <div className="opacity-90 mb-2 font-bold uppercase tracking-wider shrink-0" style={{ fontSize: `${34 * overlayTextScale}px`, color: '#fbbf24' }}>
               {currentScripture.reference}
@@ -58,8 +72,8 @@ export default function ScriptureOverlay() {
 
   if (translationStyle === 'subtitle') {
     return (
-      <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
-        <div className="text-white p-2 shrink-0">
+      <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={containerStyle}>
+        <div className="p-2 shrink-0">
           <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
             {currentScripture.reference} {currentScripture.translation !== 'MANUAL' && `• ${currentScripture.translation}`}
           </div>
@@ -69,7 +83,7 @@ export default function ScriptureOverlay() {
         </div>
         <div className="flex-1 overflow-y-auto space-y-2">
           {activeTranslations.map((t) => (
-            <div key={t.label} className="text-white p-2">
+            <div key={t.label} className="p-2">
               <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
               <div className="leading-snug" style={{ fontSize: `${11 * overlayTextScale}px` }}>{t.text}</div>
             </div>
@@ -81,16 +95,16 @@ export default function ScriptureOverlay() {
 
   if (translationStyle === 'split') {
     return (
-      <div className="absolute inset-0 flex flex-col" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
+      <div className="absolute inset-0 flex flex-col" style={containerStyle}>
         <div className="w-full h-full px-4 py-8 grid grid-cols-2 gap-4 overflow-y-auto">
-          <div className={`text-white p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
+          <div className={`p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
             <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
               {currentScripture.reference} {currentScripture.translation !== 'MANUAL' && `• ${currentScripture.translation}`}
             </div>
             <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{currentScripture.text}</div>
           </div>
           {activeTranslations.map((t) => (
-            <div className="text-white p-2" key={t.label}>
+            <div className="p-2" key={t.label}>
               <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
               <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{t.text}</div>
             </div>
@@ -102,7 +116,7 @@ export default function ScriptureOverlay() {
 
   if (translationStyle === 'ticker') {
     return (
-      <div className="absolute inset-0 flex flex-col justify-end" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
+      <div className="absolute inset-0 flex flex-col justify-end" style={containerStyle}>
         <div className="text-white whitespace-nowrap overflow-hidden bg-black/20" style={{ fontSize: `${10 * overlayTextScale}px` }}>
           <div className="animate-[ticker_15s_linear_infinite] inline-block px-4">
             {[{ label: 'English', text: currentScripture.text, color: 'text-white' }, ...activeTranslations].map((t) => (

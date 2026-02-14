@@ -11,9 +11,23 @@ export default function LiveTranslationOverlay() {
     translationEnabledIgbo, 
     translationEnabledFrench,
     overlayBackgroundColor,
+    overlayBackgroundImage,
     overlayFontFamily,
-    overlayTextScale
+    overlayTextScale,
+    overlayTextColor
   } = useOperatorStore()
+
+  const containerStyle: React.CSSProperties = {
+    fontFamily: overlayFontFamily,
+    backgroundColor: overlayBackgroundColor,
+    color: overlayTextColor,
+    ...(overlayBackgroundImage ? { 
+        backgroundImage: `url(${overlayBackgroundImage})`, 
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+    } : {})
+  }
 
   const activeTranslations = useMemo(() => {
     if (!liveTranslationContent?.translations) return []
@@ -44,8 +58,8 @@ export default function LiveTranslationOverlay() {
   // Subtitle Style
   if (translationStyle === 'subtitle') {
     return (
-      <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
-        <div className="text-white p-2 shrink-0">
+      <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={containerStyle}>
+        <div className="p-2 shrink-0">
           <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
             Live Transcription
           </div>
@@ -55,7 +69,7 @@ export default function LiveTranslationOverlay() {
         </div>
         <div className="flex-1 overflow-y-auto space-y-2">
           {activeTranslations.map((t) => (
-            <div key={t.label} className="text-white p-2">
+            <div key={t.label} className="p-2">
               <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
               <div className="leading-snug" style={{ fontSize: `${11 * overlayTextScale}px` }}>{t.text}</div>
             </div>
@@ -68,16 +82,16 @@ export default function LiveTranslationOverlay() {
   // Split Style
   if (translationStyle === 'split') {
     return (
-      <div className="absolute inset-0 flex flex-col" style={{ fontFamily: overlayFontFamily, backgroundColor: overlayBackgroundColor }}>
+      <div className="absolute inset-0 flex flex-col" style={containerStyle}>
         <div className="w-full h-full px-4 py-8 grid grid-cols-2 gap-4 overflow-y-auto">
-          <div className={`text-white p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
+          <div className={`p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
             <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
               Live Transcription
             </div>
             <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{text}</div>
           </div>
           {activeTranslations.map((t) => (
-            <div className="text-white p-2" key={t.label}>
+            <div className="p-2" key={t.label}>
               <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
               <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{t.text}</div>
             </div>

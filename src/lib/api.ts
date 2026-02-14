@@ -11,6 +11,16 @@ export const api = {
     if (authToken) h['Authorization'] = `Bearer ${authToken}`
     return h
   },
+  getBackgrounds: async () => {
+    try {
+      const res = await fetch(`${BASE}/media/backgrounds`)
+      if (!res.ok) return []
+      const json = await res.json()
+      return json.data || []
+    } catch {
+      return []
+    }
+  },
   me: async () => {
     try {
       const res = await fetch(`${CLOUD}/auth/me`, { headers: api._headers() })
@@ -35,6 +45,25 @@ export const api = {
     })
     const json = await res.json()
     return json.data
+  },
+  generateAIBackground: async (prompt: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`${BASE}/ai/image/generate`, {
+        method: 'POST',
+        headers: api._headers(),
+        body: JSON.stringify({ prompt }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        console.error('Generate AI Background Error:', json.error)
+        alert(json.error || 'Failed to generate image')
+        return null
+      }
+      return json.data?.url || null
+    } catch (err) {
+      console.error(err)
+      return null
+    }
   },
   detectScripture: async (text: string, engine: 'openai' | 'offline' = 'openai') => {
     const res = await fetch(`${BASE}/ai/scripture/detect`, {
