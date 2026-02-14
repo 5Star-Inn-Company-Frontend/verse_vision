@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\AiLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Plan;
 
 class AiController extends Controller
@@ -327,9 +329,23 @@ class AiController extends Controller
             Log::info('ImageGen === '.json_encode($data));
 
             $url = $data['data'][0]['url'] ?? null;
+            $b64 = $data['data'][0]['b64_json'] ?? null;
+
+            if (!$url && $b64) {
+                $binary = base64_decode($b64);
+                if ($binary === false) {
+                    return response()->json([
+                        'error' => 'Failed to decode image data',
+                    ], 500);
+                }
+                $filename = 'generated/' . time() . '_' . Str::random(8) . '.png';
+                Storage::disk('public')->put($filename, $binary);
+                $url = asset('storage/' . $filename);
+            }
+
             if (!$url) {
                 return response()->json([
-                    'error' => 'No image URL returned from OpenAI',
+                    'error' => 'No image returned from OpenAI',
                     'details' => $data,
                 ], 500);
             }
