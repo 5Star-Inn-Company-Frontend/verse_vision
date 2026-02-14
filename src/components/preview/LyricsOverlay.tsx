@@ -30,5 +30,8 @@ export default function LyricsOverlay() {
 function LyricsText() {
   const { currentSongLines, currentLineIndex, overlayTextScale, overlayFontFamily } = useOperatorStore()
   const text = currentSongLines[currentLineIndex] || ''
-  return <div className="whitespace-pre-wrap leading-relaxed" style={{ fontSize: `${14 * overlayTextScale}px`, fontFamily: overlayFontFamily }}>{text}</div>
+  const isProgram = typeof window !== 'undefined' && window.location.pathname === '/program'
+  const mult = (n: number) => (isProgram ? n + 40 : n)
+  const px = (n: number) => `${mult(n) * overlayTextScale}px`
+  return <div className="whitespace-pre-wrap leading-relaxed" style={{ fontSize: px(14), fontFamily: overlayFontFamily }}>{text}</div>
 }

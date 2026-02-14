@@ -17,6 +17,10 @@ export default function LiveTranslationOverlay() {
     overlayTextColor
   } = useOperatorStore()
 
+  const isProgram = typeof window !== 'undefined' && window.location.pathname === '/program'
+  const mult = (n: number) => (isProgram ? (n === 10 ? 45 : n === 11 ? 46 : n === 12 ? 47 : n) : n)
+  const px = (n: number) => `${mult(n) * overlayTextScale}px`
+
   const containerStyle: React.CSSProperties = {
     fontFamily: overlayFontFamily,
     backgroundColor: overlayBackgroundColor,
@@ -60,18 +64,18 @@ export default function LiveTranslationOverlay() {
     return (
       <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={containerStyle}>
         <div className="p-2 shrink-0">
-          <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
+          <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
             Live Transcription
           </div>
-          <div className="leading-snug max-h-[40%]" style={{ fontSize: `${12 * overlayTextScale}px` }}>
+          <div className="leading-snug max-h-[40%]" style={{ fontSize: px(12) }}>
             {text}
           </div>
         </div>
         <div className="flex-1 overflow-y-auto space-y-2">
           {activeTranslations.map((t) => (
             <div key={t.label} className="p-2">
-              <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
-              <div className="leading-snug" style={{ fontSize: `${11 * overlayTextScale}px` }}>{t.text}</div>
+              <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: px(10) }}>{t.label}</div>
+              <div className="leading-snug" style={{ fontSize: px(11) }}>{t.text}</div>
             </div>
           ))}
         </div>
@@ -85,15 +89,15 @@ export default function LiveTranslationOverlay() {
       <div className="absolute inset-0 flex flex-col" style={containerStyle}>
         <div className="w-full h-full px-4 py-8 grid grid-cols-2 gap-4 overflow-y-auto">
           <div className={`p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
-            <div className="opacity-80 mb-1" style={{ fontSize: `${10 * overlayTextScale}px` }}>
+            <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
               Live Transcription
             </div>
-            <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{text}</div>
+            <div className="leading-snug" style={{ fontSize: px(12) }}>{text}</div>
           </div>
           {activeTranslations.map((t) => (
             <div className="p-2" key={t.label}>
-              <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: `${10 * overlayTextScale}px` }}>{t.label}</div>
-              <div className="leading-snug" style={{ fontSize: `${12 * overlayTextScale}px` }}>{t.text}</div>
+              <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: px(10) }}>{t.label}</div>
+              <div className="leading-snug" style={{ fontSize: px(12) }}>{t.text}</div>
             </div>
           ))}
         </div>
@@ -103,7 +107,7 @@ export default function LiveTranslationOverlay() {
 
   // Ticker Style (Fallback)
   return (
-    <div className="absolute inset-x-0 bottom-0 py-4 bg-black/80 text-white whitespace-nowrap overflow-hidden" style={{ fontFamily: overlayFontFamily }}>
+    <div className="absolute inset-x-0 bottom-0 py-4 bg-black/80 text-white whitespace-nowrap overflow-hidden" style={{ fontFamily: overlayFontFamily, fontSize: px(10) }}>
        <div className="inline-block animate-marquee px-4">
           <span className="mr-8 font-bold">{text}</span>
           {activeTranslations.map(t => (
