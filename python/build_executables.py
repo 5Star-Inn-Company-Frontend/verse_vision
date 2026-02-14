@@ -74,35 +74,36 @@ def main():
     
     subprocess.run(cmd, check=True)
     
-    # Build marian_server
-    print("Building marian_server...")
-    
-    # Prepare marian model paths
+    # Build marian_server only if Marian models exist or explicitly requested
+    build_marian = os.environ.get("BUILD_MARIAN", "0") in ("1", "true", "True", "YES", "yes")
     marian_models_args = []
-    for item in os.listdir(models_dir):
-        if item.startswith("marian"):
-            src = os.path.join(models_dir, item)
-            dst = os.path.join("models", item)
-            marian_models_args.extend(["--add-data", f"{src}{sep}{dst}"])
-    
-    cmd_marian = [
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        "--noconfirm",
-        "--onedir",
-        "--clean",
-        "--name", "marian_server",
-        "--distpath", dist_dir,
-        "--workpath", work_dir,
-        "--specpath", base_dir,
-        # Add marian models
-        *marian_models_args,
-        
-        os.path.join(base_dir, "marian_server.py")
-    ]
-    
-    subprocess.run(cmd_marian, check=True)
+    if os.path.exists(models_dir):
+        for item in os.listdir(models_dir):
+            if item.startswith("marian"):
+                src = os.path.join(models_dir, item)
+                dst = os.path.join("models", item)
+                marian_models_args.extend(["--add-data", f"{src}{sep}{dst}"])
+    if build_marian or len(marian_models_args) > 0:
+        print("Building marian_server...")
+        cmd_marian = [
+            sys.executable,
+            "-m",
+            "PyInstaller",
+            "--noconfirm",
+            "--onedir",
+            "--clean",
+            "--name", "marian_server",
+            "--distpath", dist_dir,
+            "--workpath", work_dir,
+            "--specpath", base_dir,
+            # Add marian models
+            *marian_models_args,
+            
+            os.path.join(base_dir, "marian_server.py")
+        ]
+        subprocess.run(cmd_marian, check=True)
+    else:
+        print("Skipping marian_server build (no marian models found and BUILD_MARIAN not set).")
     
     print("Build complete.")
 
