@@ -3,6 +3,7 @@ import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import hymnsData from '../assets/hymns.json'
 import hymnsDefaultData from '../assets/hymns-default.json'
+import rccgHymns from '../assets/RCCGHymnTable.json'
 import HelpModal from './HelpModal'
 
 type Song = { id: string; title: string; language?: string | null; lines: string[] }
@@ -17,11 +18,43 @@ export default function LyricsPanel() {
   useEffect(() => {
     void (async () => {
       const list = await api.listSongs()
-      if (list.length === 0) {
-        for (const h of hymnsDefaultData) {
-          await api.createSong({ title: h.title, language: h.language ?? null, lines: h.lines, source: 'default' })
+
+      // if (list.length === 0) {
+        // for (const h of hymnsDefaultData) {
+        //   await api.createSong({ title: h.title, language: h.language ?? null, lines: h.lines, source: 'default' })
+        // }
+      const hasRccg = list.some((s: any) => typeof s.title === 'string' && s.title.startsWith('RCCG '))
+      if (!hasRccg) {
+        for (const raw of rccgHymns as any[]) {
+          const num = raw?._hymn_number
+          const titleText = raw?.hymn_title as string | undefined
+          if (!num || !titleText) continue
+
+          const verses: string[] = []
+          const chorus = (raw?.chorus as string | undefined)?.trim()
+          if (chorus) {
+            verses.push(`Chorus\n${chorus}`)
+          }
+
+          const count = Number(raw?.number_of_verses || 0)
+          for (let i = 1; i <= count; i++) {
+            const key = `verse_${i}` as keyof typeof raw
+            const text = (raw[key] as string | undefined)?.trim()
+            if (!text) continue
+            verses.push(`Verse ${i}\n${text}`)
+          }
+
+          if (verses.length === 0) continue
+
+          const title = `RCCG ${num}. ${titleText}`
+          const exists = list.some((s: any) => s.title === title)
+          if (exists) continue
+
+          await api.createSong({ title, language: 'English', lines: verses, source: 'uploaded' })
         }
       }
+
+      // }
       const refreshed = await api.listSongs()
       setSongs(refreshed)
     })()

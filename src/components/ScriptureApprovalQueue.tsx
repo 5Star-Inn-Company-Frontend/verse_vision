@@ -4,14 +4,14 @@ import { api } from '@/lib/api'
 import HelpModal from './HelpModal'
 
 export default function ScriptureApprovalQueue() {
-  const { scriptureQueue, approveScripture, rejectScripture, loadQueue, updateScripture, autoApproveEnabled, autoApproveDelayMs, currentScripture } = useOperatorStore()
+  const { scriptureQueue, approveScripture, rejectScripture, loadQueue, updateScripture, autoApproveEnabled, autoApproveDelayMs, currentScripture, manualTextTranslateEnabled, setManualTextTranslateEnabled } = useOperatorStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<{ reference: string; translation: string }>({ reference: '', translation: '' })
   const [showHelp, setShowHelp] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const [manualForm, setManualForm] = useState({ reference: '', translation: 'KJV' })
   const [addTab, setAddTab] = useState<'scripture' | 'text'>('scripture')
-  const [textForm, setTextForm] = useState({ title: '', text: '', translate: false })
+  const [textForm, setTextForm] = useState({ title: '', text: '', translate: manualTextTranslateEnabled })
   const [addError, setAddError] = useState<string | null>(null)
   const [availableTranslations, setAvailableTranslations] = useState<string[]>([])
   const timers = useRef<Record<string, number>>({})
@@ -253,7 +253,10 @@ export default function ScriptureApprovalQueue() {
                     id="manual-translate"
                     className="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 w-3 h-3"
                     checked={textForm.translate}
-                    onChange={(e) => setTextForm({ ...textForm, translate: e.target.checked })}
+                    onChange={(e) => {
+                      setTextForm({ ...textForm, translate: e.target.checked })
+                      setManualTextTranslateEnabled(e.target.checked)
+                    }}
                   />
                   <label htmlFor="manual-translate" className="text-xs text-gray-300 cursor-pointer select-none">Translate using settings</label>
                 </div>
@@ -269,7 +272,7 @@ export default function ScriptureApprovalQueue() {
                 onClick={() => {
                   setIsAdding(false)
                   setAddError(null)
-                  setTextForm({ title: '', text: '', translate: false })
+                  setTextForm({ title: '', text: '', translate: manualTextTranslateEnabled })
                   setManualForm({ reference: '', translation: 'KJV' })
                 }}
               >
@@ -286,7 +289,7 @@ export default function ScriptureApprovalQueue() {
                       setManualForm({ reference: '', translation: 'KJV' })
                     } else {
                       await api.addManualText(textForm)
-                      setTextForm({ title: '', text: '', translate: false })
+                      setTextForm({ title: '', text: '', translate: manualTextTranslateEnabled })
                     }
                     setIsAdding(false)
                     await loadQueue()

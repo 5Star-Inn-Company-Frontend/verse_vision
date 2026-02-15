@@ -54,6 +54,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request & { file?
       console.log('Using offline transcription')
       text = await offlineService.transcribe(targetPath)
     } else {
+      console.log('Using OpenAI cloud transcription')
       text = await transcribeAudio(targetPath)
     }
     console.log(`${engine} Transcription:`, text);

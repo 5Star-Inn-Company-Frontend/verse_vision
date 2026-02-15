@@ -11,6 +11,7 @@ export default function AudioService() {
   const animationFrameRef = useRef<number | null>(null)
   const transcriptionBufferRef = useRef<string>('')
   const voiceActivityRef = useRef<boolean>(false)
+  const recognitionRef = useRef<any>(null)
 
   // Derived stream for the selected camera (if any)
   const cameraStream = activeAudioCameraId ? liveStreams[activeAudioCameraId] : null
@@ -76,7 +77,12 @@ export default function AudioService() {
       // Setup Audio Analysis
       setupAnalysis(stream)
 
-      if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
+      const currentEngine = useOperatorStore.getState().scriptureDetectionEngine
+      if (currentEngine === 'browser') {
+        console.log('[AudioService] Browser STT enabled (Web Speech)')
+        startBrowserRecognition()
+        console.log('[AudioService] Browser STT Initiate restart')
+      } else if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
         console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
         void recordLoop(stream, sessionId)
       } else {
@@ -96,6 +102,17 @@ export default function AudioService() {
       if (audioContextRef.current) {
         audioContextRef.current.close()
         audioContextRef.current = null
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onresult = null
+          recognitionRef.current.onerror = null
+          recognitionRef.current.onend = null
+          recognitionRef.current.stop()
+        } catch (e) {
+          console.error('[AudioService] Failed to stop recognition on cleanup', e)
+        }
+        recognitionRef.current = null
       }
     }
   }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay, liveTranslationEnabled])
@@ -215,60 +232,120 @@ export default function AudioService() {
     try {
       const state = useOperatorStore.getState()
       const engine = state.scriptureDetectionEngine
+      const sttEngine = engine === 'offline' ? 'offline' : 'openai'
       // 1. Transcribe
-      const { text } = await api.transcribe(blob, engine)
+      const { text } = await api.transcribe(blob, sttEngine)
       if (!text || text.trim().length < 5) {
         // If silence/noise, we don't clear buffer yet, we just wait for more meaningful text
         processingRef.current = false
         return
       }
-      console.log('[AudioService] Transcribed:', text)
-      setLastTranscription(text)
-
-      // Live Translation Logic
-      if (state.liveTranslationEnabled) {
-          try {
-             // Determine translation engine: if offline -> marian, else -> openai
-             const translationEngine = engine === 'offline' ? 'marian' : 'openai'
-             // We can fire-and-forget or await. Let's await to ensure sequential updates if possible, 
-             // but translation might be slow.
-             const translations = await api.translate(text, translationEngine)
-             state.setLiveTranslationContent({ text, translations })
-          } catch (e) {
-             console.error('[AudioService] Live Translation Error:', e)
-          }
-      }
-
-      // 2. Combine with buffer for context (handling split references like "John" ... "3:16")
-      const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()
-      
-      // 3. Detect (Only if scripture overlay is enabled)
-      if (useOperatorStore.getState().showScriptureOverlay) {
-          const { queue, references } = await api.detectScripture(combinedText, engine)
-          
-          // 4. Update Buffer Strategy
-          if (references && references.length > 0) {
-            // Scripture found! Clear buffer as we successfully used the context
-            transcriptionBufferRef.current = ''
-            console.log('[AudioService] Scripture detected, clearing buffer')
-          } else {
-            // No scripture found yet. Keep this text in buffer for next turn to provide context.
-            // If buffer gets too large (e.g. > 500 chars), we drop the old part to avoid carrying stale context forever.
-            if (combinedText.length > 500) {
-                transcriptionBufferRef.current = text
-            } else {
-                transcriptionBufferRef.current = combinedText
-            }
-          }
-
-          // 5. Update Store
-          if (queue) setScriptureQueue(queue)
-      }
+      await handleTranscript(text, engine)
       
     } catch (err) {
       console.error('[AudioService] Process error:', err)
     } finally {
       processingRef.current = false
+    }
+  }
+
+  const handleTranscript = async (text: string, engine: 'openai' | 'offline' | 'browser') => {
+    const state = useOperatorStore.getState()
+    if (!text || text.trim().length < 5) {
+      return
+    }
+    console.log('[AudioService] Transcribed:', text)
+    setLastTranscription(text)
+
+    if (state.liveTranslationEnabled) {
+      try {
+        const translationEngine = engine === 'offline' ? 'marian' : 'openai'
+        const translations = await api.translate(text, translationEngine)
+        state.setLiveTranslationContent({ text, translations })
+      } catch (e) {
+        console.error('[AudioService] Live Translation Error:', e)
+      }
+    }
+
+    const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()
+
+    if (useOperatorStore.getState().showScriptureOverlay) {
+      const detectionEngine = engine === 'offline' ? 'offline' : 'openai'
+      const { queue, references } = await api.detectScripture(combinedText, detectionEngine)
+
+      if (references && references.length > 0) {
+        transcriptionBufferRef.current = ''
+        console.log('[AudioService] Scripture detected, clearing buffer')
+      } else {
+        if (combinedText.length > 500) {
+          transcriptionBufferRef.current = text
+        } else {
+          transcriptionBufferRef.current = combinedText
+        }
+      }
+
+      if (queue) setScriptureQueue(queue)
+    }
+  }
+
+  const startBrowserRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      console.warn('[AudioService] Web Speech API not supported in this browser')
+      setLastTranscription('Browser speech is not supported in this environment. Please use OpenAI or Offline.')
+      return
+    }
+
+    if (recognitionRef.current) {
+      return
+    }
+
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = false
+    rec.lang = 'en-US'
+
+    rec.onresult = (event: any) => {
+      try {
+        const results = event.results
+        let finalText = ''
+        for (let i = event.resultIndex; i < results.length; i++) {
+          const res = results[i]
+          if (res.isFinal && res[0]?.transcript) {
+            finalText += res[0].transcript + ' '
+          }
+        }
+        if (finalText.trim().length > 0) {
+          void handleTranscript(finalText.trim(), 'browser')
+        }
+      } catch (e) {
+        console.error('[AudioService] Web Speech onresult error', e)
+      }
+    }
+
+    rec.onerror = (event: any) => {
+      console.error('[AudioService] Web Speech error', event)
+      const message = event && event.error ? `Browser speech error: ${event.error}` : 'Browser speech error'
+      setLastTranscription(message)
+      startBrowserRecognition()
+    }
+
+    rec.onend = () => {
+      const state = useOperatorStore.getState()
+      if (state.scriptureDetectionEngine === 'browser' && (state.showScriptureOverlay || state.liveTranslationEnabled)) {
+        try {
+          rec.start()
+        } catch (e) {
+          console.error('[AudioService] Failed to restart Web Speech', e)
+        }
+      }
+    }
+
+    try {
+      rec.start()
+      recognitionRef.current = rec
+    } catch (e) {
+      console.error('[AudioService] Failed to start Web Speech', e)
     }
   }
 

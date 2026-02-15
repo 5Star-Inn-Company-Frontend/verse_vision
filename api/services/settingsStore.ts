@@ -17,7 +17,7 @@ export type AppSettings = {
   countdownEndAt?: number | null
   iceServersJson?: string | null
   translationEngine?: 'openai' | 'marian'
-  scriptureDetectionEngine?: 'openai' | 'offline'
+  scriptureDetectionEngine?: 'openai' | 'offline' | 'browser'
   cloudApiToken?: string | null
   overlayBackgroundColor?: string
   overlayBackgroundImage?: string | null

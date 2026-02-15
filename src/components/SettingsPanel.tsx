@@ -148,7 +148,7 @@ export default function SettingsPanel() {
             className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'openai' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
             onClick={() => {
                if (!cloudApiToken) {
-                 alert('Please connect to the cloud first to use Online (OpenAI) detection')
+                 alert('Please connect to the cloud first to use Online detection')
                  return
                }
                if (userPlan === 'starter') {
@@ -158,7 +158,15 @@ export default function SettingsPanel() {
                setScriptureDetectionEngine('openai')
              }}
           >
-            Online (AI)
+            OpenAI (Whisper)
+          </button>
+          <button
+            className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'browser' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => {
+               setScriptureDetectionEngine('browser')
+             }}
+          >
+            Browser (Web Speech)
           </button>
           <button
             className={`px-2 py-1 text-[10px] rounded ${scriptureDetectionEngine === 'offline' ? 'bg-blue-600' : 'text-gray-400 hover:text-white'}`}
@@ -168,6 +176,11 @@ export default function SettingsPanel() {
           </button>
         </div>
       </div>
+      {scriptureDetectionEngine === 'browser' && (
+        <div className="mb-3 text-[10px] text-yellow-400">
+          Browser speech uses the Web Speech API and may fail if internet or permissions are blocked. Switch to OpenAI or Offline if you see errors.
+        </div>
+      )}
 
       <div className="mb-3 p-2 bg-gray-800/50 rounded border border-gray-700">
         <div className="flex items-center justify-between mb-1">

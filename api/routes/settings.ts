@@ -25,7 +25,7 @@ router.put('/', async (req: Request, res: Response) => {
     recordingEnabled: typeof recordingEnabled === 'boolean' ? recordingEnabled : undefined,
     countdownEndAt: typeof countdownEndAt === 'number' ? countdownEndAt : undefined,
     translationEngine: (translationEngine === 'openai' || translationEngine === 'marian') ? translationEngine : undefined,
-    scriptureDetectionEngine: (scriptureDetectionEngine === 'openai' || scriptureDetectionEngine === 'offline') ? scriptureDetectionEngine : undefined,
+    scriptureDetectionEngine: (scriptureDetectionEngine === 'openai' || scriptureDetectionEngine === 'offline' || scriptureDetectionEngine === 'browser') ? scriptureDetectionEngine : undefined,
     cloudApiToken: typeof cloudApiToken === 'string' || cloudApiToken === null ? cloudApiToken : undefined,
     overlayBackgroundColor: typeof overlayBackgroundColor === 'string' ? overlayBackgroundColor : undefined,
     overlayBackgroundImage: typeof overlayBackgroundImage === 'string' || overlayBackgroundImage === null ? overlayBackgroundImage : undefined,

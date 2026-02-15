@@ -46,7 +46,7 @@ type OperatorState = {
   translationEnabledFrench: boolean
   translations: Record<string, string | undefined> | null
   translationEngine: 'openai' | 'marian'
-  scriptureDetectionEngine: 'openai' | 'offline'
+  scriptureDetectionEngine: 'openai' | 'offline' | 'browser'
   offlineStatus: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' | 'installing_deps' | 'python_missing'
   offlineDetails: string
   cloudApiToken: string | null
@@ -90,7 +90,7 @@ type OperatorState = {
   syncTranslationSettings: (settings: any) => void
   fetchTranslations: (text: string) => Promise<void>
   setTranslationEngine: (engine: 'openai' | 'marian') => Promise<void>
-  setScriptureDetectionEngine: (engine: 'openai' | 'offline') => Promise<void>
+  setScriptureDetectionEngine: (engine: 'openai' | 'offline' | 'browser') => Promise<void>
   checkOfflineStatus: () => Promise<void>
   setCloudToken: (token: string | null) => Promise<void>
   
@@ -106,6 +106,8 @@ type OperatorState = {
   // Debug/Feedback
   lastTranscription: string
   setLastTranscription: (text: string) => void
+  manualTextTranslateEnabled: boolean
+  setManualTextTranslateEnabled: (enabled: boolean) => void
   
   // Live Translation
   liveTranslationEnabled: boolean
@@ -201,6 +203,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   showScriptureOverlay: false,
   recordingEnabled: false,
   countdownEndAt: null,
+  manualTextTranslateEnabled: false,
   approveScripture: async (id) => {
     const approved = await api.approve(id)
     
@@ -427,6 +430,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   
   lastTranscription: '',
   setLastTranscription: (text) => set({ lastTranscription: text }),
+  setManualTextTranslateEnabled: (enabled) => set({ manualTextTranslateEnabled: enabled }),
 
   // Live Translation
   liveTranslationEnabled: false,
