@@ -238,9 +238,10 @@ router.post('/image/generate', async (req: Request, res: Response) => {
     
     res.json({ success: true, data: { url: `/uploads/${filename}` } })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Image generation route error:', err)
-    res.status(500).json({ success: false, error: err.message || 'Generation failed' })
+    const message = err instanceof Error ? err.message : String(err)
+    res.status(500).json({ success: false, error: message || 'Generation failed' })
   }
 })
 

@@ -4,7 +4,7 @@ import fs from 'fs'
 
 class MarianService {
   private process: ChildProcess | null = null
-  private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void }> = []
+  private queue: Array<{ resolve: (val: unknown) => void; reject: (err: unknown) => void }> = []
   private buffer: string = ''
   private activating: boolean = false
   private activated: boolean = false

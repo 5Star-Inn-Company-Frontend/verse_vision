@@ -46,7 +46,7 @@ type OperatorState = {
   translationEnabledFrench: boolean
   translations: Record<string, string | undefined> | null
   translationEngine: 'openai' | 'marian'
-  scriptureDetectionEngine: 'openai' | 'offline' | 'browser'
+  scriptureDetectionEngine: 'openai' | 'offline'
   offlineStatus: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' | 'installing_deps' | 'python_missing'
   offlineDetails: string
   cloudApiToken: string | null

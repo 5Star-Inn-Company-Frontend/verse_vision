@@ -374,4 +374,19 @@ class AiController extends Controller
             ], 500);
         }
     }
+
+    private function checkPlanLimits($user, $feature)
+    {
+        $plan = $user?->activeSubscription?->plan;
+
+        if (!$plan) {
+            return false;
+        }
+
+        if ($feature === 'translation') {
+            return $plan->translation_limit === -1 || $plan->translation_limit > 0;
+        }
+
+        return true;
+    }
 }

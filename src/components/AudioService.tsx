@@ -11,7 +11,6 @@ export default function AudioService() {
   const animationFrameRef = useRef<number | null>(null)
   const transcriptionBufferRef = useRef<string>('')
   const voiceActivityRef = useRef<boolean>(false)
-  const recognitionRef = useRef<any>(null)
   const sttWsRef = useRef<WebSocket | null>(null)
 
   // Derived stream for the selected camera (if any)
@@ -79,11 +78,7 @@ export default function AudioService() {
       setupAnalysis(stream)
 
       const currentEngine = useOperatorStore.getState().scriptureDetectionEngine
-      if (currentEngine === 'browser') {
-        console.log('[AudioService] Browser STT enabled (Web Speech)')
-        startBrowserRecognition()
-        console.log('[AudioService] Browser STT Initiate restart')
-      } else if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
+      if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
         if (currentEngine === 'openai' || currentEngine === 'offline') {
           ensureSttSocket(currentEngine, liveTranslationEnabled)
         }
@@ -107,23 +102,25 @@ export default function AudioService() {
         audioContextRef.current.close()
         audioContextRef.current = null
       }
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.onresult = null
-          recognitionRef.current.onerror = null
-          recognitionRef.current.onend = null
-          recognitionRef.current.stop()
-        } catch (e) {
-          console.error('[AudioService] Failed to stop recognition on cleanup', e)
-        }
-        recognitionRef.current = null
-      }
       if (sttWsRef.current) {
         try { sttWsRef.current.close() } catch (e) { void e }
         sttWsRef.current = null
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay, liveTranslationEnabled])
+
+  useEffect(() => {
+    const ws = sttWsRef.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+       ws.send(JSON.stringify({ 
+         type: 'config', 
+         engine: scriptureDetectionEngine, 
+         translate: liveTranslationEnabled 
+       }))
+       console.log('[AudioService] Updated STT config:', scriptureDetectionEngine, liveTranslationEnabled)
+    }
+  }, [scriptureDetectionEngine, liveTranslationEnabled])
 
   // Cleanup local stream on component unmount
   useEffect(() => {
@@ -219,8 +216,8 @@ export default function AudioService() {
       }
 
       recorder.start()
-      // Record for 5 seconds
-      await new Promise((resolve) => setTimeout(resolve, 5000))
+      // Record for 3 seconds
+      await new Promise((resolve) => setTimeout(resolve, 3000))
       
       if (recorder.state !== 'inactive') {
         recorder.stop()
@@ -280,8 +277,11 @@ export default function AudioService() {
     sttWsRef.current = ws
 
     ws.addEventListener('open', () => {
-      console.log('[AudioService] STT WS open, sending config for engine =', engine, 'translate =', translate)
-      ws.send(JSON.stringify({ type: 'config', engine, translate }))
+      const state = useOperatorStore.getState()
+      const currentEngine = state.scriptureDetectionEngine
+      const currentTranslate = state.liveTranslationEnabled
+      console.log('[AudioService] STT WS open, sending config for engine =', currentEngine, 'translate =', currentTranslate)
+      ws.send(JSON.stringify({ type: 'config', engine: currentEngine, translate: currentTranslate }))
     })
 
     ws.addEventListener('message', (ev) => {

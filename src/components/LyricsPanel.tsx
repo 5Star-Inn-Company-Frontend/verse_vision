@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useOperatorStore } from '@/store/useOperatorStore'
 import hymnsData from '../assets/hymns.json'
-import hymnsDefaultData from '../assets/hymns-default.json'
 import rccgHymns from '../assets/RCCGHymnTable.json'
 import HelpModal from './HelpModal'
 
@@ -124,9 +123,10 @@ export default function LyricsPanel() {
         setSongs(refreshed)
         setSearch('') 
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setFetching(false)
-      alert(e.message || 'Failed to fetch lyrics')
+      const msg = e instanceof Error ? e.message : 'Unknown error'
+      alert(msg || 'Failed to fetch lyrics')
     }
   }
 

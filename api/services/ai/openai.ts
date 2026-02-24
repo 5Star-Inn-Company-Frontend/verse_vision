@@ -104,8 +104,9 @@ export async function extractScriptureReferences(text: string): Promise<{ refere
       references,
       defaultVersionChange: parsed.defaultVersionChange || undefined
     }
-  } catch (err: any) {
-    console.error('Cloud Scripture Extraction error:', err.response?.data || err.message)
+  } catch (err: unknown) {
+    const errorData = (err as { response?: { data?: unknown } })?.response?.data
+    console.error('Cloud Scripture Extraction error:', errorData || (err instanceof Error ? err.message : String(err)))
     return { references: [] }
   }
 }
@@ -124,8 +125,9 @@ export async function getScriptureText(reference: string, version: string = 'NIV
             headers: { 'Authorization': `Bearer ${token}` }
         })
         return res.data.text || ''
-    } catch (err: any) {
-        console.error('Cloud Scripture Text error:', err.response?.data || err.message)
+    } catch (err: unknown) {
+        const errorData = (err as { response?: { data?: unknown } })?.response?.data
+        console.error('Cloud Scripture Text error:', errorData || (err instanceof Error ? err.message : String(err)))
         return ''
     }
 }
@@ -167,8 +169,9 @@ export async function generateImage(prompt: string): Promise<{ url?: string; err
             return { url: res.data.data.url }
         }
         return { error: 'Cloud API returned success but no image URL.' }
-    } catch (err: any) {
-        const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown Cloud API error'
+    } catch (err: unknown) {
+        const errObj = err as { response?: { data?: { message?: string, error?: string } }, message?: string }
+        const msg = errObj.response?.data?.message || errObj.response?.data?.error || errObj.message || 'Unknown Cloud API error'
         console.error('Cloud Image Generation error:', msg)
         return { error: `Cloud API Error: ${msg}` }
     }

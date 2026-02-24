@@ -100,9 +100,9 @@ async function openDatabase(): Promise<Database> {
       signal INTEGER
     );
   `)
-  try { db.exec('ALTER TABLE songs ADD COLUMN source TEXT'); } catch {}
-  try { db.exec('ALTER TABLE cameras ADD COLUMN battery INTEGER'); } catch {}
-  try { db.exec('ALTER TABLE cameras ADD COLUMN signal INTEGER'); } catch {}
+  try { db.exec('ALTER TABLE songs ADD COLUMN source TEXT'); } catch { /* ignore */ }
+  try { db.exec('ALTER TABLE cameras ADD COLUMN battery INTEGER'); } catch { /* ignore */ }
+  try { db.exec('ALTER TABLE cameras ADD COLUMN signal INTEGER'); } catch { /* ignore */ }
   return db
 }
 

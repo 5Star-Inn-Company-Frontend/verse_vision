@@ -54,7 +54,7 @@ router.post('/upload', upload.single('file'), (req: Request & { file?: { filenam
         }
       }
       // fallthrough to original rel if conversion failed
-    } catch (e) {
+    } catch {
       // ignore conversion errors, return original file
     }
   }

@@ -43,9 +43,9 @@ export default function MicrophoneSelector() {
         setVolume(0)
       }, 200)
     }
-    window.addEventListener('audio-level', handleLevel as any)
+    window.addEventListener('audio-level', handleLevel as unknown as EventListener)
     return () => {
-      window.removeEventListener('audio-level', handleLevel as any)
+      window.removeEventListener('audio-level', handleLevel as unknown as EventListener)
       clearTimeout(watchdog)
     }
   }, [])

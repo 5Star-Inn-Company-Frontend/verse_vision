@@ -53,7 +53,7 @@ export const bibleService = {
 
       // Parse reference "John 3:16" -> Book: John, Chapter: 3, Verse: 16
       // Regex to handle "1 John", "Song of Solomon", etc.
-      const match = reference.match(/^((?:[1-3]\s)?[a-zA-Z\s]+)\s(\d+)[:\.](\d+)(?:-(\d+))?$/)
+      const match = reference.match(/^((?:[1-3]\s)?[a-zA-Z\s]+)\s(\d+)[:.](\d+)(?:-(\d+))?$/)
       if (!match) return null
 
       const bookName = match[1].trim() // e.g. "John"

@@ -28,7 +28,7 @@ export default function OfflineIndicator() {
       } else {
         throw new Error('Not running in Electron')
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Auto-install failed:', e)
       setInstallError('Auto-install failed. Please use manual download.')
     } finally {
@@ -81,8 +81,9 @@ export default function OfflineIndicator() {
                       <span className="text-gray-500">|</span>
                       <button 
                         onClick={() => {
-                          if ((window as any).require) {
-                            (window as any).require('electron').shell.openExternal('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe')
+                          const win = window as unknown as WindowWithRequire
+                          if (win.require) {
+                            win.require('electron').shell.openExternal('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe')
                           } else {
                             window.open('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe', '_blank')
                           }

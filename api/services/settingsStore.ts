@@ -17,7 +17,7 @@ export type AppSettings = {
   countdownEndAt?: number | null
   iceServersJson?: string | null
   translationEngine?: 'openai' | 'marian'
-  scriptureDetectionEngine?: 'openai' | 'offline' | 'browser'
+  scriptureDetectionEngine?: 'openai' | 'offline'
   cloudApiToken?: string | null
   overlayBackgroundColor?: string
   overlayBackgroundImage?: string | null
@@ -92,7 +92,7 @@ export const settingsStore = {
     
     // Filter out undefined values from partial so they don't overwrite current values
     const cleanPartial = Object.fromEntries(
-      Object.entries(partial).filter(([_, v]) => v !== undefined)
+      Object.entries(partial).filter(([, v]) => v !== undefined)
     ) as Partial<AppSettings>
     
     const next = { ...current, ...cleanPartial }
