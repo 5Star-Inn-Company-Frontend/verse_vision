@@ -33,7 +33,7 @@ export default function SettingsPanel() {
   useEffect(() => {
     if (scriptureDetectionEngine === 'offline') {
       void checkOfflineStatus()
-      const interval = setInterval(() => void checkOfflineStatus(), 20000)
+      const interval = setInterval(() => void checkOfflineStatus(), 200000)
       return () => clearInterval(interval)
     }
   }, [scriptureDetectionEngine, checkOfflineStatus])

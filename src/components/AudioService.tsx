@@ -85,7 +85,7 @@ export default function AudioService() {
         console.log('[AudioService] Browser STT Initiate restart')
       } else if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
         if (currentEngine === 'openai' || currentEngine === 'offline') {
-          ensureSttSocket(currentEngine)
+          ensureSttSocket(currentEngine, liveTranslationEnabled)
         }
         console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
         void recordLoop(stream, sessionId)
@@ -264,9 +264,13 @@ export default function AudioService() {
     }
   }
 
-  const ensureSttSocket = (engine: 'openai' | 'offline') => {
+  const ensureSttSocket = (engine: 'openai' | 'offline', translate: boolean) => {
     const existing = sttWsRef.current
-    if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+    if (existing && existing.readyState === WebSocket.OPEN) {
+      existing.send(JSON.stringify({ type: 'config', engine, translate }))
+      return
+    }
+    if (existing && existing.readyState === WebSocket.CONNECTING) {
       return
     }
 
@@ -276,18 +280,18 @@ export default function AudioService() {
     sttWsRef.current = ws
 
     ws.addEventListener('open', () => {
-      console.log('[AudioService] STT WS open, sending config for engine =', engine)
-      ws.send(JSON.stringify({ type: 'config', engine }))
+      console.log('[AudioService] STT WS open, sending config for engine =', engine, 'translate =', translate)
+      ws.send(JSON.stringify({ type: 'config', engine, translate }))
     })
 
     ws.addEventListener('message', (ev) => {
       try {
-        const msg = JSON.parse(String(ev.data)) as { type?: string; text?: string }
+        const msg = JSON.parse(String(ev.data)) as { type?: string; text?: string; translations?: any }
         if (msg.type === 'transcript' && msg.text) {
           const state = useOperatorStore.getState()
           const currentEngine = state.scriptureDetectionEngine
           const effectiveEngine = currentEngine === 'offline' ? 'offline' : 'openai'
-          void handleTranscript(msg.text, effectiveEngine)
+          void handleTranscript(msg.text, effectiveEngine, msg.translations)
         }
       } catch (e) {
         console.error('[AudioService] STT WS message error', e)
@@ -303,7 +307,7 @@ export default function AudioService() {
     })
   }
 
-  const handleTranscript = async (text: string, engine: 'openai' | 'offline' | 'browser') => {
+  const handleTranscript = async (text: string, engine: 'openai' | 'offline' | 'browser', precalculatedTranslations?: any) => {
     const state = useOperatorStore.getState()
     if (!text || text.trim().length < 5) {
       return
@@ -313,8 +317,11 @@ export default function AudioService() {
 
     if (state.liveTranslationEnabled) {
       try {
-        const translationEngine = engine === 'offline' ? 'marian' : 'openai'
-        const translations = await api.translate(text, translationEngine)
+        let translations = precalculatedTranslations
+        if (!translations) {
+           const translationEngine = engine === 'offline' ? 'marian' : 'openai'
+           translations = await api.translate(text, translationEngine)
+        }
         state.setLiveTranslationContent({ text, translations })
       } catch (e) {
         console.error('[AudioService] Live Translation Error:', e)

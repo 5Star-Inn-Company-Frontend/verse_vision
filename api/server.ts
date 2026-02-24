@@ -9,7 +9,7 @@ import { setWss } from './services/wsBus.js'
 import { registerPeer, removePeer, sendTo, startSession, endSession } from './services/signaling.js'
 import { offlineService } from './services/ai/offline.js'
 import { marianService } from './services/ai/marian.js'
-import { transcribeAudio } from './services/ai/openai.js'
+import { transcribeAudio, translateTextParallel } from './services/ai/openai.js'
 
 /**
  * start server with port
@@ -82,6 +82,7 @@ if (!fs.existsSync(sttTmpDir)) fs.mkdirSync(sttTmpDir, { recursive: true })
 // sttWss initialized above with noServer: true
 sttWss.on('connection', (ws) => {
   let engine: 'openai' | 'offline' = 'openai'
+  let translate = false
 
   console.log('[stt-ws] client connected')
 
@@ -89,11 +90,12 @@ sttWss.on('connection', (ws) => {
     try {
       const isText = typeof data === 'string' || isBinary === false
       if (isText) {
-        const msg = JSON.parse(String(data)) as { type?: string; engine?: string }
-        if (msg.type === 'config' && (msg.engine === 'openai' || msg.engine === 'offline')) {
-          engine = msg.engine
-          console.log('[stt-ws] config received, engine =', engine)
-          ws.send(JSON.stringify({ type: 'config-ack', engine }))
+        const msg = JSON.parse(String(data)) as { type?: string; engine?: string; translate?: boolean }
+        if (msg.type === 'config') {
+          if (msg.engine === 'openai' || msg.engine === 'offline') engine = msg.engine
+          if (typeof msg.translate === 'boolean') translate = msg.translate
+          console.log('[stt-ws] config received, engine =', engine, 'translate =', translate)
+          ws.send(JSON.stringify({ type: 'config-ack', engine, translate }))
         }
         return
       }
@@ -117,7 +119,19 @@ sttWss.on('connection', (ws) => {
 
       if (text && text.trim().length > 0) {
         console.log('[stt-ws] sending transcript, length =', text.length)
-        ws.send(JSON.stringify({ type: 'transcript', text }))
+        let translations = undefined
+        if (translate) {
+          try {
+             if (engine === 'offline') {
+                translations = await marianService.translate(text)
+             } else {
+                translations = await translateTextParallel(text)
+             }
+          } catch (e) {
+             console.error('[stt-ws] Translation failed:', e)
+          }
+        }
+        ws.send(JSON.stringify({ type: 'transcript', text, translations }))
       }
 
       fs.promises.unlink(tmpFile).catch(() => {})
