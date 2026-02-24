@@ -3,10 +3,13 @@
  */
 import app from './app.js';
 import { WebSocketServer } from 'ws'
+import path from 'path'
+import fs from 'fs'
 import { setWss } from './services/wsBus.js'
 import { registerPeer, removePeer, sendTo, startSession, endSession } from './services/signaling.js'
 import { offlineService } from './services/ai/offline.js'
 import { marianService } from './services/ai/marian.js'
+import { transcribeAudio } from './services/ai/openai.js'
 
 /**
  * start server with port
@@ -17,7 +20,25 @@ const server = app.listen(PORT, () => {
   console.log(`Server ready on port ${PORT}`);
 });
 
-const wss = new WebSocketServer({ server, path: '/ws' })
+const wss = new WebSocketServer({ noServer: true })
+const sttWss = new WebSocketServer({ noServer: true })
+
+server.on('upgrade', (request, socket, head) => {
+  const { pathname } = new URL(request.url || '', `http://${request.headers.host}`)
+
+  if (pathname === '/ws') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request)
+    })
+  } else if (pathname === '/ws/stt') {
+    sttWss.handleUpgrade(request, socket, head, (ws) => {
+      sttWss.emit('connection', ws, request)
+    })
+  } else {
+    socket.destroy()
+  }
+})
+
 wss.on('connection', (ws) => {
   ws.on('message', (data) => {
     try {
@@ -52,6 +73,66 @@ wss.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'hello', ts: Date.now() }))
 })
 setWss(wss)
+
+const sttTmpDir = process.env.VV_DATA_DIR
+  ? path.join(process.env.VV_DATA_DIR, 'tmp')
+  : path.resolve(__dirname, '../tmp')
+if (!fs.existsSync(sttTmpDir)) fs.mkdirSync(sttTmpDir, { recursive: true })
+
+// sttWss initialized above with noServer: true
+sttWss.on('connection', (ws) => {
+  let engine: 'openai' | 'offline' = 'openai'
+
+  console.log('[stt-ws] client connected')
+
+  ws.on('message', async (data, isBinary) => {
+    try {
+      const isText = typeof data === 'string' || isBinary === false
+      if (isText) {
+        const msg = JSON.parse(String(data)) as { type?: string; engine?: string }
+        if (msg.type === 'config' && (msg.engine === 'openai' || msg.engine === 'offline')) {
+          engine = msg.engine
+          console.log('[stt-ws] config received, engine =', engine)
+          ws.send(JSON.stringify({ type: 'config-ack', engine }))
+        }
+        return
+      }
+
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer)
+      console.log('[stt-ws] binary chunk received, bytes =', buf.length, 'engine =', engine)
+      const tmpFile = path.join(
+        sttTmpDir,
+        `stt_${Date.now()}_${Math.random().toString(36).slice(2)}.webm`,
+      )
+      await fs.promises.writeFile(tmpFile, buf)
+
+      let text = ''
+      if (engine === 'offline') {
+        console.log('[stt-ws] Using offline transcription')
+        text = await offlineService.transcribe(tmpFile)
+      } else {
+        console.log('[stt-ws] Using OpenAI cloud transcription')
+        text = await transcribeAudio(tmpFile)
+      }
+
+      if (text && text.trim().length > 0) {
+        console.log('[stt-ws] sending transcript, length =', text.length)
+        ws.send(JSON.stringify({ type: 'transcript', text }))
+      }
+
+      fs.promises.unlink(tmpFile).catch(() => {})
+    } catch (err) {
+      console.error('[stt-ws] Error handling message:', err)
+      try {
+        ws.send(JSON.stringify({ type: 'error', error: 'transcription_failed' }))
+      } catch (e) {
+        void e
+      }
+    }
+  })
+
+  ws.send(JSON.stringify({ type: 'stt-hello', ts: Date.now() }))
+})
 
 /**
  * close server

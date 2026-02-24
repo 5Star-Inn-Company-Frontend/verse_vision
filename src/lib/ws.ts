@@ -2,13 +2,7 @@ import { useOperatorStore } from '@/store/useOperatorStore'
 import { connectToCamera } from '@/lib/webrtc'
 
 function url(): string {
-  if (window.location.protocol === 'file:') return 'ws://localhost:3332/ws'
-  const u = new URL(window.location.href)
-  u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'
-  u.pathname = '/ws'
-  u.search = ''
-  u.hash = ''
-  return u.toString()
+  return 'ws://localhost:3332/ws'
 }
 
 export function startWs(): void {

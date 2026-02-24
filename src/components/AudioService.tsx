@@ -12,6 +12,7 @@ export default function AudioService() {
   const transcriptionBufferRef = useRef<string>('')
   const voiceActivityRef = useRef<boolean>(false)
   const recognitionRef = useRef<any>(null)
+  const sttWsRef = useRef<WebSocket | null>(null)
 
   // Derived stream for the selected camera (if any)
   const cameraStream = activeAudioCameraId ? liveStreams[activeAudioCameraId] : null
@@ -83,6 +84,9 @@ export default function AudioService() {
         startBrowserRecognition()
         console.log('[AudioService] Browser STT Initiate restart')
       } else if (showScriptureOverlay || useOperatorStore.getState().liveTranslationEnabled) {
+        if (currentEngine === 'openai' || currentEngine === 'offline') {
+          ensureSttSocket(currentEngine)
+        }
         console.log(`[AudioService] Starting recording session ${sessionId.slice(0,4)} for ${sourceId}`)
         void recordLoop(stream, sessionId)
       } else {
@@ -113,6 +117,10 @@ export default function AudioService() {
           console.error('[AudioService] Failed to stop recognition on cleanup', e)
         }
         recognitionRef.current = null
+      }
+      if (sttWsRef.current) {
+        try { sttWsRef.current.close() } catch (e) { void e }
+        sttWsRef.current = null
       }
     }
   }, [activeAudioCameraId, cameraStream, selectedMicrophoneId, showScriptureOverlay, liveTranslationEnabled])
@@ -232,21 +240,67 @@ export default function AudioService() {
     try {
       const state = useOperatorStore.getState()
       const engine = state.scriptureDetectionEngine
-      const sttEngine = engine === 'offline' ? 'offline' : 'openai'
-      // 1. Transcribe
-      const { text } = await api.transcribe(blob, sttEngine)
-      if (!text || text.trim().length < 5) {
-        // If silence/noise, we don't clear buffer yet, we just wait for more meaningful text
-        processingRef.current = false
-        return
+      const ws = sttWsRef.current
+
+      if (ws && ws.readyState === WebSocket.OPEN && (engine === 'openai' || engine === 'offline')) {
+        const buffer = await blob.arrayBuffer()
+        console.log('[AudioService] Sending audio via STT WS, bytes =', buffer.byteLength, 'engine =', engine)
+        ws.send(buffer)
+      } else {
+        const sttEngine = engine === 'offline' ? 'offline' : 'openai'
+        console.log('[AudioService] Using HTTP transcribe fallback, size =', blob.size, 'engine =', sttEngine)
+        const { text } = await api.transcribe(blob, sttEngine)
+        if (!text || text.trim().length < 5) {
+          processingRef.current = false
+          return
+        }
+        await handleTranscript(text, engine)
       }
-      await handleTranscript(text, engine)
       
     } catch (err) {
       console.error('[AudioService] Process error:', err)
     } finally {
       processingRef.current = false
     }
+  }
+
+  const ensureSttSocket = (engine: 'openai' | 'offline') => {
+    const existing = sttWsRef.current
+    if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+      return
+    }
+
+    const wsUrl = 'ws://localhost:3332/ws/stt'
+
+    const ws = new WebSocket(wsUrl)
+    sttWsRef.current = ws
+
+    ws.addEventListener('open', () => {
+      console.log('[AudioService] STT WS open, sending config for engine =', engine)
+      ws.send(JSON.stringify({ type: 'config', engine }))
+    })
+
+    ws.addEventListener('message', (ev) => {
+      try {
+        const msg = JSON.parse(String(ev.data)) as { type?: string; text?: string }
+        if (msg.type === 'transcript' && msg.text) {
+          const state = useOperatorStore.getState()
+          const currentEngine = state.scriptureDetectionEngine
+          const effectiveEngine = currentEngine === 'offline' ? 'offline' : 'openai'
+          void handleTranscript(msg.text, effectiveEngine)
+        }
+      } catch (e) {
+        console.error('[AudioService] STT WS message error', e)
+      }
+    })
+
+    ws.addEventListener('error', (e) => {
+      console.error('[AudioService] STT WS error', e)
+    })
+
+    ws.addEventListener('close', () => {
+      sttWsRef.current = null
+    })
   }
 
   const handleTranscript = async (text: string, engine: 'openai' | 'offline' | 'browser') => {
