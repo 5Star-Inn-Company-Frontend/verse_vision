@@ -90,7 +90,7 @@ type OperatorState = {
   syncTranslationSettings: (settings: any) => void
   fetchTranslations: (text: string) => Promise<void>
   setTranslationEngine: (engine: 'openai' | 'marian') => Promise<void>
-  setScriptureDetectionEngine: (engine: 'openai' | 'offline' | 'browser') => Promise<void>
+  setScriptureDetectionEngine: (engine: 'openai' | 'offline') => Promise<void>
   checkOfflineStatus: () => Promise<void>
   setCloudToken: (token: string | null) => Promise<void>
   

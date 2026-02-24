@@ -307,7 +307,7 @@ export default function AudioService() {
     })
   }
 
-  const handleTranscript = async (text: string, engine: 'openai' | 'offline' | 'browser', precalculatedTranslations?: any) => {
+  const handleTranscript = async (text: string, engine: 'openai' | 'offline', precalculatedTranslations?: any) => {
     const state = useOperatorStore.getState()
     if (!text || text.trim().length < 5) {
       return
@@ -346,67 +346,6 @@ export default function AudioService() {
       }
 
       if (queue) setScriptureQueue(queue)
-    }
-  }
-
-  const startBrowserRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      console.warn('[AudioService] Web Speech API not supported in this browser')
-      setLastTranscription('Browser speech is not supported in this environment. Please use OpenAI or Offline.')
-      return
-    }
-
-    if (recognitionRef.current) {
-      return
-    }
-
-    const rec = new SpeechRecognition()
-    rec.continuous = true
-    rec.interimResults = false
-    rec.lang = 'en-US'
-
-    rec.onresult = (event: any) => {
-      try {
-        const results = event.results
-        let finalText = ''
-        for (let i = event.resultIndex; i < results.length; i++) {
-          const res = results[i]
-          if (res.isFinal && res[0]?.transcript) {
-            finalText += res[0].transcript + ' '
-          }
-        }
-        if (finalText.trim().length > 0) {
-          void handleTranscript(finalText.trim(), 'browser')
-        }
-      } catch (e) {
-        console.error('[AudioService] Web Speech onresult error', e)
-      }
-    }
-
-    rec.onerror = (event: any) => {
-      console.error('[AudioService] Web Speech error', event)
-      const message = event && event.error ? `Browser speech error: ${event.error}` : 'Browser speech error'
-      setLastTranscription(message)
-      startBrowserRecognition()
-    }
-
-    rec.onend = () => {
-      const state = useOperatorStore.getState()
-      if (state.scriptureDetectionEngine === 'browser' && (state.showScriptureOverlay || state.liveTranslationEnabled)) {
-        try {
-          rec.start()
-        } catch (e) {
-          console.error('[AudioService] Failed to restart Web Speech', e)
-        }
-      }
-    }
-
-    try {
-      rec.start()
-      recognitionRef.current = rec
-    } catch (e) {
-      console.error('[AudioService] Failed to start Web Speech', e)
     }
   }
 
