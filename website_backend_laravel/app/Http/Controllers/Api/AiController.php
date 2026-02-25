@@ -133,7 +133,7 @@ class AiController extends Controller
             'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
             'Content-Type' => 'application/json',
         ])->withoutVerifying()->post('https://api.openai.com/v1/chat/completions', [
-            'model' => 'gpt-4o',
+            'model' => 'gpt-4o-mini',
             'messages' => [
                 ['role' => 'user', 'content' => $prompt . "\nText: " . $request->text],
             ],

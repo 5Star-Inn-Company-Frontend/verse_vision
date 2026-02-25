@@ -309,43 +309,120 @@ export default function AudioService() {
 
   const handleTranscript = async (text: string, engine: 'openai' | 'offline', precalculatedTranslations?: any) => {
     const state = useOperatorStore.getState()
-    if (!text || text.trim().length < 5) {
+    
+    // Clean up text: remove trailing ellipses and trim
+    let cleanText = text.replace(/\.\.\.$/, '').trim()
+    
+    if (!cleanText || cleanText.length < 5) {
       return
     }
-    console.log('[AudioService] Transcribed:', text)
-    setLastTranscription(text)
+    
+    console.log('[AudioService] Transcribed:', cleanText)
+    setLastTranscription(cleanText)
 
     if (state.liveTranslationEnabled) {
       try {
         let translations = precalculatedTranslations
         if (!translations) {
            const translationEngine = engine === 'offline' ? 'marian' : 'openai'
-           translations = await api.translate(text, translationEngine)
+           translations = await api.translate(cleanText, translationEngine)
         }
-        state.setLiveTranslationContent({ text, translations })
+        
+        // Append to existing content if recent enough (simple buffer logic)
+        // For now, we just update. To solve the "too fast" issue, we need a buffer in the UI or store.
+        // Let's modify the store action to append instead of replace, or handle it here.
+        // Ideally, the UI should show a running history.
+        // For this quick fix, we will let the store handle appending logic if we change the store,
+        // but since we can't easily change the store structure without breaking other things,
+        // let's try to manage a local buffer and send combined text, 
+        // OR better: Update the setLiveTranslationContent to support appending.
+        
+        // Actually, looking at the user request: "it takes away the initial ones which I might not have read all"
+        // We should append new text to the existing text in the store, perhaps keeping the last N sentences.
+        
+        const currentContent = state.liveTranslationContent
+        let newText = cleanText
+        let newTranslations = translations
+        
+        if (currentContent && currentContent.text) {
+             // Keep last 200 chars approx
+             const combined = (currentContent.text + ' ' + cleanText).trim()
+             // if too long, slice from start
+             if (combined.length > 200) {
+                 // find first space after cut to avoid cutting words
+                 const cut = combined.slice(combined.length - 200)
+                 newText = cut.substring(cut.indexOf(' ') + 1)
+             } else {
+                 newText = combined
+             }
+             
+             // Merge translations similarly
+             newTranslations = {}
+             for (const key in translations) {
+                 const oldT = currentContent.translations[key] || ''
+                 const newT = translations[key]
+                 const combinedT = (oldT + ' ' + newT).trim()
+                 if (combinedT.length > 200) {
+                     const cutT = combinedT.slice(combinedT.length - 200)
+                     newTranslations[key] = cutT.substring(cutT.indexOf(' ') + 1)
+                 } else {
+                     newTranslations[key] = combinedT
+                 }
+             }
+        }
+
+        state.setLiveTranslationContent({ text: newText, translations: newTranslations })
       } catch (e) {
         console.error('[AudioService] Live Translation Error:', e)
       }
     }
 
-    const combinedText = (transcriptionBufferRef.current + ' ' + text).trim()
-
+    // Debounce Scripture Detection: Only check if text is long enough or after a pause
+    // Current Logic: We append to buffer. If buffer gets too long, we might miss context.
+    // New Logic: Check only every ~3rd chunk OR if chunk has sentence ending.
+    
+    const combinedText = (transcriptionBufferRef.current + ' ' + cleanText).trim()
+    
     if (useOperatorStore.getState().showScriptureOverlay) {
-      const detectionEngine = engine === 'offline' ? 'offline' : 'openai'
-      const { queue, references } = await api.detectScripture(combinedText, detectionEngine)
+      // Check if we should run detection (Optimization)
+      // Run if:
+      // 1. We have a significant amount of text (> 50 chars)
+      // 2. AND (it ends with punctuation OR it's been a while since last check - implied by chunk arrival)
+      // 3. OR the buffer is getting very full (> 200 chars)
+      
+      const shouldCheck = combinedText.length > 50 && (
+        /[.!?]$/.test(cleanText) || // Ends with sentence
+        combinedText.length > 200   // Buffer getting full
+      )
 
-      if (references && references.length > 0) {
-        transcriptionBufferRef.current = ''
-        console.log('[AudioService] Scripture detected, clearing buffer')
+      if (shouldCheck) {
+          const detectionEngine = engine === 'offline' ? 'offline' : 'openai'
+          const { queue, references } = await api.detectScripture(combinedText, detectionEngine)
+    
+          if (references && references.length > 0) {
+            transcriptionBufferRef.current = ''
+            console.log('[AudioService] Scripture detected, clearing buffer')
+          } else {
+            // Keep buffer but limit size
+            if (combinedText.length > 500) {
+              // Keep last 300 chars to maintain context for next check
+              const cut = combinedText.slice(combinedText.length - 300)
+              transcriptionBufferRef.current = cut.substring(cut.indexOf(' ') + 1)
+            } else {
+              transcriptionBufferRef.current = combinedText
+            }
+          }
+    
+          if (queue) setScriptureQueue(queue)
       } else {
-        if (combinedText.length > 500) {
-          transcriptionBufferRef.current = text
-        } else {
-          transcriptionBufferRef.current = combinedText
-        }
+          // Just update buffer without checking API
+           if (combinedText.length > 500) {
+              const cut = combinedText.slice(combinedText.length - 300)
+              transcriptionBufferRef.current = cut.substring(cut.indexOf(' ') + 1)
+            } else {
+              transcriptionBufferRef.current = combinedText
+            }
       }
-
-      if (queue) setScriptureQueue(queue)
     }
   }
 
