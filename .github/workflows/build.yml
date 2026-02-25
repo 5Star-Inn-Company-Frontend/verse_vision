@@ -54,7 +54,27 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
 
-      - name: Upload Build Artifacts
+      # Alternative: Upload to GitHub Release (Nightly) to bypass Artifact storage limits
+      # This puts the files in the "Releases" section instead of "Actions Artifacts"
+      - name: Update Nightly Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly
+          name: Nightly Build
+          files: |
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.snap
+          prerelease: true
+          overwrite: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Only try to upload artifacts for PRs, with 1 day retention to save space
+      - name: Upload Build Artifacts (PR Only)
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: VerseVision-${{ matrix.os }}
@@ -63,4 +83,5 @@ jobs:
             release/*.zip
             release/*.AppImage
             release/*.snap
+          retention-days: 1
           if-no-files-found: warn
