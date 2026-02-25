@@ -154,6 +154,9 @@ class AuthController extends Controller
                 'output_resolution' => '720p',
                 'allow_auto_approve' => false,
                 'allow_cloud_recording' => false,
+                'transcription_minutes_limit' => 0,
+                'image_generation_limit' => 2,
+                'song_search_limit' => 0,
             ];
         }
 
@@ -165,6 +168,9 @@ class AuthController extends Controller
             'allow_cloud_recording' => (bool) $plan->allow_cloud_recording,
             'allow_custom_vocabulary' => (bool) $plan->allow_custom_vocabulary,
             'allow_multi_campus' => (bool) $plan->allow_multi_campus,
+            'transcription_minutes_limit' => $plan->transcription_minutes_limit,
+            'image_generation_limit' => $plan->image_generation_limit,
+            'song_search_limit' => $plan->song_search_limit,
         ];
     }
 }

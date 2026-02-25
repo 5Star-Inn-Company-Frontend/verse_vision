@@ -9,7 +9,7 @@ export default function OfflineIndicator() {
 
   useEffect(() => {
     checkOfflineStatus()
-    const interval = setInterval(checkOfflineStatus, 200000)
+    const interval = setInterval(checkOfflineStatus, 20000)
     return () => clearInterval(interval)
   }, [checkOfflineStatus])
 

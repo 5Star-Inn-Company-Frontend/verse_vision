@@ -14,10 +14,36 @@ export default function TranslationPanel() {
     updateTranslationSettings,
     setTranslationEngine,
     cloudApiToken,
+    userPlan,
   } = useOperatorStore()
 
   const [showHelp, setShowHelp] = useState(false)
   const [localStatus, setLocalStatus] = useState<'idle' | 'downloading' | 'ready'>('idle')
+
+  const checkLanguageLimit = (langEnabled: boolean) => {
+    if (!langEnabled) return true // Unchecking is always allowed
+    
+    // Count currently enabled
+    let count = 0
+    if (translationEnabledYoruba) count++
+    if (translationEnabledHausa) count++
+    if (translationEnabledIgbo) count++
+    if (translationEnabledFrench) count++
+    
+    // If enabling, new count would be count + 1
+    const newCount = count + 1
+    
+    const plan = userPlan || 'starter'
+    let limit = 2 // Starter default
+    if (plan === 'lite' || plan === 'standard') limit = 4
+    else if (plan === 'professional' || plan === 'enterprise') limit = 999
+    
+    if (newCount > limit) {
+      alert(`Language limit reached for plan ${plan}. Max ${limit} languages allowed.`)
+      return false
+    }
+    return true
+  }
 
   useEffect(() => {
     void loadSettings()
@@ -143,19 +169,31 @@ export default function TranslationPanel() {
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(translationEnabledYoruba)} onChange={(e) => updateTranslationSettings({ translationEnabledYoruba: e.target.checked })} />
+          <input type="checkbox" checked={Boolean(translationEnabledYoruba)} onChange={(e) => {
+            if (e.target.checked && !checkLanguageLimit(true)) return
+            updateTranslationSettings({ translationEnabledYoruba: e.target.checked })
+          }} />
           Yoruba
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(translationEnabledHausa)} onChange={(e) => updateTranslationSettings({ translationEnabledHausa: e.target.checked })} />
+          <input type="checkbox" checked={Boolean(translationEnabledHausa)} onChange={(e) => {
+            if (e.target.checked && !checkLanguageLimit(true)) return
+            updateTranslationSettings({ translationEnabledHausa: e.target.checked })
+          }} />
           Hausa
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(translationEnabledIgbo)} onChange={(e) => updateTranslationSettings({ translationEnabledIgbo: e.target.checked })} />
+          <input type="checkbox" checked={Boolean(translationEnabledIgbo)} onChange={(e) => {
+            if (e.target.checked && !checkLanguageLimit(true)) return
+            updateTranslationSettings({ translationEnabledIgbo: e.target.checked })
+          }} />
           Igbo
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(translationEnabledFrench)} onChange={(e) => updateTranslationSettings({ translationEnabledFrench: e.target.checked })} />
+          <input type="checkbox" checked={Boolean(translationEnabledFrench)} onChange={(e) => {
+            if (e.target.checked && !checkLanguageLimit(true)) return
+            updateTranslationSettings({ translationEnabledFrench: e.target.checked })
+          }} />
           French
         </label>
       </div>

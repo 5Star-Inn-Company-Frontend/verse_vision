@@ -57,7 +57,7 @@ export default function LyricsPanel() {
       const refreshed = await api.listSongs()
       setSongs(refreshed)
     })()
-  }, [])
+  }, [""])
 
   const downloadSample = () => {
     const blob = new Blob([JSON.stringify(hymnsData, null, 2)], { type: 'application/json' })
@@ -104,29 +104,49 @@ export default function LyricsPanel() {
   }
 
   const fetchFromAI = async () => {
-    if (!cloudApiToken) {
-      alert('Please connect to the cloud first to use AI lyrics search')
+    if (!cloudApiToken) return alert('Cloud not connected')
+    
+    // Check limits
+    const { userPlanFeatures } = useOperatorStore.getState()
+    if (userPlanFeatures.song_search_limit !== -1 && userPlanFeatures.song_search_limit === 0) {
+      alert('AI Song Search is not available on your current plan. Please upgrade to use this feature.')
       return
     }
-    if (!search || search.length < 3) return
+
     setFetching(true)
     try {
-      const data = await api.fetchLyrics(search)
-      setFetching(false)
-      if (!data) {
-        alert('Could not find lyrics for: ' + search)
-        return
+      const result = await api.searchLyricsAI(search)
+      if (result?.title && result?.lines) {
+        // Add to local list immediately
+        const created = await api.createSong({
+          title: result.title,
+          lines: result.lines,
+          language: 'English',
+          source: 'ai-generated'
+        })
+        setSongs((prev) => [...prev, created])
+        setSearch('')
+      } else {
+        alert('No lyrics found')
       }
-      const created = await api.createSong({ title: data.title, lines: data.lines, language: 'English', source: 'ai' })
-      if (created) {
-        const refreshed = await api.listSongs()
-        setSongs(refreshed)
-        setSearch('') 
-      }
-    } catch (e: unknown) {
+    } catch (e: any) {
+       // Handle specific error codes if available in e.response or similar
+       // Since api.searchLyricsAI might throw, we should catch it
+       if (e?.response?.status === 403) {
+          const data = await e.response.json().catch(() => ({}))
+          if (data?.code === 'SONG_SEARCH_LIMIT_REACHED') {
+             alert(data.error || 'Monthly AI song search limit reached.')
+          } else if (data?.code === 'SONG_SEARCH_NOT_ALLOWED') {
+             alert(data.error || 'AI song search is not available on your plan.')
+          } else {
+             alert('Permission denied or limit reached.')
+          }
+       } else {
+          console.error(e)
+          alert('Failed to fetch lyrics from AI')
+       }
+    } finally {
       setFetching(false)
-      const msg = e instanceof Error ? e.message : 'Unknown error'
-      alert(msg || 'Failed to fetch lyrics')
     }
   }
 

@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('plans', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Starter, Standard, Professional, Enterprise
+            $table->string('name'); // Starter, Lite, Standard, Professional, Enterprise
             $table->string('slug')->unique();
             $table->decimal('price', 10, 2);
             $table->string('currency')->default('NGN');
@@ -23,6 +23,12 @@ return new class extends Migration
             $table->string('output_resolution')->default('720p'); // 720p, 1080p, 4k
             $table->boolean('allow_custom_vocabulary')->default(false);
             $table->boolean('allow_multi_campus')->default(false);
+            
+            // Added columns from merged migrations
+            $table->integer('transcription_minutes_limit')->default(0);
+            $table->integer('image_generation_limit')->default(0);
+            $table->integer('song_search_limit')->default(0);
+            
             $table->timestamps();
         });
 
@@ -40,6 +46,26 @@ return new class extends Migration
                 'output_resolution' => '720p',
                 'allow_custom_vocabulary' => false,
                 'allow_multi_campus' => false,
+                'transcription_minutes_limit' => 5, // 5 mins demo
+                'image_generation_limit' => 2,
+                'song_search_limit' => 0,
+                'created_at' => now(), 'updated_at' => now()
+            ],
+            [
+                'name' => 'Lite',
+                'slug' => 'lite',
+                'price' => 15000.00,
+                'camera_limit' => 2,
+                'allow_auto_approve' => true,
+                'translation_limit' => 4,
+                'allow_cloud_recording' => false,
+                'cloud_storage_gb' => 0,
+                'output_resolution' => '720p',
+                'allow_custom_vocabulary' => false,
+                'allow_multi_campus' => false,
+                'transcription_minutes_limit' => 1200, // 20 hours
+                'image_generation_limit' => 5,
+                'song_search_limit' => 5,
                 'created_at' => now(), 'updated_at' => now()
             ],
             [
@@ -54,6 +80,9 @@ return new class extends Migration
                 'output_resolution' => '1080p',
                 'allow_custom_vocabulary' => false,
                 'allow_multi_campus' => false,
+                'transcription_minutes_limit' => 3600, // 60 hours
+                'image_generation_limit' => 20,
+                'song_search_limit' => 20,
                 'created_at' => now(), 'updated_at' => now()
             ],
             [
@@ -68,6 +97,9 @@ return new class extends Migration
                 'output_resolution' => '4k',
                 'allow_custom_vocabulary' => true,
                 'allow_multi_campus' => true,
+                'transcription_minutes_limit' => 9000, // 150 hours
+                'image_generation_limit' => 100,
+                'song_search_limit' => 50,
                 'created_at' => now(), 'updated_at' => now()
             ],
             [
@@ -82,6 +114,9 @@ return new class extends Migration
                 'output_resolution' => '4k',
                 'allow_custom_vocabulary' => true,
                 'allow_multi_campus' => true,
+                'transcription_minutes_limit' => -1,
+                'image_generation_limit' => -1,
+                'song_search_limit' => 100,
                 'created_at' => now(), 'updated_at' => now()
             ]
         ]);

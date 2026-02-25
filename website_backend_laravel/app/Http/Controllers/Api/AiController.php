@@ -260,6 +260,52 @@ class AiController extends Controller
     {
         $request->validate(['title' => 'required|string']);
 
+        $user = $request->user();
+        $plan = $user?->activeSubscription?->plan;
+
+        // Check Usage Limits
+        if ($plan && isset($plan->song_search_limit) && $plan->song_search_limit !== -1) {
+             // Calculate current usage for the month (count)
+             $usedCount = AiLog::where('user_id', $user->id)
+                ->where('request_type', 'lyric_search')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            
+             if ($usedCount >= $plan->song_search_limit) {
+                 $nextPlan = Plan::where('price', '>', $plan->price)
+                     ->orderBy('price', 'asc')
+                     ->first();
+
+                 return response()->json([
+                    'error' => "Monthly AI song search limit reached ({$plan->song_search_limit}). Please upgrade your plan.",
+                    'code' => 'SONG_SEARCH_LIMIT_REACHED',
+                    'next_plan_slug' => $nextPlan?->slug,
+                    'current_plan_slug' => $plan?->slug,
+                 ], 403);
+             }
+        } else if (!$plan) {
+            // No plan means starter which has 0 limit
+            // But we should rely on database if possible.
+            // If user has no plan, they are on starter.
+            // Let's assume limits are handled by plan object.
+            // If plan is null, it might be safer to block or allow depending on policy.
+            // Based on migration, starter has 0 limit.
+            // If user has no active subscription, we might treat as starter.
+            // But here $plan is null if no active subscription.
+            
+            // Let's try to fetch 'starter' plan to check its limit if user has no sub
+            $starterPlan = Plan::where('slug', 'starter')->first();
+            if ($starterPlan && $starterPlan->song_search_limit === 0) {
+                 return response()->json([
+                    'error' => "AI song search is not available on the Free plan. Please upgrade.",
+                    'code' => 'SONG_SEARCH_NOT_ALLOWED',
+                    'next_plan_slug' => 'lite',
+                    'current_plan_slug' => 'starter',
+                 ], 403);
+            }
+        }
+
         $startTime = microtime(true);
 
         $prompt = "Find the lyrics for the Christian hymn or song titled \"{$request->title}\".
@@ -312,6 +358,32 @@ class AiController extends Controller
             'prompt' => 'required|string',
             'size' => 'nullable|string|in:512x512,768x768,1024x1024'
         ]);
+
+        $user = $request->user();
+        $plan = $user?->activeSubscription?->plan;
+
+        // Check Usage Limits
+        if ($plan && isset($plan->image_generation_limit) && $plan->image_generation_limit !== -1) {
+             // Calculate current usage for the month (count)
+             $usedCount = AiLog::where('user_id', $user->id)
+                ->where('request_type', 'image_generation')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            
+             if ($usedCount >= $plan->image_generation_limit) {
+                 $nextPlan = Plan::where('price', '>', $plan->price)
+                     ->orderBy('price', 'asc')
+                     ->first();
+
+                 return response()->json([
+                    'error' => "Monthly image generation limit reached ({$plan->image_generation_limit}). Please upgrade your plan.",
+                    'code' => 'IMAGE_GENERATION_LIMIT_REACHED',
+                    'next_plan_slug' => $nextPlan?->slug,
+                    'current_plan_slug' => $plan?->slug,
+                 ], 403);
+             }
+        }
 
         $startTime = microtime(true);
         $size = $request->input('size', '1024x1024');

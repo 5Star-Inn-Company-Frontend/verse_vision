@@ -51,7 +51,11 @@ type OperatorState = {
   offlineDetails: string
   cloudApiToken: string | null
   userPlan: string | null
-  setUserPlan: (plan: string | null) => void
+  userPlanFeatures: {
+    transcription_minutes_limit: number
+    image_generation_limit: number
+  } | null
+  setUserPlan: (plan: string | null, features?: any) => void
   showScriptureOverlay: boolean
   recordingEnabled: boolean
   countdownEndAt: number | null
@@ -194,7 +198,12 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   offlineStatus: 'stopped',
   offlineDetails: '',
   cloudApiToken: null,
-  userPlan: null,
+  userPlan: 'starter',
+  userPlanFeatures: {
+    transcription_minutes_limit: 0,
+    image_generation_limit: 2,
+    song_search_limit: 0
+  },
   overlayBackgroundColor: 'rgba(0,0,0,0.7)',
   overlayBackgroundImage: null,
   overlayTextColor: '#ffffff',
@@ -281,15 +290,28 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   loadSettings: async () => {
     const s = await api.getSettings() as Partial<import('@/../api/services/settingsStore').AppSettings>
     let plan = get().userPlan
+    let features = get().userPlanFeatures
+
     if (s.cloudApiToken) {
       api.setToken(s.cloudApiToken)
       const user = await api.me()
       if (user) {
         plan = user.active_subscription?.plan?.slug || 'starter'
+        features = await api.getFeatures()
+      }
+    } else {
+      // Default to starter if not connected
+      plan = 'starter'
+      features = {
+        transcription_minutes_limit: 0,
+        image_generation_limit: 2,
+        song_search_limit: 0
       }
     }
+
     set({
       userPlan: plan,
+      userPlanFeatures: features,
       autoApproveEnabled: s.autoApproveEnabled ?? get().autoApproveEnabled,
       autoApproveDelayMs: s.autoApproveDelayMs ?? get().autoApproveDelayMs,
       translationStyle: s.translationStyle ?? get().translationStyle,
@@ -421,7 +443,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     const s = await api.updateSettings({ cloudApiToken: token })
     set({ cloudApiToken: s.cloudApiToken })
   },
-  setUserPlan: (plan) => set({ userPlan: plan }),
+  setUserPlan: (plan, features) => set({ userPlan: plan, userPlanFeatures: features }),
   
   showLyricsOverlay: false,
   currentSongId: null,
@@ -538,8 +560,26 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   nextActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: s.activePlaylistItemPage + 1 })),
   prevActivePlaylistItemPage: () => set((s) => ({ activePlaylistItemPage: Math.max(1, s.activePlaylistItemPage - 1) })),
   upsertCamera: (rec) => {
-    const url = rec.previewPath ? (rec.previewPath.startsWith('/uploads') ? rec.previewPath : `/uploads/${rec.previewPath}`) : ''
     const cams = get().cameras
+    const plan = get().userPlan || 'starter'
+    
+    // Check camera limits based on plan
+    // Exclude 'cam-default' from count
+    const currentCount = cams.filter(c => c.id !== 'cam-default').length
+    let limit = 1 // Starter default
+    if (plan === 'lite') limit = 2
+    else if (plan === 'standard') limit = 5
+    else if (plan === 'professional' || plan === 'enterprise') limit = 999
+    
+    // If adding a new camera (not updating existing) and limit reached
+    const isNew = !cams.find(c => c.id === rec.id)
+    if (isNew && rec.id !== 'cam-default' && currentCount >= limit) {
+      console.warn(`Camera limit reached for plan ${plan}. Max ${limit} cameras allowed.`)
+      // Ideally show UI feedback, but for now we just prevent adding
+      return
+    }
+
+    const url = rec.previewPath ? (rec.previewPath.startsWith('/uploads') ? rec.previewPath : `/uploads/${rec.previewPath}`) : ''
     const idx = cams.findIndex((c) => c.id === rec.id)
     if (idx >= 0) {
       const prev = cams[idx]

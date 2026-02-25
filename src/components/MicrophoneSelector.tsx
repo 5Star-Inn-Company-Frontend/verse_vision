@@ -27,26 +27,40 @@ export default function MicrophoneSelector() {
   }, [])
 
   useEffect(() => {
-    let watchdog: NodeJS.Timeout
+    let animationFrame: number
+    let targetLevel = 0
+
     const handleLevel = (e: CustomEvent<number>) => {
       // Normalize 0-255 to 0-100
-      const normalized = (e.detail / 255) * 100
-      // Apply simple smoothing
-      setVolume(prev => {
-          const diff = normalized - prev
-          return prev + diff * 0.5
-      })
-
-      // Reset watchdog
-      clearTimeout(watchdog)
-      watchdog = setTimeout(() => {
-        setVolume(0)
-      }, 200)
+      targetLevel = (e.detail / 255) * 100
     }
+
+    const loop = () => {
+      setVolume(prev => {
+          let next = prev
+          // Smooth interpolation towards target
+          if (targetLevel > prev) {
+               next = prev + (targetLevel - prev) * 0.5 // Fast attack
+          } else {
+               next = prev - (prev - targetLevel) * 0.1 // Slow release
+          }
+
+          // Safety decay: If no new events come in, targetLevel should decay
+          // But handleLevel is called frequently. If stream stops, targetLevel stays high.
+          // So we decay targetLevel slightly every frame.
+          targetLevel = Math.max(0, targetLevel - 0.5) 
+
+          return Math.max(0, next)
+      })
+      animationFrame = requestAnimationFrame(loop)
+    }
+
     window.addEventListener('audio-level', handleLevel as unknown as EventListener)
+    loop()
+
     return () => {
       window.removeEventListener('audio-level', handleLevel as unknown as EventListener)
-      clearTimeout(watchdog)
+      cancelAnimationFrame(animationFrame)
     }
   }, [])
 
@@ -86,27 +100,7 @@ export default function MicrophoneSelector() {
           <div className="flex flex-col items-start overflow-hidden flex-1">
               <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Audio Input</span>
               <div className="flex items-center gap-2 w-full">
-                  <span className="text-sm font-medium truncate text-gray-200">{currentLabel.slice(0, 35)}</span>
-              </div>
-          </div>
-
-          {/* Visualizer Bar */}
-          <div className="flex flex-col gap-0.5 shrink-0">
-               <div className="w-20 h-2 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800">
-                  <div 
-                      className={`h-full transition-all duration-100 ease-out ${
-                          volume > 90 ? 'bg-red-500' : 
-                          volume > 60 ? 'bg-yellow-500' : 
-                          'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(100, volume * 3)}%` }} // Boost visual gain
-                  />
-              </div>
-              <div className="flex justify-between px-0.5">
-                  <div className="w-0.5 h-1 bg-neutral-800"></div>
-                  <div className="w-0.5 h-1 bg-neutral-800"></div>
-                  <div className="w-0.5 h-1 bg-neutral-800"></div>
-                  <div className="w-0.5 h-1 bg-neutral-800"></div>
+                  <span className="text-sm font-medium truncate text-gray-200 overflow-hidden">{currentLabel.slice(0, 85)}</span>
               </div>
           </div>
           

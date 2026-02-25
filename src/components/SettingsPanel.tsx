@@ -10,6 +10,7 @@ export default function SettingsPanel() {
     scriptureDetectionEngine, setScriptureDetectionEngine,
     offlineStatus, offlineDetails, checkOfflineStatus,
     cloudApiToken, setCloudToken, userPlan, setUserPlan,
+    userPlanFeatures,
     lastTranscription,
     liveTranslationEnabled, setLiveTranslationEnabled
   } = useOperatorStore()
@@ -33,7 +34,7 @@ export default function SettingsPanel() {
   useEffect(() => {
     if (scriptureDetectionEngine === 'offline') {
       void checkOfflineStatus()
-      const interval = setInterval(() => void checkOfflineStatus(), 200000)
+      const interval = setInterval(() => void checkOfflineStatus(), 20000)
       return () => clearInterval(interval)
     }
   }, [scriptureDetectionEngine, checkOfflineStatus])
@@ -63,7 +64,8 @@ export default function SettingsPanel() {
       if (token) {
         await setCloudToken(token)
         if (data.user?.active_subscription?.plan?.slug) {
-          setUserPlan(data.user.active_subscription.plan.slug)
+          const userFeatures = await api.getFeatures()
+          setUserPlan(data.user.active_subscription.plan.slug, userFeatures)
         } else {
           setUserPlan('starter')
         }
@@ -81,6 +83,7 @@ export default function SettingsPanel() {
 
   const handleLogout = async () => {
     await setCloudToken(null)
+    setUserPlan('starter')
   }
 
   return (
@@ -246,9 +249,17 @@ export default function SettingsPanel() {
         <label className="text-xs font-semibold text-gray-300 block mb-2">Cloud Account</label>
         {cloudApiToken ? (
           <div className="flex items-center justify-between">
-            <div className="text-xs text-green-400 flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Connected ({userPlan} Plan)
+            <div className="text-xs text-green-400 flex flex-col">
+              <div className="flex items-center">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                Connected ({userPlan} Plan)
+              </div>
+              {userPlanFeatures && (
+                <div className="text-[10px] text-gray-400 mt-1 ml-4">
+                  <div>Transcription: {userPlanFeatures.transcription_minutes_limit === -1 ? 'Unlimited' : `${userPlanFeatures.transcription_minutes_limit} mins`}</div>
+                  <div>Image Gen: {userPlanFeatures.image_generation_limit === -1 ? 'Unlimited' : userPlanFeatures.image_generation_limit}</div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <button 

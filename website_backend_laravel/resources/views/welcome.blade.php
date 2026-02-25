@@ -393,78 +393,159 @@
                 <p class="text-gray-400">Flexible options designed for churches of all sizes.</p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <!-- Starter Plan -->
-                <div class="bg-gray-900 rounded-2xl p-8 border border-gray-800 flex flex-col">
-                    <h3 class="text-xl font-semibold text-gray-300">Starter</h3>
-                    <div class="my-6">
-                        <span class="text-4xl font-bold text-white">Free</span>
-                        <span class="text-gray-500">/mo</span>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                <!-- Starter Plan (Free) -->
+                <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col relative overflow-hidden">
+                    <h3 class="text-lg font-semibold text-white">Starter</h3>
+                    <div class="my-4">
+                        <span class="text-3xl font-bold text-white">Free</span>
                     </div>
-                    <ul class="space-y-4 mb-8 flex-1">
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-green-500"></i> 5 AI Lyrics Searches/mo
+                    <ul class="space-y-3 mb-6 flex-1">
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 1 Phone Camera
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-green-500"></i> Basic Camera Grid
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Transcription
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-500">
-                            <i class="fa-solid fa-xmark text-red-500"></i> No AI Detection
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Offline Scripture Detection
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-500">
-                            <i class="fa-solid fa-xmark text-red-500"></i> No AI Translation
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 2 Translation Languages
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Hymns
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-xmark text-gray-500"></i> No AI Song Search
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 2 AI Image Generations/mo
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 720p Output
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-center rounded-xl font-medium transition-colors">Get Started</a>
+                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Download Now</a>
+                </div>
+
+                <!-- Lite Plan (New) -->
+                <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">POPULAR</div>
+                    <h3 class="text-lg font-semibold text-white">Lite</h3>
+                    <div class="my-4">
+                        <span class="text-3xl font-bold text-white">₦15,000</span>
+                        <span class="text-sm text-gray-500">/mo</span>
+                    </div>
+                    <ul class="space-y-3 mb-6 flex-1">
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Up to 2 Phone Cameras
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 20 Hours AI Transcription/mo
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Scripture Detection
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 4 Translation Languages
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Hymns
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 5 AI Song Search/mo
+                        </li>
+                         <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 5 AI Image Generations/mo
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 720p Output
+                        </li>
+                    </ul>
+                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Get Started</a>
                 </div>
 
                 <!-- Standard Plan -->
-                <div class="bg-gray-900 rounded-2xl p-8 border border-brand-500/50 relative flex flex-col shadow-2xl shadow-brand-900/20 transform md:-translate-y-4">
-                    <div class="absolute top-0 right-0 bg-brand-600 text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
-                    <h3 class="text-xl font-semibold text-white">Standard</h3>
-                    <div class="my-6">
-                        <span class="text-4xl font-bold text-white">₦45,000</span>
-                        <span class="text-gray-500">/mo</span>
+                <div class="bg-gray-900 rounded-2xl p-6 border border-brand-500/30 flex flex-col relative overflow-hidden shadow-lg shadow-brand-900/20 transform md:-translate-y-2">
+                    <div class="absolute top-0 right-0 bg-brand-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">RECOMMENDED</div>
+                    <h3 class="text-lg font-semibold text-brand-400">Standard</h3>
+                    <div class="my-4">
+                        <span class="text-3xl font-bold text-white">₦45,000</span>
+                        <span class="text-sm text-gray-500">/mo</span>
                     </div>
-                    <ul class="space-y-4 mb-8 flex-1">
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-brand-400"></i> 50 AI Lyrics Searches/mo
+                    <ul class="space-y-3 mb-6 flex-1">
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Up to 5 Phone Cameras
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-brand-400"></i> AI Detection Engine
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 60 Hours AI Transcription/mo
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-brand-400"></i> Standard Support
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Scripture Detection
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-500">
-                            <i class="fa-solid fa-xmark text-red-500"></i> No AI Translation
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 4 Translation Languages
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Hymns
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 20 AI Song Search/mo
+                        </li>
+                         <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 20 AI Image Generations/mo
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 1080p Output
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Cloud Recording (50GB)
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-3 px-4 bg-brand-600 hover:bg-brand-500 text-center rounded-xl font-medium transition-colors">Upgrade Now</a>
+                    <a href="#" class="block w-full py-2 px-3 bg-brand-600 hover:bg-brand-500 text-center rounded-lg text-sm font-medium transition-colors">Get Started</a>
                 </div>
 
                 <!-- Professional Plan -->
-                <div class="bg-gray-900 rounded-2xl p-8 border border-gray-800 flex flex-col">
-                    <h3 class="text-xl font-semibold text-purple-400">Professional</h3>
-                    <div class="my-6">
-                        <span class="text-4xl font-bold text-white">₦122,450</span>
-                        <span class="text-gray-500">/mo</span>
+                <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col relative overflow-hidden">
+                    <h3 class="text-lg font-semibold text-white">Professional</h3>
+                    <div class="my-4">
+                        <span class="text-3xl font-bold text-white">₦122,450</span>
+                        <span class="text-sm text-gray-500">/mo</span>
                     </div>
-                    <ul class="space-y-4 mb-8 flex-1">
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-purple-400"></i> 5000 AI Lyrics Searches/mo
+                    <ul class="space-y-3 mb-6 flex-1">
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Phone Cameras
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-purple-400"></i> AI Detection Engine
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 150 Hours AI Transcription/mo
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-purple-400"></i> AI Translation (All Languages)
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Hymns
                         </li>
-                        <li class="flex items-center gap-3 text-sm text-gray-300">
-                            <i class="fa-solid fa-check text-purple-400"></i> Priority Support
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Offline Hymns
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 50 AI Song Search/mo
+                        </li>
+                         <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 100 AI Image Generations/mo
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Scripture Detection
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Unlimited Translations
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> 4K Output
+                        </li>
+                        <li class="flex items-center gap-2 text-xs text-gray-300">
+                            <i class="fa-solid fa-check text-blue-500"></i> Multi-Campus Support
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-center rounded-xl font-medium transition-colors">Go Pro</a>
+                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Contact Sales</a>
                 </div>
             </div>
         </div>

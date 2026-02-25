@@ -11,7 +11,8 @@ export default function UtilityPanel() {
     panelLyricsVisible, panelPlaylistVisible, panelSceneVisible,
     togglePanel,
     overlayBackgroundColor, overlayBackgroundImage, overlayTextScale, overlayFontFamily, updateOverlaySettings,
-    overlayTextColor, cloudApiToken
+    overlayTextColor, cloudApiToken,
+    userPlan, userPlanFeatures
   } = useOperatorStore()
   
   const [showHelp, setShowHelp] = useState(false)
@@ -23,6 +24,11 @@ export default function UtilityPanel() {
 
     if (!cloudApiToken) {
       alert('Please connect to the cloud first to use Image generation')
+      return
+    }
+
+    if (userPlanFeatures && userPlanFeatures.image_generation_limit !== -1 && userPlanFeatures.image_generation_limit <= 0) {
+      alert('You have reached your image generation limit. Please upgrade your plan.')
       return
     }
 
