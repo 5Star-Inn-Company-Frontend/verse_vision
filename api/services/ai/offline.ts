@@ -266,7 +266,7 @@ class OfflineService {
     }
   }
 
-  private async sendCommand(command: string, payload: unknown): Promise<unknown> {
+  private async sendCommand(command: string, payload: any): Promise<any> {
     if (!this.process) {
         this.start()
     }
