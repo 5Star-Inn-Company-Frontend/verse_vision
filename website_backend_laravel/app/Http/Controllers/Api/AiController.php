@@ -77,6 +77,9 @@ class AiController extends Controller
             )->withoutVerifying()->post('https://api.openai.com/v1/audio/transcriptions', [
                 'model' => $model,
                 'response_format' => 'verbose_json',
+                'prompt' => 'Sermon, preaching, Bible verses, worship service. Do not hallucinate. Silence.',
+                'temperature' => 0,
+                'language' => 'en', // Optional: Force English if primarily English, or remove if mixed
             ]);
         }
 
@@ -84,6 +87,48 @@ class AiController extends Controller
 
         $data = $response->json();
         Log::info($request->title ."===Transcribe ($engine)===".json_encode($data));
+
+        // Hallucination Filtering
+        if (isset($data['text'])) {
+            $text = trim($data['text']);
+            $hallucinations = [
+                'Thank you for watching',
+                'MBC',
+                'Amara.org',
+                'Subtitles by',
+                'Translated by',
+                'Captioning by',
+                'Copyright',
+                'All rights reserved',
+                '視聴していただきありがとうございます', // Korean/Japanese thanks
+                '시청해 주셔서 감사합니다',
+                'Unidentified',
+                'Silence',
+                'music',
+                'Music',
+                'Souss-Titres',
+                'Sous-titres',
+                'Thanks for watching',
+                'Please subscribe',
+            ];
+
+            foreach ($hallucinations as $h) {
+                if (stripos($text, $h) !== false) {
+                    // If the text is *mostly* the hallucination (short), clear it.
+                    // If it's part of a longer sentence, maybe keep it? 
+                    // Usually hallucinations are the whole segment.
+                    if (strlen($text) < strlen($h) + 10) {
+                        $data['text'] = '';
+                        break;
+                    }
+                }
+            }
+            
+            // Filter short repeated chars or non-sense
+            if (preg_match('/^[^\w\s]+$/', $text)) { // only symbols
+                 $data['text'] = '';
+            }
+        }
 
         // Calculate Audio Duration for Usage Tracking
         $audioDurationSec = 0;

@@ -31,6 +31,16 @@ export const api = {
       return null
     }
   },
+  getFeatures: async () => {
+    try {
+      const res = await fetch(`${CLOUD}/auth/me`, { headers: api._headers() })
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.features
+    } catch {
+      return null
+    }
+  },
   transcribe: async (audioBlob: Blob, engine: 'openai' | 'offline' = 'openai'): Promise<{ text: string }> => {
     const fd = new FormData()
     fd.append('audio', audioBlob, 'audio.webm')

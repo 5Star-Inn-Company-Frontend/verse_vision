@@ -1,0 +1,65 @@
+[
+    {
+        "title": "Getting Started",
+        "links": [
+            {"title": "Introduction", "url": "/docs/index"},
+            {"title": "Installation", "url": "/docs/installation"},
+            {"title": "Quick Start Guide", "url": "/docs/quick-start"},
+            {"title": "The Interface", "url": "/docs/interface"}
+        ]
+    },
+    {
+        "title": "Core Features",
+        "links": [
+            {"title": "Song Management", "url": "/docs/songs"},
+            {"title": "Scripture Projection", "url": "/docs/scriptures"},
+            {"title": "Media & Backgrounds", "url": "/docs/media"},
+            {"title": "Playlists & Schedules", "url": "/docs/playlists"},
+            {"title": "Scenes & Transitions", "url": "/docs/scenes"}
+        ]
+    },
+    {
+        "title": "AI Capabilities",
+        "links": [
+            {"title": "AI Song Search", "url": "/docs/ai-song-search"},
+            {"title": "Live Translation", "url": "/docs/ai-translation"},
+            {"title": "AI Image Generation", "url": "/docs/ai-images"},
+            {"title": "Scripture Detection", "url": "/docs/ai-scripture"},
+            {"title": "Transcription", "url": "/docs/transcription"}
+        ]
+    },
+    {
+        "title": "Live Production",
+        "links": [
+            {"title": "Going Live", "url": "/docs/going-live"},
+            {"title": "Overlays & Output", "url": "/docs/overlays"},
+            {"title": "OBS Integration", "url": "/docs/obs-integration"},
+            {"title": "Moderation Queue", "url": "/docs/moderation"}
+        ]
+    },
+    {
+        "title": "Hardware & Inputs",
+        "links": [
+            {"title": "Camera Setup", "url": "/docs/cameras"},
+            {"title": "Mobile Camera App", "url": "/docs/mobile-app"},
+            {"title": "Audio Input", "url": "/docs/audio-input"},
+            {"title": "Remote Pairing", "url": "/docs/pairing"}
+        ]
+    },
+    {
+        "title": "Cloud & Account",
+        "links": [
+            {"title": "Cloud Sync", "url": "/docs/cloud-sync"},
+            {"title": "Plans & Billing", "url": "/docs/plans"},
+            {"title": "User Management", "url": "/docs/users"}
+        ]
+    },
+    {
+        "title": "Reference",
+        "links": [
+            {"title": "Settings", "url": "/docs/settings"},
+            {"title": "Keyboard Shortcuts", "url": "/docs/shortcuts"},
+            {"title": "Troubleshooting", "url": "/docs/troubleshooting"}
+        ]
+    }
+]

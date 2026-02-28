@@ -66,6 +66,7 @@
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-8">
                         <a href="#features" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Features</a>
+                        <a href="{{ route('docs.show', 'index') }}" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Documentation</a>
                         <a href="#preview" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Preview</a>
                         <a href="#why" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Why</a>
                         <a href="#plans" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Plans</a>
@@ -92,7 +93,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden" id="download">
         <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-900/40 via-gray-950 to-gray-950 -z-10"></div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-white via-brand-100 to-brand-500 bg-clip-text text-transparent">
@@ -252,7 +253,7 @@
             <div class="rounded-xl overflow-hidden shadow-2xl border border-gray-800">
                 <!-- Desktop Screenshot (Landscape) -->
                 <div class="aspect-video w-full bg-gray-800 flex items-center justify-center relative group">
-                     <img src="/prv_desktop.png" alt="Desktop Interface" class="w-full h-full object-cover transform transition-transform duration-700 ease-in-out scale-105 group-hover:scale-100">
+                     <img src="/prv_desktop1_2.png" alt="Desktop Interface" class="w-full h-full object-cover transform transition-transform duration-700 ease-in-out scale-105 group-hover:scale-100">
                 </div>
             </div>
         </div>
@@ -426,7 +427,7 @@
                             <i class="fa-solid fa-check text-blue-500"></i> 720p Output
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Download Now</a>
+                    <a href="/#download" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Download Now</a>
                 </div>
 
                 <!-- Lite Plan (New) -->
@@ -463,7 +464,7 @@
                             <i class="fa-solid fa-check text-blue-500"></i> 720p Output
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Get Started</a>
+                    <a href="/#download" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Get Started</a>
                 </div>
 
                 <!-- Standard Plan -->
@@ -503,7 +504,7 @@
                             <i class="fa-solid fa-check text-blue-500"></i> Cloud Recording (50GB)
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-2 px-3 bg-brand-600 hover:bg-brand-500 text-center rounded-lg text-sm font-medium transition-colors">Get Started</a>
+                    <a href="/#download" class="block w-full py-2 px-3 bg-brand-600 hover:bg-brand-500 text-center rounded-lg text-sm font-medium transition-colors">Get Started</a>
                 </div>
 
                 <!-- Professional Plan -->
@@ -545,7 +546,7 @@
                             <i class="fa-solid fa-check text-blue-500"></i> Multi-Campus Support
                         </li>
                     </ul>
-                    <a href="#" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Contact Sales</a>
+                    <a href="/#download" class="block w-full py-2 px-3 bg-gray-800 hover:bg-gray-700 text-center rounded-lg text-sm font-medium transition-colors border border-gray-700">Contact Sales</a>
                 </div>
             </div>
         </div>
