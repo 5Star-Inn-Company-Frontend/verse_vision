@@ -35,7 +35,36 @@ export async function transcribeAudio(filePath: string): Promise<string> {
     })
     
     console.log('Cloud Transcribe Response:', res.data)
-    return (res.data.text || '').trim()
+    let text = (res.data.text || '').trim()
+
+    // Hallucination filtering
+    const hallucinations = [
+      'Thank you for watching',
+      '시청해 주셔서 감사합니다',
+      'Silence',
+      'MBC',
+      'News',
+      'Subscribe',
+      'Amara.org',
+      'Sous-titres',
+      'Subtitle'
+    ]
+
+    for (const h of hallucinations) {
+      if (text.toLowerCase().includes(h.toLowerCase()) && text.length < h.length + 20) {
+        console.log(`[transcribeAudio] Filtered hallucination: "${text}"`)
+        return ''
+      }
+    }
+
+    // CJK filtering (Chinese, Japanese, Korean) & Cyrillic
+    // Range includes Hiragana, Katakana, CJK Unified Ideographs, and Cyrillic
+    if (/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\u0400-\u04ff]/.test(text)) {
+      console.log(`[transcribeAudio] Filtered non-English text: "${text}"`)
+      return ''
+    }
+
+    return text
   } catch (err: any) {
     console.error('Cloud Transcription error:', err.response?.data || err.message)
     return ''

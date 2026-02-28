@@ -165,7 +165,7 @@ export default function AudioService() {
             const average = sum / bufferLength
             
             // VAD Logic: Check for meaningful audio
-            if (average > 10) { // Threshold (out of 255) - approx 4% volume
+            if (average > 20) { // Threshold (out of 255) - approx 8% volume - increased to avoid hallucinations
                 voiceActivityRef.current = true
             }
 
@@ -288,6 +288,7 @@ export default function AudioService() {
       try {
         const msg = JSON.parse(String(ev.data)) as { type?: string; text?: string; translations?: any }
         if (msg.type === 'transcript' && msg.text) {
+          console.log('[AudioService] Received transcript:', msg.text.substring(0, 50) + (msg.text.length > 50 ? '...' : ''))
           const state = useOperatorStore.getState()
           const currentEngine = state.scriptureDetectionEngine
           const effectiveEngine = currentEngine === 'offline' ? 'offline' : 'openai'

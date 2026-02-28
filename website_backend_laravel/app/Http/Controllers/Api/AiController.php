@@ -79,13 +79,41 @@ class AiController extends Controller
                 'response_format' => 'verbose_json',
                 'prompt' => 'Sermon, preaching, Bible verses, worship service. Do not hallucinate. Silence.',
                 'temperature' => 0,
-                'language' => 'en', // Optional: Force English if primarily English, or remove if mixed
+                'language' => 'en',
             ]);
         }
 
         $duration = (microtime(true) - $startTime) * 1000;
 
         $data = $response->json();
+
+        // Hallucination Filtering
+        if (isset($data['text'])) {
+            $text = trim($data['text']);
+            $hallucinations = [
+                'Thank you for watching',
+                '시청해 주셔서 감사합니다',
+                'Silence',
+                'MBC',
+                'News',
+                'Subscribe',
+                'Amara.org',
+                'Sous-titres',
+                'Subtitle'
+            ];
+            foreach ($hallucinations as $h) {
+                if (stripos($text, $h) !== false && strlen($text) < strlen($h) + 20) {
+                    $data['text'] = '';
+                    break;
+                }
+            }
+
+            // CJK & Cyrillic Filtering
+            if (preg_match('/[\x{3040}-\x{30ff}\x{3400}-\x{4dbf}\x{4e00}-\x{9fff}\x{f900}-\x{faff}\x{ff66}-\x{ff9f}\x{0400}-\x{04ff}]/u', $text)) {
+                $data['text'] = '';
+            }
+        }
+
         Log::info($request->title ."===Transcribe ($engine)===".json_encode($data));
 
         // Hallucination Filtering
