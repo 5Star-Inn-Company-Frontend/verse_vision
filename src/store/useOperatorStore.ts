@@ -54,6 +54,7 @@ type OperatorState = {
   userPlanFeatures: {
     transcription_minutes_limit: number
     image_generation_limit: number
+    song_search_limit: number
   } | null
   setUserPlan: (plan: string | null, features?: any) => void
   showScriptureOverlay: boolean

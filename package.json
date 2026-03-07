@@ -10,7 +10,7 @@
   "author": "Samji Diamond",
   "license": "MIT",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "commonjs",
   "main": "electron/main.cjs",
   "scripts": {

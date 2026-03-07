@@ -99,7 +99,10 @@ class AiController extends Controller
                 'Subscribe',
                 'Amara.org',
                 'Sous-titres',
-                'Subtitle'
+                'Subtitle',
+                'Sermon, preaching, Bible verses, worship service',
+                'Do not hallucinate',
+                'Silence'
             ];
             foreach ($hallucinations as $h) {
                 if (stripos($text, $h) !== false && strlen($text) < strlen($h) + 20) {

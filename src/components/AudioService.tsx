@@ -288,7 +288,29 @@ export default function AudioService() {
       try {
         const msg = JSON.parse(String(ev.data)) as { type?: string; text?: string; translations?: any }
         if (msg.type === 'transcript' && msg.text) {
-          console.log('[AudioService] Received transcript:', msg.text.substring(0, 50) + (msg.text.length > 50 ? '...' : ''))
+          let text = msg.text.trim()
+          
+          // Client-side hallucination filtering
+          const hallucinations = [
+            'Thank you for watching',
+            '시청해 주셔서 감사합니다',
+            'Silence',
+            'MBC',
+            'News',
+            'Subscribe',
+            'Amara.org',
+            'Sous-titres',
+            'Subtitle',
+            'Sermon, preaching, Bible verses, worship service',
+            'Do not hallucinate'
+          ]
+
+          if (hallucinations.some(h => text.toLowerCase().includes(h.toLowerCase()))) {
+             console.log('[AudioService] Filtered hallucination:', text)
+             return
+          }
+
+          console.log('[AudioService] Received transcript:', text.substring(0, 50) + (text.length > 50 ? '...' : ''))
           const state = useOperatorStore.getState()
           const currentEngine = state.scriptureDetectionEngine
           const effectiveEngine = currentEngine === 'offline' ? 'offline' : 'openai'

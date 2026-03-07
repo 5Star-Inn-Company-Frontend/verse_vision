@@ -47,7 +47,10 @@ export async function transcribeAudio(filePath: string): Promise<string> {
       'Subscribe',
       'Amara.org',
       'Sous-titres',
-      'Subtitle'
+      'Subtitle',
+      'Sermon, preaching, Bible verses, worship service',
+      'Do not hallucinate',
+      'Silence'
     ]
 
     for (const h of hallucinations) {
