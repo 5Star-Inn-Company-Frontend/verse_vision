@@ -14,6 +14,8 @@ class OfflineService {
   private mode: 'script' = 'script'
   private hasTriedInstall = false
   private retryCount = 0
+  private intentionalStop = false
+  private lastStartTime = 0
   private pythonCmd: string = 'python'
 
   constructor() {

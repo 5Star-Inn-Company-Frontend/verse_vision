@@ -35,6 +35,7 @@ const defaults: AppSettings = {
   translationEnabledHausa: false,
   translationEnabledIgbo: false,
   translationEnabledFrench: false,
+  translationEnabledEnglish: true,
   activeAudioCameraId: null,
   showLyricsOverlay: false,
   currentSongId: null,
