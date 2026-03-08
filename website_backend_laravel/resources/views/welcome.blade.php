@@ -66,7 +66,7 @@
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-8">
                         <a href="#features" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Features</a>
-                        <a href="{{ route('docs.show', 'index') }}" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Documentation</a>
+                        <!-- <a href="{{ route('docs.show', 'index') }}" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Documentation</a> -->
                         <a href="#preview" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Preview</a>
                         <a href="#why" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Why</a>
                         <a href="#plans" class="hover:text-brand-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Plans</a>
