@@ -68,7 +68,6 @@ jobs:
             release/*.AppImage
             release/*.snap
           prerelease: true
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
