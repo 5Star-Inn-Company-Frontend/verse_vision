@@ -44,7 +44,8 @@ type OperatorState = {
   translationEnabledHausa: boolean
   translationEnabledIgbo: boolean
   translationEnabledFrench: boolean
-  translations: Record<string, string | undefined> | null
+  translationEnabledEnglish: boolean
+  translations: Record<string, string> | null
   translationEngine: 'openai' | 'marian'
   scriptureDetectionEngine: 'openai' | 'offline'
   offlineStatus: 'stopped' | 'starting' | 'downloading' | 'loading' | 'ready' | 'error' | 'installing_deps' | 'python_missing'
@@ -193,6 +194,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
   translationEnabledHausa: false,
   translationEnabledIgbo: false,
   translationEnabledFrench: false,
+  translationEnabledEnglish: true,
   translations: null,
   translationEngine: 'marian',
   scriptureDetectionEngine: 'offline',
@@ -320,6 +322,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       translationEnabledHausa: s.translationEnabledHausa ?? get().translationEnabledHausa,
       translationEnabledIgbo: s.translationEnabledIgbo ?? get().translationEnabledIgbo,
       translationEnabledFrench: s.translationEnabledFrench ?? get().translationEnabledFrench,
+      translationEnabledEnglish: s.translationEnabledEnglish ?? get().translationEnabledEnglish,
       recordingEnabled: s.recordingEnabled ?? get().recordingEnabled,
       countdownEndAt: s.countdownEndAt ?? get().countdownEndAt,
       scriptureDetectionEngine: s.scriptureDetectionEngine ?? get().scriptureDetectionEngine,
@@ -393,22 +396,19 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
       overlayTextScale: s.overlayTextScale ?? prev.overlayTextScale,
       overlayFontFamily: s.overlayFontFamily ?? prev.overlayFontFamily,
     }}),
-  updateTranslationSettings: async (patch) => {
-    const s = await api.updateSettings(patch)
-    set({
-      translationStyle: s.translationStyle,
-      translationEnabledYoruba: s.translationEnabledYoruba,
-      translationEnabledHausa: s.translationEnabledHausa,
-      translationEnabledIgbo: s.translationEnabledIgbo,
-      translationEnabledFrench: s.translationEnabledFrench,
-    })
-      publish('translation-settings', {
-      translationStyle: s.translationStyle,
-      translationEnabledYoruba: s.translationEnabledYoruba,
-      translationEnabledHausa: s.translationEnabledHausa,
-      translationEnabledIgbo: s.translationEnabledIgbo,
-      translationEnabledFrench: s.translationEnabledFrench,
-    })
+  updateTranslationSettings: async (settings) => {
+    // Optimistic update
+    set((prev) => ({
+      translationStyle: settings.translationStyle ?? prev.translationStyle,
+      translationEnabledYoruba: settings.translationEnabledYoruba ?? prev.translationEnabledYoruba,
+      translationEnabledHausa: settings.translationEnabledHausa ?? prev.translationEnabledHausa,
+      translationEnabledIgbo: settings.translationEnabledIgbo ?? prev.translationEnabledIgbo,
+      translationEnabledFrench: settings.translationEnabledFrench ?? prev.translationEnabledFrench,
+      translationEnabledEnglish: settings.translationEnabledEnglish ?? prev.translationEnabledEnglish,
+    }))
+    
+    await api.updateSettings(settings)
+    publish('translation-settings', settings)
   },
   syncTranslationSettings: (s) => set((prev) => ({
     translationStyle: s.translationStyle ?? prev.translationStyle,
@@ -416,6 +416,7 @@ export const useOperatorStore = create<OperatorState>((set, get) => ({
     translationEnabledHausa: s.translationEnabledHausa ?? prev.translationEnabledHausa,
     translationEnabledIgbo: s.translationEnabledIgbo ?? prev.translationEnabledIgbo,
     translationEnabledFrench: s.translationEnabledFrench ?? prev.translationEnabledFrench,
+    translationEnabledEnglish: s.translationEnabledEnglish ?? prev.translationEnabledEnglish,
   })),
   fetchTranslations: async (text) => {
     if (!text) {

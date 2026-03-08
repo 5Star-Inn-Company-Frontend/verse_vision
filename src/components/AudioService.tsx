@@ -420,23 +420,50 @@ export default function AudioService() {
 
       if (shouldCheck) {
           const detectionEngine = engine === 'offline' ? 'offline' : 'openai'
-          const { queue, references } = await api.detectScripture(combinedText, detectionEngine)
-    
-          if (references && references.length > 0) {
-            transcriptionBufferRef.current = ''
-            console.log('[AudioService] Scripture detected, clearing buffer')
+          const { queue: backendQueue, references } = await api.detectScripture(combinedText, detectionEngine)
+          
+          let newItems: import('@/store/useOperatorStore').ScriptureItem[] = []
+
+          // If backend returned a valid queue (with text), use it.
+          if (backendQueue && backendQueue.length > 0) {
+             newItems = backendQueue
+          } else if (references && references.length > 0) {
+             console.log('[AudioService] Scripture detected but text fetch failed (or empty queue returned). References:', references)
+             // We do NOT fetch manually here because we can't persist the ID to backend for approval.
+             // Rely on backend to populate queue.
+          }
+
+          if (newItems.length > 0) {
+             const s = useOperatorStore.getState()
+             // Add to queue
+             const currentQueue = s.scriptureQueue
+             // Avoid duplicates if possible (simple check)
+             const uniqueItems = newItems.filter(n => !currentQueue.some(e => e.reference === n.reference && e.text === n.text))
+             
+             if (uniqueItems.length > 0) {
+               const updatedQueue = [...currentQueue, ...uniqueItems]
+               s.setScriptureQueue(updatedQueue)
+
+               // Auto-approve if enabled
+               if (s.autoApproveEnabled) {
+                 const first = uniqueItems[0]
+                 console.log('[AudioService] Auto-approving scripture:', first.reference)
+                 s.approveScripture(first.id)
+                 // Ensure overlay is shown
+                 if (!s.showScriptureOverlay) {
+                   s.toggleScriptureOverlay(true)
+                 }
+               }
+             }
           } else {
-            // Keep buffer but limit size
+            // No scripture found, manage buffer
             if (combinedText.length > 500) {
-              // Keep last 300 chars to maintain context for next check
               const cut = combinedText.slice(combinedText.length - 300)
               transcriptionBufferRef.current = cut.substring(cut.indexOf(' ') + 1)
             } else {
               transcriptionBufferRef.current = combinedText
             }
           }
-    
-          if (queue) setScriptureQueue(queue)
       } else {
           // Just update buffer without checking API
            if (combinedText.length > 500) {

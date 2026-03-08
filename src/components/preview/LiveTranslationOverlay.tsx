@@ -10,6 +10,7 @@ export default function LiveTranslationOverlay() {
     translationEnabledHausa, 
     translationEnabledIgbo, 
     translationEnabledFrench,
+    translationEnabledEnglish,
     overlayBackgroundColor,
     overlayBackgroundImage,
     overlayFontFamily,
@@ -63,14 +64,16 @@ export default function LiveTranslationOverlay() {
   if (translationStyle === 'subtitle') {
     return (
       <div className="absolute inset-0 flex flex-col justify-end px-4 py-8 space-y-2 overflow-hidden" style={containerStyle}>
-        <div className="p-2 shrink-0">
-          <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
-            Live Transcription
+        {translationEnabledEnglish && (
+          <div className="p-2 shrink-0">
+            <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
+              Live Transcription
+            </div>
+            <div className="leading-snug max-h-[40%]" style={{ fontSize: px(12) }}>
+              {text}
+            </div>
           </div>
-          <div className="leading-snug max-h-[40%]" style={{ fontSize: px(12) }}>
-            {text}
-          </div>
-        </div>
+        )}
         <div className="flex-1 overflow-y-auto space-y-2">
           {activeTranslations.map((t) => (
             <div key={t.label} className="p-2">
@@ -88,12 +91,14 @@ export default function LiveTranslationOverlay() {
     return (
       <div className="absolute inset-0 flex flex-col" style={containerStyle}>
         <div className="w-full h-full px-4 py-8 grid grid-cols-2 gap-4 overflow-y-auto">
-          <div className={`p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
-            <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
-              Live Transcription
+          {translationEnabledEnglish && (
+            <div className={`p-2 ${activeTranslations.length === 0 ? 'col-span-2' : ''}`}>
+              <div className="opacity-80 mb-1" style={{ fontSize: px(10) }}>
+                Live Transcription
+              </div>
+              <div className="leading-snug" style={{ fontSize: px(12) }}>{text}</div>
             </div>
-            <div className="leading-snug" style={{ fontSize: px(12) }}>{text}</div>
-          </div>
+          )}
           {activeTranslations.map((t) => (
             <div className="p-2" key={t.label}>
               <div className={`opacity-80 mb-1 ${t.color}`} style={{ fontSize: px(10) }}>{t.label}</div>

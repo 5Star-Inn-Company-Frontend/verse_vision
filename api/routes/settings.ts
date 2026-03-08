@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response) => {
 })
 
 router.put('/', async (req: Request, res: Response) => {
-  const { autoApproveEnabled, autoApproveDelayMs, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, activeAudioCameraId, showScriptureOverlay, recordingEnabled, countdownEndAt, translationEngine, scriptureDetectionEngine, cloudApiToken, overlayBackgroundColor, overlayBackgroundImage, overlayTextColor, overlayTextScale, overlayFontFamily } = req.body || {}
+  const { autoApproveEnabled, autoApproveDelayMs, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translationEnabledEnglish, activeAudioCameraId, showScriptureOverlay, recordingEnabled, countdownEndAt, translationEngine, scriptureDetectionEngine, cloudApiToken, overlayBackgroundColor, overlayBackgroundImage, overlayTextColor, overlayTextScale, overlayFontFamily } = req.body || {}
   const styles = ['subtitle', 'split', 'ticker'] as const
   const data = await settingsStore.set({
     autoApproveEnabled: typeof autoApproveEnabled === 'boolean' ? autoApproveEnabled : undefined,
@@ -19,6 +19,7 @@ router.put('/', async (req: Request, res: Response) => {
     translationEnabledHausa: typeof translationEnabledHausa === 'boolean' ? translationEnabledHausa : undefined,
     translationEnabledIgbo: typeof translationEnabledIgbo === 'boolean' ? translationEnabledIgbo : undefined,
     translationEnabledFrench: typeof translationEnabledFrench === 'boolean' ? translationEnabledFrench : undefined,
+    translationEnabledEnglish: typeof translationEnabledEnglish === 'boolean' ? translationEnabledEnglish : undefined,
     activeAudioCameraId: typeof activeAudioCameraId === 'string' ? activeAudioCameraId : undefined,
     showScriptureOverlay: typeof showScriptureOverlay === 'boolean' ? showScriptureOverlay : undefined,
     recordingEnabled: typeof recordingEnabled === 'boolean' ? recordingEnabled : undefined,

@@ -283,8 +283,18 @@ class AiController extends Controller
         ]);
 
         // Return only the content JSON part as expected by frontend
-        $content = $data['choices'][0]['message']['content'] ?? '{}';
-        return response()->json(json_decode($content));
+        $content = $data['choices'][0]['message']['content'] ?? '{"text": ""}';
+        
+        // Strip markdown code blocks if present
+        $content = preg_replace('/^```json\s*|\s*```$/', '', $content);
+        
+        $json = json_decode($content);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::error("JSON Decode Error in getScriptureText: " . json_last_error_msg() . " Content: " . $content);
+            return response()->json(['text' => '']);
+        }
+        
+        return response()->json($json);
     }
 
     public function getScriptureText(Request $request)
@@ -328,8 +338,18 @@ class AiController extends Controller
             'meta' => $data,
         ]);
 
-        $content = $data['choices'][0]['message']['content'] ?? '{}';
-        return response()->json(json_decode($content));
+        $content = $data['choices'][0]['message']['content'] ?? '{"text": ""}';
+        
+        // Strip markdown code blocks if present
+        $content = preg_replace('/^```json\s*|\s*```$/', '', $content);
+        
+        $json = json_decode($content);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::error("JSON Decode Error in getScriptureText: " . json_last_error_msg() . " Content: " . $content);
+            return response()->json(['text' => '']);
+        }
+        
+        return response()->json($json);
     }
 
     public function fetchLyrics(Request $request)

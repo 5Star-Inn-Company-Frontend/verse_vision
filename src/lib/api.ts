@@ -84,6 +84,19 @@ export const api = {
     const json = await res.json()
     return json.data // returns { references, queue }
   },
+  getScriptureText: async (reference: string, version: string = 'NIV') => {
+    try {
+      const res = await fetch(`${BASE}/ai/scripture/text`, {
+        method: 'POST',
+        headers: api._headers(),
+        body: JSON.stringify({ reference, version }),
+      })
+      const json = await res.json()
+      return json.text || ''
+    } catch {
+      return ''
+    }
+  },
   addManualScripture: async (data: { reference: string; translation: string; text?: string }) => {
     const res = await fetch(`${BASE}/ai/scripture/detect`, {
       method: 'POST',

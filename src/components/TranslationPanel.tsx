@@ -9,6 +9,7 @@ export default function TranslationPanel() {
     translationEnabledHausa,
     translationEnabledIgbo,
     translationEnabledFrench,
+    translationEnabledEnglish,
     translationEngine,
     loadSettings,
     updateTranslationSettings,
@@ -54,7 +55,7 @@ export default function TranslationPanel() {
         if (json.success && json.data) setLocalStatus(json.data.status)
       } catch {}
     })()
-  }, [loadSettings, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translationEngine])
+  }, [loadSettings, translationStyle, translationEnabledYoruba, translationEnabledHausa, translationEnabledIgbo, translationEnabledFrench, translationEnabledEnglish, translationEngine])
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
@@ -168,6 +169,13 @@ export default function TranslationPanel() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={Boolean(translationEnabledEnglish)} onChange={(e) => {
+            if (e.target.checked && !checkLanguageLimit(true)) return
+            updateTranslationSettings({ translationEnabledEnglish: e.target.checked })
+          }} />
+          English (Source)
+        </label>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={Boolean(translationEnabledYoruba)} onChange={(e) => {
             if (e.target.checked && !checkLanguageLimit(true)) return

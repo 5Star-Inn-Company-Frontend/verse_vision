@@ -8,6 +8,7 @@ export type AppSettings = {
   translationEnabledHausa: boolean
   translationEnabledIgbo: boolean
   translationEnabledFrench: boolean
+  translationEnabledEnglish: boolean
   activeAudioCameraId?: string | null
   showLyricsOverlay?: boolean
   currentSongId?: string | null
@@ -68,6 +69,7 @@ export const settingsStore = {
       translationEnabledHausa: map.get('translationEnabledHausa') === 'true' ? true : defaults.translationEnabledHausa,
       translationEnabledIgbo: map.get('translationEnabledIgbo') === 'true' ? true : defaults.translationEnabledIgbo,
       translationEnabledFrench: map.get('translationEnabledFrench') === 'true' ? true : defaults.translationEnabledFrench,
+      translationEnabledEnglish: map.get('translationEnabledEnglish') !== 'false', // Default true
       activeAudioCameraId: (map.get('activeAudioCameraId') as string) ?? defaults.activeAudioCameraId ?? null,
       showLyricsOverlay: map.get('showLyricsOverlay') === 'true' ? true : defaults.showLyricsOverlay,
       currentSongId: (map.get('currentSongId') as string) ?? defaults.currentSongId ?? null,
@@ -104,6 +106,7 @@ export const settingsStore = {
       ['translationEnabledHausa', String(next.translationEnabledHausa)],
       ['translationEnabledIgbo', String(next.translationEnabledIgbo)],
       ['translationEnabledFrench', String(next.translationEnabledFrench)],
+      ['translationEnabledEnglish', String(next.translationEnabledEnglish)],
       ['activeAudioCameraId', String(next.activeAudioCameraId ?? '')],
       ['showLyricsOverlay', String(next.showLyricsOverlay ?? false)],
       ['currentSongId', String(next.currentSongId ?? '')],

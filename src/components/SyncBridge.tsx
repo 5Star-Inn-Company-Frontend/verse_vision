@@ -29,6 +29,7 @@ export default function SyncBridge() {
           translationEnabledHausa?: boolean
           translationEnabledIgbo?: boolean
           translationEnabledFrench?: boolean
+          translationEnabledEnglish?: boolean
         })
       } else if (msg.name === 'live-translation') {
         const d = msg.data as { text: string; translations: Record<string, string> } | null

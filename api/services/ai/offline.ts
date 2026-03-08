@@ -137,8 +137,12 @@ class OfflineService {
   }
 
   private async start() {
+    if (this.process) return
+
+    this.intentionalStop = false
     this.status = 'starting'
     this.details = 'Checking Python installation...'
+    this.lastStartTime = Date.now()
     
     console.log("samji Starting checkPython")
     const hasPython = await this.checkPython()
@@ -218,35 +222,65 @@ class OfflineService {
 
     this.process.on('close', (code) => {
       console.log(`Offline AI process exited with code ${code}`)
-      if (code && code !== 0) {
-        // Recovery Logic
-        if (this.mode === 'script' && !this.hasTriedInstall) {
-             console.log('Script failed, attempting to install dependencies...')
-             this.installDependencies()
-                 .then(() => {
-                     console.log('Dependencies installed, retrying script...')
-                     this.hasTriedInstall = true
-                     this.start()
-                 })
-                 .catch(err => {
-                     console.error('Dependency install failed:', err)
-                     this.status = 'error'
-                     this.details = `Dependency install failed: ${err.message}`
-                 })
-             return
-        }
-
-        this.status = 'error'
-        // Common cause: Python not found or dependencies missing
-        this.details = `Process exited (code ${code}). Ensure Python 3 and required packages are installed.`
-      } else {
-        this.status = 'stopped'
-        this.details = `Process exited (code ${code})`
-      }
       this.process = null
-      // Reject all pending
-      while(this.queue.length) {
-        this.queue.shift()?.reject(new Error('Process exited'))
+      
+      // If stopped intentionally, just update status
+      if (this.intentionalStop) {
+        this.status = 'stopped'
+        this.details = 'Stopped manually'
+        return
+      }
+
+      // Check if it ran for a while (e.g., > 30 seconds)
+      // If so, reset retry count because it was likely a stable run that crashed later
+      if (Date.now() - this.lastStartTime > 30000) {
+        this.retryCount = 0
+      }
+
+      // Auto-restart logic
+      if (this.retryCount < 5) {
+        this.retryCount++
+        this.status = 'error' // Temporary status
+        const delay = 5000 * this.retryCount // Backoff: 5s, 10s, 15s...
+        this.details = `Process exited unexpectedly (code ${code}). Restarting in ${delay/1000}s (Attempt ${this.retryCount})...`
+        console.log(`[OfflineAI] ${this.details}`)
+        
+        setTimeout(() => {
+            console.log(`[OfflineAI] Restarting now...`)
+            this.start()
+        }, delay)
+      } else {
+         // Gave up
+         if (code && code !== 0) {
+             // Try install dependencies as last resort if we haven't
+            if (this.mode === 'script' && !this.hasTriedInstall) {
+                console.log('Script failed repeatedly, attempting to install dependencies...')
+                this.installDependencies()
+                    .then(() => {
+                        console.log('Dependencies installed, retrying script...')
+                        this.hasTriedInstall = true
+                        this.retryCount = 0 // Reset for this new attempt
+                        this.start()
+                    })
+                    .catch(err => {
+                        console.error('Dependency install failed:', err)
+                        this.status = 'error'
+                        this.details = `Dependency install failed: ${err.message}`
+                    })
+                return
+           }
+           
+           this.status = 'error'
+           this.details = `Process crashed repeatedly (code ${code}). Please check logs.`
+         } else {
+           this.status = 'stopped'
+           this.details = `Process exited (code ${code})`
+         }
+         
+         // Reject pending
+         while(this.queue.length) {
+            this.queue.shift()?.reject(new Error('Process exited and max retries reached'))
+         }
       }
     })
     
@@ -258,6 +292,7 @@ class OfflineService {
   }
 
   public stop() {
+    this.intentionalStop = true
     if (this.process) {
       console.log('Stopping Offline AI service...')
       this.process.kill()

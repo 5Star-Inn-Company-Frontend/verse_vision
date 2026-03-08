@@ -129,12 +129,14 @@ router.post('/scripture/detect', async (req: Request, res: Response) => {
 
   for (const { reference, version } of merged.slice(0, 5)) {
     const scriptureText = await getScriptureText(reference, version)
-    await scriptureStore.detect({ 
-      reference, 
-      translation: version, 
-      text: scriptureText || text, // Fallback to transcript if fetch fails
-      confidence: 0.9 
-    })
+    if (scriptureText) {
+      await scriptureStore.detect({ 
+        reference, 
+        translation: version, 
+        text: scriptureText, 
+        confidence: 0.9 
+      })
+    }
   }
   const queue = await scriptureStore.getQueue()
   res.json({ success: true, data: { references: merged, queue, currentVersion: globalDefaultVersion } })
